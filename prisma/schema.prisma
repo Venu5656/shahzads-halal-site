@@ -1,0 +1,343 @@
+// Shahzad's Halal Food — data model.
+//
+// Conventions enforced across this schema:
+//   * Money is ALWAYS integer cents (Int). Never Float, never Decimal dollars.
+//   * Every timestamp is stored in UTC and rendered in America/New_York.
+//   * Anything shown on a past order is snapshotted onto the order, so editing
+//     the menu can never rewrite history.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- accounts
+
+enum Role {
+  CUSTOMER
+  MANAGER
+  OWNER
+}
+
+model User {
+  id                String    @id @default(cuid())
+  name              String
+  /// E.164, e.g. +17325551234. Unique across the platform.
+  phone             String    @unique
+  phoneVerified     Boolean   @default(false)
+  /// Optional — used for emailed receipts only.
+  email             String?
+  role              Role      @default(CUSTOMER)
+  marketingOptIn    Boolean   @default(false)
+  /// Sessions issued before this instant are rejected ("sign out everywhere").
+  sessionsValidFrom DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLoginAt       DateTime?
+
+  orders       Order[]
+  cart         Cart?
+  auditLogs    AuditLog[]    @relation("AuditActor")
+  priceChanges PriceChange[]
+  invitesSent  StaffInvite[] @relation("InviteCreatedBy")
+
+  @@index([role])
+}
+
+/// One row per issued OTP. The code itself is never stored — only a hash.
+model OtpCode {
+  id            String    @id @default(cuid())
+  phone         String
+  codeHash      String
+  expiresAt     DateTime
+  attempts      Int       @default(0)
+  consumedAt    DateTime?
+  /// Hashed request IP, for per-IP rate limiting without storing raw IPs.
+  requestIpHash String?
+  createdAt     DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@index([expiresAt])
+}
+
+/// Pending invitation for a manager, redeemed on first OTP login.
+model StaffInvite {
+  id          String    @id @default(cuid())
+  phone       String
+  role        Role
+  createdById String
+  createdBy   User      @relation("InviteCreatedBy", fields: [createdById], references: [id])
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([phone])
+}
+
+// -------------------------------------------------------------------- menu
+
+enum ItemTag {
+  HALAL
+  VEGGIE
+  SPICY
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model MenuItem {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String
+  /// Path under /public, e.g. /img/combo-rice.webp
+  imagePath       String
+  /// NULL means "price not set yet" — such an item cannot be ordered.
+  basePriceCents  Int?
+  /// Merchandising label shown on the card, e.g. "Signature" or "Must-try".
+  badge           String?
+  categoryId      String
+  category        Category  @relation(fields: [categoryId], references: [id])
+  isAvailable     Boolean   @default(true)
+  /// When set and in the future, the item is sold out until this instant.
+  outOfStockUntil DateTime?
+  sortOrder       Int       @default(0)
+  isActive        Boolean   @default(true)
+  tags            ItemTag[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  optionGroups MenuItemOptionGroup[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  priceChanges PriceChange[]
+
+  @@index([categoryId, sortOrder])
+}
+
+/// e.g. "Sauce choice" (min 0, max 2, free) or "Extra meat" (+$3.00).
+model OptionGroup {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  /// Minimum number of options the customer must pick.
+  minSelect Int      @default(0)
+  /// Maximum number of options the customer may pick.
+  maxSelect Int      @default(1)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  options Option[]
+  items   MenuItemOptionGroup[]
+}
+
+model Option {
+  id            String      @id @default(cuid())
+  optionGroupId String
+  optionGroup   OptionGroup @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String
+  /// Surcharge in cents; 0 for free choices such as sauces.
+  priceCents    Int         @default(0)
+  isAvailable   Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([optionGroupId, slug])
+}
+
+/// Option groups attach to many items, and items have many groups.
+model MenuItemOptionGroup {
+  menuItemId    String
+  menuItem      MenuItem    @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  optionGroupId String
+  optionGroup   OptionGroup @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+  sortOrder     Int         @default(0)
+
+  @@id([menuItemId, optionGroupId])
+}
+
+// -------------------------------------------------------------------- cart
+
+/// Server-side cart for a signed-in customer. Guests keep theirs in
+/// localStorage and it is merged into this one at sign-in.
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id                String   @id @default(cuid())
+  cartId            String
+  cart              Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItemId        String
+  menuItem          MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  quantity          Int      @default(1)
+  /// Chosen option ids, resolved and re-priced server-side at checkout.
+  selectedOptionIds String[]
+  note              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([cartId])
+}
+
+// ------------------------------------------------------------------ orders
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CONFIRMED
+  PREPARING
+  READY
+  PICKED_UP
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  PAYPAL
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  /// Short human code shown to staff and customers, e.g. SH-4821.
+  orderNumber String      @unique
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  status      OrderStatus @default(PENDING_PAYMENT)
+
+  subtotalCents Int
+  taxCents      Int
+  tipCents      Int @default(0)
+  totalCents    Int
+  refundedCents Int @default(0)
+
+  paymentIntentId String?        @unique
+  paymentMethod   PaymentMethod?
+  stripeRefundId  String?
+
+  /// Requested pickup time (NULL means ASAP).
+  pickupAt     DateTime?
+  customerNote String?
+
+  /// Snapshot of who to call, so a later profile edit cannot change history.
+  customerNameSnapshot  String
+  customerPhoneSnapshot String
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  /// PENDING_PAYMENT orders are swept after this instant (30 minutes).
+  expiresAt      DateTime?
+  paidAt         DateTime?
+  confirmedAt    DateTime?
+  preparingAt    DateTime?
+  readyAt        DateTime?
+  pickedUpAt     DateTime?
+  cancelledAt    DateTime?
+  refundedAt     DateTime?
+  printedAt      DateTime?
+  /// Set when a manager has silenced the new-order alarm for this order.
+  acknowledgedAt DateTime?
+
+  items OrderItem[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Kept for analytics; nulled if the item is ever deleted from the menu.
+  menuItemId String?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  nameSnapshot    String
+  unitPriceCents  Int
+  quantity        Int
+  /// [{ groupName, optionName, priceCents }] as chosen at checkout time.
+  selectedOptions Json     @default("[]")
+  note            String?
+  lineTotalCents  Int
+  createdAt       DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// ------------------------------------------------------- store + audit trail
+
+/// Single-row table (id = "store") holding operational switches.
+model StoreSettings {
+  id             String   @id @default("store")
+  /// "Kitchen is slammed" — blocks all new orders when true.
+  orderingPaused Boolean  @default(false)
+  pausedMessage  String?
+  /// Per-day overrides of today's hours, as { "2026-09-20": [10, 24] }.
+  hoursOverrides Json     @default("{}")
+  /// Sales tax rate in parts per million (6.625% = 66_250). PLACEHOLDER until
+  /// the owner confirms the rate and whether listed prices include it.
+  taxRatePpm     Int      @default(66250)
+  updatedAt      DateTime @updatedAt
+}
+
+model PriceChange {
+  id            String   @id @default(cuid())
+  menuItemId    String
+  menuItem      MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  oldPriceCents Int?
+  newPriceCents Int?
+  changedById   String
+  changedBy     User     @relation(fields: [changedById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([menuItemId, createdAt])
+}
+
+/// Every manager action writes one of these.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  oldValue   Json?
+  newValue   Json?
+  /// Hashed IP — we never store raw addresses.
+  ipHash     String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+/// Stripe webhook de-duplication: an event id is processed at most once.
+model WebhookEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}
