@@ -13,24 +13,45 @@ same markup, same stylesheet, same animations. See
 
 ## Local setup
 
-Requires Node 22+ and Docker (for Postgres).
+Requires Node 22+ and any Postgres 14+. Docker is optional — see below.
 
 ```bash
 npm install
 cp .env.example .env          # then fill in what you have
-docker compose up -d db       # Postgres on localhost:5432
-npx prisma migrate dev        # create the schema
+createdb shahzads             # needs Postgres running; see options below
+npx prisma migrate deploy     # create the schema
 npm run db:seed               # 4 categories, 14 items, 6 sauces
 npm run dev                   # http://localhost:3000
 ```
 
-No Docker? Any Postgres 14+ works — point `DATABASE_URL` at it. With Homebrew:
+Open **http://localhost:3000**, not `127.0.0.1:3000` — the Next dev server
+blocks its own dev resources on a different host, which leaves the page
+unhydrated and the menu grid empty.
+
+### Getting a Postgres
+
+**Homebrew (simplest on a Mac):**
 
 ```bash
-brew install postgresql@16 && brew services start postgresql@16
+brew install postgresql@16
+brew services start postgresql@16
 createdb shahzads
 # DATABASE_URL="postgresql://$USER@localhost:5432/shahzads?schema=public"
 ```
+
+Your macOS username is the database superuser and there is no password, which
+is why the URL has no `:password` in it.
+
+**Docker (matches production more closely, and is what CI uses):** install
+Docker Desktop (`brew install --cask docker`, then launch it once), then:
+
+```bash
+npm run db:up                 # docker compose up -d db
+# DATABASE_URL="postgresql://shahzad:shahzad@localhost:5432/shahzads?schema=public"
+```
+
+Note that `pip install docker` installs a Python client library, not Docker
+itself — it will not give you the `docker` command.
 
 ## Scripts
 
