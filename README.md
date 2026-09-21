@@ -8,8 +8,9 @@ The marketing homepage from the old static site is preserved exactly as it was �
 same markup, same stylesheet, same animations. See
 [Homepage port](#the-homepage-port) before touching it.
 
-**Status: phase 1 of 8 (scaffold).** Nothing is orderable yet. See
-[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from you.
+**Status: phase 2 of 8 (accounts).** People can sign up and log in; nothing is
+orderable yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
+you.
 
 ## Local setup
 
@@ -18,6 +19,7 @@ Requires Node 22+ and any Postgres 14+. Docker is optional — see below.
 ```bash
 npm install
 cp .env.example .env          # then fill in what you have
+openssl rand -base64 32       # paste into AUTH_SECRET in .env — required
 createdb shahzads             # needs Postgres running; see options below
 npx prisma migrate deploy     # create the schema
 npm run db:seed               # 4 categories, 14 items, 6 sauces
@@ -70,15 +72,16 @@ itself — it will not give you the `docker` command.
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in. Never commit `.env`. Only
-`DATABASE_URL` is needed today; the rest land in later phases.
+Copy `.env.example` to `.env` and fill in. Never commit `.env`. `DATABASE_URL`
+and `AUTH_SECRET` are needed today; the rest land in later phases.
 
 | Variable | Needed by | Notes |
 |----------|-----------|-------|
 | `DATABASE_URL` | now | Postgres connection string |
-| `NEXT_PUBLIC_SITE_URL` | now | Used for absolute links and callbacks |
-| `AUTH_SECRET` | phase 2 | `openssl rand -base64 32` |
-| `TWILIO_*` | phase 2 | OTP SMS via Twilio Verify; needs A2P 10DLC |
+| `NEXT_PUBLIC_SITE_URL` | now | Absolute links; also decides whether cookies are marked Secure |
+| `AUTH_SECRET` | now | **Required.** `openssl rand -base64 32`. Changing it signs everyone out |
+| `SMS_PROVIDER` | now | `console` (default) while SMS is on hold |
+| `TWILIO_*` | later | Real SMS, once A2P 10DLC registration is approved |
 | `STRIPE_*` | phase 4 | Payments and webhook signature verification |
 | `RESEND_API_KEY`, `RECEIPT_FROM_EMAIL` | phase 4 | Emailed receipts |
 | `PRINT_AGENT_TOKEN` | phase 6 | Shared secret for the in-store printer |
@@ -91,7 +94,14 @@ src/app/                 App Router pages
   layout.tsx             <html>/<body>, metadata, global stylesheet
   page.tsx               the homepage markup (ported 1:1)
   globals.css            Tailwind + the original homepage stylesheet
+src/app/(auth)/          login, signup, verify screens
+src/app/account/         the customer's own account page
+src/app/admin/           manager area (placeholder, role-gated)
+src/proxy.ts             optimistic cookie check (Next 16's renamed middleware)
 src/components/home/     homepage behaviour (client components)
+src/components/auth/     login/signup/verify forms
+src/components/ui/       form fields, buttons, headers shared by new pages
+src/lib/auth/            sessions, one-time codes, rate limits, validation
 src/lib/                 hours, menu data, money, Prisma client
 prisma/schema.prisma     the data model
 prisma/seed.ts           idempotent menu seed
@@ -133,12 +143,72 @@ live clock and the phase of the auto-advancing animations.
 The "Order now" buttons still point at DoorDash. They switch to our own
 checkout in phase 4.
 
+## Accounts and login
+
+There are no passwords. People enter their mobile number, we text a 6-digit
+code, and the code signs them in — the same thing they already do for every
+delivery app, and nothing for them (or us) to leak.
+
+**SMS is on hold**, so codes are not texted yet. The `console` provider prints
+the code to the server terminal and shows it on the verify screen, which is
+enough to build and test the whole flow. A production build **refuses** to use
+it, so a real deployment without a texting provider fails closed rather than
+showing codes to strangers. Switching to Twilio later means writing one
+`SmsSender` and setting `SMS_PROVIDER=twilio` — no other change.
+
+### The screens
+
+| Route | What it does |
+|-------|--------------|
+| `/login` | Number in, code out. Has a Log in / Sign up switch |
+| `/signup` | Name, number, optional email, optional marketing opt-in |
+| `/verify` | The 6 digits, with a 30-second resend countdown |
+| `/signup/details` | Name, for someone who logged in with an unknown number |
+| `/account` | Edit details, change number, log out, log out everywhere |
+| `/admin` | Manager area. Placeholder, but already behind the role check |
+
+The homepage header gains **Log in** and **Sign up**, or your name when signed
+in; on phones they live in the burger drawer.
+
+### How it is kept safe
+
+- **Sessions live in the database.** The browser holds a random token; we store
+  only its SHA-256. "Log out of all devices" deletes the rows, so a stolen
+  cookie stops working immediately — a signed token could not do that.
+- **Codes are never stored.** Only an HMAC of them, keyed with `AUTH_SECRET`, so
+  a database dump cannot be brute-forced back into working codes.
+- **A code belongs to one browser.** It is bound to a random challenge held in
+  an httpOnly cookie, so a code read over someone's shoulder is useless
+  elsewhere.
+- **Rate limits:** 5 wrong guesses burn a code, 30 seconds between codes, 5
+  codes per number per hour, 20 per IP per hour. IP addresses are only ever
+  stored hashed.
+- **Account existence is never revealed.** Signing up with a number that already
+  has an account just logs that account in; logging in with an unknown number
+  asks for a name only *after* the code proves the number belongs to them.
+- **Every server action re-checks the session and validates its own input** with
+  Zod. The proxy (`src/proxy.ts`, what used to be called middleware) only does a
+  fast cookie check; the real gate is `src/lib/auth/dal.ts`.
+- Non-staff get a **404** on `/admin`, not a 403 — the manager area does not
+  advertise that it exists.
+
+### Making yourself the owner
+
+```bash
+SEED_OWNER_PHONE="+1XXXXXXXXXX" npm run db:seed   # before first login
+# or, for an account that already exists:
+psql shahzads -c "UPDATE \"User\" SET role = 'OWNER' WHERE phone = '+1XXXXXXXXXX';"
+```
+
 ## Testing
 
 ```bash
-npm test          # pricing, tax, opening hours, menu data
-npm run test:e2e  # homepage renders, menu filters, drawer, no third-party assets
+npm test          # pricing, tax, opening hours, menu data, OTP rules, phone parsing
+npm run test:e2e  # homepage, plus sign-up/login/verify/profile end to end
 ```
+
+The end-to-end tests sign up and log in for real against your database, using
+fictional 555-01xx numbers that they clean up afterwards.
 
 End-to-end runs against a production build on port 3100, in desktop Chromium and
 an iPhone 13 (WebKit) profile.
@@ -158,3 +228,7 @@ Twilio test credentials.
   snapshotted onto the order, so editing the menu never rewrites a past order.
 - **Every input is validated server-side with Zod**, on both route handlers and
   server actions, and every one of them re-checks the session and role.
+- **The legacy stylesheet owns some very plain class names.** Its menu grid was
+  renamed to `.menu-grid` because `.grid` collided with Tailwind's own `grid`
+  utility and silently gave any grid on the site 270px columns. If a Tailwind
+  utility ever behaves strangely, check `globals.css` for a class of that name.

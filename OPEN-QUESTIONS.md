@@ -12,11 +12,26 @@ real customer until the items marked **BLOCKER** are answered.
 | 2 | **NJ sales tax treatment.** Is prepared food taxed at 6.625%? Are menu prices tax-inclusive or is tax added at checkout? Is New Brunswick in an Urban Enterprise Zone (which would halve the rate)? | `StoreSettings.taxRatePpm` defaults to `66_250` (6.625%); `NJ_SALES_TAX_PPM` in `src/lib/money.ts`. Confirm with the restaurant's accountant — I am not qualified to decide this. | Phase 4 |
 | 3 | **Who is legally taking the payments.** The Stripe account holder must be the restaurant's business entity, with its own EIN and bank account — not me and not you personally. | No code yet. | Phase 4 |
 | 4 | **Stripe account** — created, business details verified, bank account attached. Also: is PayPal enabled on it? (I will verify whether Stripe's PayPal payment method is available for US accounts before writing any PayPal code.) | `.env.example` → `STRIPE_*` | Phase 4 |
-| 5 | **Twilio account + A2P 10DLC registration.** US carriers reject unregistered application-to-person SMS. Approval takes days to weeks — start this now, it is the longest lead time in the project. | `.env.example` → `TWILIO_*` | Phase 2 |
+| 5 | **Twilio account + A2P 10DLC registration.** US carriers reject unregistered application-to-person SMS. Approval takes days to weeks — still the longest lead time in the project. You asked to hold off on SMS, so login is built and working with codes shown on screen in development; **nobody outside your machine can log in until this is done**, because a production build refuses to display codes. | `SMS_PROVIDER` in `.env.example`; `src/lib/auth/sms.ts` | Before launch |
 | 6 | **Printer decision** (see phase 6 options) and whether there is a PC or spare tablet in the store. | No code yet. | Phase 6 |
 | 7 | **Domain name** and who controls the DNS. Needed for Apple Pay domain verification and for the SMS/email sender identity. | `.env.example` → `NEXT_PUBLIC_SITE_URL` | Phase 4 |
-| 8 | **Privacy policy and terms pages.** We will store phone numbers and order history, and send SMS — both require a published privacy policy, and the SMS consent language has to appear at sign-up. | No code yet; sign-up already has the consent checkboxes wired for it. | Phase 2 |
+| 8 | **Privacy policy and terms pages.** We store phone numbers and order history and will send SMS, which requires a published privacy policy, and the consent wording has to appear at sign-up. The sign-up and login screens already carry the disclosure line ("we'll text a 6-digit code… msg & data rates may apply") and an unticked marketing opt-in; what is missing is the actual policy pages to link to. Twilio will ask to see them during A2P registration. | `src/components/auth/SignupForm.tsx`, `LoginForm.tsx` | Before launch |
 | 9 | **Owner's phone number** for the first `OWNER` account. | `prisma/seed.ts` reads `SEED_OWNER_PHONE`; nothing is created without it. | Phase 2 |
+
+## Decisions I made in phase 2
+
+1. **No passwords.** Login is the phone number plus a 6-digit code — the same
+   as every delivery app, and there is no password to leak, reset or support.
+2. **Sessions are stored in the database**, not signed tokens, so "log out of
+   all devices" takes effect immediately.
+3. **US and Canadian numbers only** (+1). International numbers are refused:
+   the store is in New Brunswick, and SMS to far-flung numbers is the usual
+   route for pumping fraud at your expense.
+4. **A number can hold exactly one account.** Signing up with a number that
+   already exists simply logs that account in.
+5. **Managers are invited, never self-registered.** The invite screen itself is
+   phase 5; today an owner is set with `SEED_OWNER_PHONE` or one SQL update
+   (see the README).
 
 ## Smaller decisions I have made provisionally
 
@@ -42,6 +57,10 @@ These have a working default. Tell me if any is wrong and I will change it.
    pickup — 15? 20? Needed for the checkout time picker in phase 3/4.
 8. **Order cut-off.** Should online ordering stop before the 3 AM close (say, at
    2:45 AM) so the kitchen can finish?
+9. **How long people stay logged in.** Currently 30 days, extending each time
+   they visit. Shorter is safer, longer is friendlier at 2 AM.
+10. **Marketing texts are opt-in and unticked by default.** That is the safe
+    reading of the TCPA, but confirm with whoever handles your compliance.
 
 ## Things I flagged as risks
 

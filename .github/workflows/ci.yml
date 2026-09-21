@@ -11,6 +11,9 @@ concurrency:
 
 env:
   DATABASE_URL: postgresql://shahzad:shahzad@localhost:5432/shahzads?schema=public
+  # CI-only throwaway value; the real one lives in the deployment's secrets.
+  AUTH_SECRET: ci-secret-not-used-anywhere-real-000000
+  NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
 
 jobs:
   checks:
@@ -56,6 +59,17 @@ jobs:
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shahzad
+          POSTGRES_PASSWORD: shahzad
+          POSTGRES_DB: shahzads
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U shahzad -d shahzads"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -64,8 +78,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
+      - run: npx prisma migrate deploy
       - run: npx playwright install --with-deps chromium webkit
+      # The auth tests sign up and log in for real; SMS is in console mode.
       - run: npm run test:e2e
+        env:
+          ALLOW_CONSOLE_SMS: "1"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
