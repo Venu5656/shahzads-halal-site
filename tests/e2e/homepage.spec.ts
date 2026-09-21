@@ -31,6 +31,8 @@ test("renders the ported homepage", async ({ page }) => {
 
 test("filters the menu by category", async ({ page }) => {
   await page.goto("/");
+  // The grid is built by the client script; wait for it before filtering it.
+  await expect(page.locator(".menu-grid .card")).toHaveCount(14);
 
   await page.getByRole("tab", { name: /^Gyros/ }).click();
   await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(4);
