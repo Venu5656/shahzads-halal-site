@@ -11,6 +11,9 @@
 
 import { PrismaClient, type ItemTag } from "@prisma/client";
 import { CATEGORIES, MENU_ITEMS, SAUCES } from "../src/lib/menu-data";
+import { hashPassword } from "../src/lib/auth/password";
+import { normalizePhone } from "../src/lib/auth/phone";
+import { passwordProblem } from "../src/lib/auth/login-policy";
 
 const prisma = new PrismaClient();
 
@@ -128,20 +131,43 @@ async function main() {
   }
 
   // --- owner account (optional) -------------------------------------------
-  // Set SEED_OWNER_PHONE=+1XXXXXXXXXX to create the first OWNER login.
-  const ownerPhone = process.env.SEED_OWNER_PHONE;
-  if (ownerPhone) {
+  // SEED_OWNER_PHONE=+1XXXXXXXXXX SEED_OWNER_PASSWORD='...' npm run db:seed
+  const rawOwnerPhone = process.env.SEED_OWNER_PHONE;
+  if (rawOwnerPhone) {
+    const ownerPhone = normalizePhone(rawOwnerPhone);
+    if (!ownerPhone) throw new Error(`SEED_OWNER_PHONE is not a valid US number: ${rawOwnerPhone}`);
+
+    const ownerPassword = process.env.SEED_OWNER_PASSWORD;
+    if (ownerPassword) {
+      const problem = passwordProblem(ownerPassword, ownerPhone);
+      if (problem) throw new Error(`SEED_OWNER_PASSWORD: ${problem}`);
+    }
+
+    const existing = await prisma.user.findUnique({ where: { phone: ownerPhone } });
     await prisma.user.upsert({
       where: { phone: ownerPhone },
-      update: { role: "OWNER" },
+      // Never overwrite a password that is already set.
+      update: {
+        role: "OWNER",
+        ...(ownerPassword && !existing?.passwordHash
+          ? { passwordHash: await hashPassword(ownerPassword) }
+          : {}),
+      },
       create: {
         phone: ownerPhone,
         name: process.env.SEED_OWNER_NAME ?? "Owner",
         role: "OWNER",
-        phoneVerified: false,
+        ...(ownerPassword ? { passwordHash: await hashPassword(ownerPassword) } : {}),
       },
     });
-    console.log(`Owner account ready for ${ownerPhone.slice(0, 2)}••••${ownerPhone.slice(-2)}`);
+
+    const hasPassword = Boolean(ownerPassword || existing?.passwordHash);
+    console.log(
+      `Owner account ready for ${ownerPhone.slice(0, 2)}••••${ownerPhone.slice(-2)}` +
+        (hasPassword
+          ? ""
+          : " — no password set, so it cannot log in yet. Re-run with SEED_OWNER_PASSWORD, or sign up with that number and then set the role."),
+    );
   } else {
     console.log("SEED_OWNER_PHONE not set — no owner account created.");
   }
