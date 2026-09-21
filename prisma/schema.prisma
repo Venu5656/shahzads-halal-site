@@ -24,21 +24,20 @@ enum Role {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  name              String
+  id             String    @id @default(cuid())
+  name           String
   /// E.164, e.g. +17325551234. Unique across the platform.
-  phone             String    @unique
-  phoneVerified     Boolean   @default(false)
+  phone          String    @unique
+  phoneVerified  Boolean   @default(false)
   /// Optional — used for emailed receipts only.
-  email             String?
-  role              Role      @default(CUSTOMER)
-  marketingOptIn    Boolean   @default(false)
-  /// Sessions issued before this instant are rejected ("sign out everywhere").
-  sessionsValidFrom DateTime  @default(now())
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  lastLoginAt       DateTime?
+  email          String?
+  role           Role      @default(CUSTOMER)
+  marketingOptIn Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastLoginAt    DateTime?
 
+  sessions     Session[]
   orders       Order[]
   cart         Cart?
   auditLogs    AuditLog[]    @relation("AuditActor")
@@ -48,19 +47,54 @@ model User {
   @@index([role])
 }
 
-/// One row per issued OTP. The code itself is never stored — only a hash.
+/// A signed-in device. The browser holds a random token; only its SHA-256
+/// lives here, so a database leak cannot be replayed as a login.
+model Session {
+  /// SHA-256 (hex) of the session token held in the cookie.
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  /// HMAC of the sign-in IP — we never store raw addresses.
+  ipHash    String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  CHANGE_PHONE
+}
+
+/// One row per issued one-time code. The code itself is never stored — only
+/// an HMAC of it. The browser is tied to its row by a random challenge token
+/// in an httpOnly cookie, of which only the hash is kept here.
 model OtpCode {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   phone         String
+  purpose       OtpPurpose
   codeHash      String
+  challengeHash String     @unique
+  /// SIGNUP: { name, email, marketingOptIn } to create the account with.
+  payload       Json?
+  /// CHANGE_PHONE: the signed-in user asking for the change.
+  userId        String?
   expiresAt     DateTime
-  attempts      Int       @default(0)
+  attempts      Int        @default(0)
+  /// Set when the right code was entered.
+  verifiedAt    DateTime?
+  /// Set when the verification has been spent (signed in / account created).
   consumedAt    DateTime?
-  /// Hashed request IP, for per-IP rate limiting without storing raw IPs.
+  /// HMAC of the requesting IP, for per-IP rate limiting.
   requestIpHash String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime   @default(now())
 
   @@index([phone, createdAt])
+  @@index([requestIpHash, createdAt])
   @@index([expiresAt])
 }
 
