@@ -23,5 +23,8 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    // SMS is not wired up yet: the console provider shows codes on screen, and
+    // a production build refuses to use it unless this is set explicitly.
+    env: { ALLOW_CONSOLE_SMS: "1" },
   },
 });

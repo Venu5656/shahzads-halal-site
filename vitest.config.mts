@@ -9,6 +9,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // `server-only` throws outside a React Server Components bundle, which a
+      // unit test is not. The guard still applies in the real app.
+      "server-only": fileURLToPath(new URL("./tests/unit/server-only-stub.ts", import.meta.url)),
     },
   },
 });

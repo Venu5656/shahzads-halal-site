@@ -14,6 +14,15 @@ const eslintConfig = [
     ],
   },
   {
+    rules: {
+      // `_prev` is the unused first argument every useActionState action receives.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
     files: ["src/app/page.tsx", "src/components/home/**"],
     rules: {
       // The ported homepage must keep using plain <img>: next/image would
