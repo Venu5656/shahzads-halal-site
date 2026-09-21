@@ -26,8 +26,13 @@ enum Role {
 model User {
   id             String    @id @default(cuid())
   name           String
-  /// E.164, e.g. +17325551234. Unique across the platform.
+  /// E.164, e.g. +17325551234. Unique, and how people log in.
   phone          String    @unique
+  /// scrypt hash of the password. Null only for an invited manager who has not
+  /// set one yet.
+  passwordHash   String?
+  /// Nothing proves the number yet — SMS verification is deferred. The flag is
+  /// kept ready for when codes are switched on.
   phoneVerified  Boolean   @default(false)
   /// Optional — used for emailed receipts only.
   email          String?
@@ -64,41 +69,22 @@ model Session {
   @@index([expiresAt])
 }
 
-enum OtpPurpose {
-  SIGNUP
-  LOGIN
-  CHANGE_PHONE
-}
-
-/// One row per issued one-time code. The code itself is never stored — only
-/// an HMAC of it. The browser is tied to its row by a random challenge token
-/// in an httpOnly cookie, of which only the hash is kept here.
-model OtpCode {
-  id            String     @id @default(cuid())
-  phone         String
-  purpose       OtpPurpose
-  codeHash      String
-  challengeHash String     @unique
-  /// SIGNUP: { name, email, marketingOptIn } to create the account with.
-  payload       Json?
-  /// CHANGE_PHONE: the signed-in user asking for the change.
-  userId        String?
-  expiresAt     DateTime
-  attempts      Int        @default(0)
-  /// Set when the right code was entered.
-  verifiedAt    DateTime?
-  /// Set when the verification has been spent (signed in / account created).
-  consumedAt    DateTime?
-  /// HMAC of the requesting IP, for per-IP rate limiting.
-  requestIpHash String?
-  createdAt     DateTime   @default(now())
+/// One row per login attempt, for rate limiting. Kept short-lived: anything
+/// older than a day can be deleted.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  /// The number that was typed, whether or not it has an account.
+  phone     String
+  /// HMAC of the requesting IP — we never store raw addresses.
+  ipHash    String?
+  success   Boolean
+  createdAt DateTime @default(now())
 
   @@index([phone, createdAt])
-  @@index([requestIpHash, createdAt])
-  @@index([expiresAt])
+  @@index([ipHash, createdAt])
 }
 
-/// Pending invitation for a manager, redeemed on first OTP login.
+/// Pending invitation for a manager, redeemed on first login.
 model StaffInvite {
   id          String    @id @default(cuid())
   phone       String
