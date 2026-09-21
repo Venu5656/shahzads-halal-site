@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { startSignup } from "@/lib/auth/actions";
+import { signup } from "@/lib/auth/actions";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Checkbox, Field, FormAlert, SubmitButton } from "@/components/ui/form";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/login-policy";
 
 export function SignupForm({ next }: { next: string }) {
-  const [state, action, pending] = useActionState(startSignup, undefined);
+  const [state, action, pending] = useActionState(signup, undefined);
 
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
@@ -33,6 +35,14 @@ export function SignupForm({ next }: { next: string }) {
         required
         defaultValue={state?.values?.phone}
         error={state?.fieldErrors?.phone}
+        hint="This is what you'll log in with, and how we reach you about an order."
+      />
+      <PasswordField
+        label="Password"
+        name="password"
+        autoComplete="new-password"
+        error={state?.fieldErrors?.password}
+        hint={`At least ${MIN_PASSWORD_LENGTH} characters. A few random words beat one clever word.`}
       />
       <Field
         label="Email (optional)"
@@ -48,13 +58,9 @@ export function SignupForm({ next }: { next: string }) {
       <Checkbox name="marketingOptIn">
         Text me the occasional deal. Unticked by default — you can change this any time.
       </Checkbox>
-      <SubmitButton pending={pending} pendingLabel="Sending code…">
+      <SubmitButton pending={pending} pendingLabel="Creating account…">
         Create account
       </SubmitButton>
-      <p className="text-center text-[13px] leading-relaxed text-muted">
-        We&apos;ll text a 6-digit code to confirm your number, and use it to text you when
-        your order is ready. Msg &amp; data rates may apply.
-      </p>
     </form>
   );
 }

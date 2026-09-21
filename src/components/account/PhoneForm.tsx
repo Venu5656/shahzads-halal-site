@@ -1,16 +1,18 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { startPhoneChange } from "@/lib/auth/account-actions";
+import { changePhone } from "@/lib/auth/account-actions";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Field, FormAlert, SubmitButton } from "@/components/ui/form";
 
 export function PhoneForm({ current }: { current: string }) {
-  const [state, action, pending] = useActionState(startPhoneChange, undefined);
+  const [state, action, pending] = useActionState(changePhone, undefined);
   const [open, setOpen] = useState(false);
   const showForm = open || Boolean(state?.error || state?.fieldErrors);
 
   return (
     <div className="flex flex-col gap-4">
+      <FormAlert notice={state?.notice} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-[20px] font-medium">{current}</span>
         {!showForm ? (
@@ -37,12 +39,18 @@ export function PhoneForm({ current }: { current: string }) {
             autoFocus
             defaultValue={state?.values?.phone}
             error={state?.fieldErrors?.phone}
-            hint="We'll text a code to the new number before switching."
+            hint="You'll log in with this number from now on."
+          />
+          <PasswordField
+            label="Your password"
+            name="password"
+            autoComplete="current-password"
+            error={state?.fieldErrors?.password}
           />
           <div className="flex flex-wrap gap-3">
             <div className="min-w-[200px] flex-1 sm:flex-none">
-              <SubmitButton pending={pending} pendingLabel="Sending code…">
-                Text the new number
+              <SubmitButton pending={pending} pendingLabel="Saving…">
+                Change number
               </SubmitButton>
             </div>
             <button

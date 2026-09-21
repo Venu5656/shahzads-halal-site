@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PasswordForm } from "@/components/account/PasswordForm";
 import { PhoneForm } from "@/components/account/PhoneForm";
 import { ProfileForm } from "@/components/account/ProfileForm";
-import { FormAlert } from "@/components/ui/form";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { logoutEverywhere } from "@/lib/auth/actions";
 import { STAFF_ROLES, requireUser } from "@/lib/auth/dal";
@@ -36,13 +36,8 @@ function Panel({
   );
 }
 
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ updated?: string }>;
-}) {
+export default async function AccountPage() {
   const user = await requireUser("/account");
-  const { updated } = await searchParams;
   const firstName = user.name.split(" ")[0];
   const isStaff = STAFF_ROLES.includes(user.role);
 
@@ -58,12 +53,6 @@ export default async function AccountPage({
           </em>
         </h1>
 
-        {updated === "phone" ? (
-          <div className="mb-6 max-w-[720px]">
-            <FormAlert notice="Your phone number has been updated." />
-          </div>
-        ) : null}
-
         <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-5">
             <Panel title="Your details" id="details">
@@ -71,6 +60,9 @@ export default async function AccountPage({
             </Panel>
             <Panel title="Phone number" id="phone">
               <PhoneForm current={formatPhone(user.phone)} />
+            </Panel>
+            <Panel title="Password" id="password">
+              <PasswordForm />
             </Panel>
           </div>
 
@@ -95,8 +87,8 @@ export default async function AccountPage({
 
             <Panel title="Security" id="security">
               <p className="mb-5 text-muted">
-                Lost a phone or used a shared computer? Sign out everywhere and you&apos;ll need a
-                fresh code to get back in.
+                Lost a phone or used a shared computer? Sign out everywhere — every device will
+                need your password again. Changing your password does this too.
               </p>
               <form action={logoutEverywhere}>
                 <button type="submit" className="btn btn-ghost">

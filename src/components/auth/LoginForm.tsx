@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { startLogin } from "@/lib/auth/actions";
+import { login } from "@/lib/auth/actions";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Field, FormAlert, SubmitButton } from "@/components/ui/form";
 
 export function LoginForm({ next }: { next: string }) {
-  const [state, action, pending] = useActionState(startLogin, undefined);
+  const [state, action, pending] = useActionState(login, undefined);
 
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
@@ -23,12 +24,21 @@ export function LoginForm({ next }: { next: string }) {
         defaultValue={state?.values?.phone}
         error={state?.fieldErrors?.phone}
       />
-      <SubmitButton pending={pending} pendingLabel="Sending code…">
-        Text me a code
+      <PasswordField
+        label="Password"
+        name="password"
+        autoComplete="current-password"
+        error={state?.fieldErrors?.password}
+      />
+      <SubmitButton pending={pending} pendingLabel="Logging in…">
+        Log in
       </SubmitButton>
       <p className="text-center text-[13px] leading-relaxed text-muted">
-        We&apos;ll text a 6-digit code to sign you in — no password to remember.
-        Msg &amp; data rates may apply.
+        Forgotten your password? Call the store on{" "}
+        <a href="tel:+18482021430" className="text-gold underline-offset-4 hover:underline">
+          (848) 202-1430
+        </a>{" "}
+        and we&apos;ll sort it out.
       </p>
     </form>
   );

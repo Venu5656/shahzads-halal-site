@@ -23,7 +23,7 @@ export default async function SignupPage({
         eyebrow="New here?"
         title="Join the"
         accent="late-night crew."
-        intro="Order ahead, skip the line, and we'll text you when it's hot."
+        intro="Order ahead, skip the line, and keep your usual one tap away."
       >
         <SignupForm next={next} />
       </AuthCard>

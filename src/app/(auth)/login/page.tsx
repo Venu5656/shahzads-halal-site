@@ -24,7 +24,7 @@ export default async function LoginPage({
         eyebrow="Welcome back"
         title="Log"
         accent="in."
-        intro="Enter your number and we'll text you a code."
+        intro="Your mobile number and password get you back in."
       >
         {params.signedOut === "all" ? (
           <div className="mb-5">
