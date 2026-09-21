@@ -1,4 +1,6 @@
+import { DrawerAuth, NavAuth } from "@/components/home/AuthNav";
 import HomeInteractions from "@/components/home/HomeInteractions";
+import { getCurrentUser } from "@/lib/auth/dal";
 import { MENU_ITEMS, SAUCES } from "@/lib/menu-data";
 
 /**
@@ -12,6 +14,8 @@ import { MENU_ITEMS, SAUCES } from "@/lib/menu-data";
  *     #sauceInfo, #days, #dialSvg) stay empty here, exactly as they were in
  *     the static page, so React never fights the script over that DOM.
  *   - All behaviour lives in <HomeInteractions>, a client component.
+ *   - The only additions since the port are the account links (<NavAuth>,
+ *     <DrawerAuth>), added in phase 2.
  */
 
 // Ordering still points at DoorDash until our own checkout ships in phase 4.
@@ -25,7 +29,9 @@ const ArrowIcon = () => (
   </svg>
 );
 
-export default function HomePage() {
+export default async function HomePage() {
+  const user = await getCurrentUser();
+
   return (
     <>
       <header className="nav" id="nav">
@@ -49,6 +55,7 @@ export default function HomePage() {
               <i></i>
               <span>Open now</span>
             </span>
+            <NavAuth user={user} />
             <a className="btn btn-red" href={ORDER_URL} target="_blank" rel="noopener">
               Order now
             </a>
@@ -66,6 +73,7 @@ export default function HomePage() {
         <a href="#sauces">Sauces</a>
         <a href="#hours">Hours</a>
         <a href="#visit">Visit</a>
+        <DrawerAuth user={user} />
       </div>
 
       <main id="top">
@@ -289,7 +297,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="tabs reveal" id="tabs" role="tablist"></div>
-            <div className="grid" id="grid"></div>
+            <div className="menu-grid" id="grid"></div>
             <p className="menu-note">
               Prices, combos and extras are live on our{" "}
               <a href={ORDER_URL} target="_blank" rel="noopener">
