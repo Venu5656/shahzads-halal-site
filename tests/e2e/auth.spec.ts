@@ -2,19 +2,18 @@ import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 
 /**
- * Sign up, log in, verify, profile and sign-out, end to end.
+ * Sign up, log in, profile and sign-out, end to end.
  *
- * SMS is in console mode (the server runs with ALLOW_CONSOLE_SMS=1), so the
- * verify screen shows the code and we read it from there.
- *
- * Every test owns one phone number in the fictional 555-01xx block, per
- * project, and wipes it before and after — so runs are repeatable and never
- * trip the rate limits.
+ * Accounts are phone number + password; nothing is texted. Every test owns one
+ * phone number in the fictional 555-01xx block, per project, and wipes it
+ * before and after, so runs are repeatable and never trip the lockout.
  */
 
 const prisma = new PrismaClient();
 
 test.describe.configure({ mode: "serial" });
+
+const PASSWORD = "a good enough password";
 
 // Each Playwright project gets its own area code so desktop and mobile can run
 // at the same time without sharing numbers.
@@ -27,51 +26,44 @@ function phoneFor(slot: number): { typed: string; e164: string } {
 }
 
 async function wipe(...e164s: string[]) {
-  await prisma.otpCode.deleteMany({ where: { phone: { in: e164s } } });
+  await prisma.loginAttempt.deleteMany({ where: { phone: { in: e164s } } });
   await prisma.user.deleteMany({ where: { phone: { in: e164s } } });
 }
 
-async function readDevCode(page: Page): Promise<string> {
-  const banner = page.getByTestId("dev-otp");
-  await expect(banner).toBeVisible();
-  const code = (await banner.textContent())?.match(/\d{6}/)?.[0];
-  if (!code) throw new Error("No dev code on the verify screen");
-  return code;
+/**
+ * Waits for a submitted auth form to actually finish: either it navigated
+ * away, or it came back with a message. Without this a test can race ahead and
+ * type into the page it is about to leave.
+ */
+async function settled(page: Page, from: string) {
+  await Promise.race([
+    page.waitForURL((url) => url.pathname !== from),
+    page.locator("main").getByRole("alert").waitFor({ state: "visible" }),
+  ]);
 }
 
-async function enterCode(page: Page, code: string) {
-  await page.getByLabel("6-digit code").fill(code);
-  await page.getByRole("button", { name: "Continue" }).click();
-}
-
-/** Enter the right code and wait for the sign-in to finish before moving on. */
-async function completeVerify(page: Page) {
-  await enterCode(page, await readDevCode(page));
-  await page.waitForURL((url) => url.pathname !== "/verify");
-}
-
-async function signUp(page: Page, name: string, typedPhone: string) {
+async function signUp(page: Page, name: string, typedPhone: string, password = PASSWORD) {
   await page.goto("/signup");
   await page.getByLabel("Your name").fill(name);
   await page.getByLabel("Mobile number").fill(typedPhone);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/verify/);
-  await completeVerify(page);
+  await settled(page, "/signup");
 }
 
-async function logIn(page: Page, typedPhone: string, next?: string) {
+async function logIn(page: Page, typedPhone: string, password = PASSWORD, next?: string) {
   await page.goto(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
   await page.getByLabel("Mobile number").fill(typedPhone);
-  await page.getByRole("button", { name: "Text me a code" }).click();
-  await expect(page).toHaveURL(/\/verify/);
-  await completeVerify(page);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await settled(page, "/login");
 }
 
 test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("signs up with a phone code and lands on the account page", async ({ page }) => {
+test("creates an account straight away, with no code to wait for", async ({ page }) => {
   const phone = phoneFor(1);
   await wipe(phone.e164);
 
@@ -81,12 +73,13 @@ test("signs up with a phone code and lands on the account page", async ({ page }
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Aisha");
 
   const user = await prisma.user.findUniqueOrThrow({ where: { phone: phone.e164 } });
-  expect(user).toMatchObject({ name: "Aisha Khan", role: "CUSTOMER", phoneVerified: true });
+  expect(user).toMatchObject({ name: "Aisha Khan", role: "CUSTOMER" });
 
-  // The code is never stored in plain text.
-  const otp = await prisma.otpCode.findFirstOrThrow({ where: { phone: phone.e164 } });
-  expect(otp.codeHash).toMatch(/^[0-9a-f]{64}$/);
-  expect(otp.consumedAt).not.toBeNull();
+  // The password is stored only as a salted scrypt hash.
+  expect(user.passwordHash).toMatch(/^scrypt\$\d+\$\d+\$\d+\$/);
+  expect(user.passwordHash).not.toContain(PASSWORD);
+  // Nothing has proved the number yet, and the flag says so honestly.
+  expect(user.phoneVerified).toBe(false);
 
   await wipe(phone.e164);
 });
@@ -104,83 +97,67 @@ test("logs out and back in", async ({ page }) => {
   await page.goto("/account");
   await expect(page).toHaveURL(/\/login\?next=%2Faccount/);
 
-  // Wait out the 30-second resend cooldown by clearing the first code.
-  await prisma.otpCode.deleteMany({ where: { phone: phone.e164 } });
-  await logIn(page, phone.typed, "/account");
+  await logIn(page, phone.typed, PASSWORD, "/account");
   await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Omar");
 
   await wipe(phone.e164);
 });
 
-test("counts down wrong codes, then accepts the right one", async ({ page }) => {
-  const phone = phoneFor(3);
-  await wipe(phone.e164);
+test("refuses the wrong password without saying whether the number exists", async ({ page }) => {
+  const known = phoneFor(3);
+  const unknown = phoneFor(4);
+  await wipe(known.e164, unknown.e164);
+  await signUp(page, "Sam", known.typed);
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
 
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill("Sam");
-  await page.getByLabel("Mobile number").fill(phone.typed);
-  await page.getByRole("button", { name: "Create account" }).click();
-  const code = await readDevCode(page);
-  const wrong = code === "000000" ? "111111" : "000000";
+  await logIn(page, known.typed, "the wrong password");
+  const wrongPassword = await page.locator("main").getByRole("alert").textContent();
+  await expect(page).toHaveURL(/\/login/);
 
-  await enterCode(page, wrong);
-  await expect(page.locator("main").getByRole("alert")).toContainText("4 tries left");
-  await enterCode(page, wrong);
-  await expect(page.locator("main").getByRole("alert")).toContainText("3 tries left");
+  await logIn(page, unknown.typed, "the wrong password");
+  const noAccount = await page.locator("main").getByRole("alert").textContent();
 
-  await enterCode(page, code);
-  await expect(page).toHaveURL(/\/account$/);
+  expect(wrongPassword).toBe(noAccount);
+  expect(wrongPassword).toMatch(/don't match/);
 
-  await wipe(phone.e164);
+  await wipe(known.e164, unknown.e164);
 });
 
-test("burns a code after five wrong tries", async ({ page }) => {
-  const phone = phoneFor(4);
-  await wipe(phone.e164);
-
-  await page.goto("/login");
-  await page.getByLabel("Mobile number").fill(phone.typed);
-  await page.getByRole("button", { name: "Text me a code" }).click();
-  const code = await readDevCode(page);
-  const wrong = code === "000000" ? "111111" : "000000";
-
-  for (let i = 0; i < 5; i++) await enterCode(page, wrong);
-  await expect(page.locator("main").getByRole("alert")).toContainText("last try");
-
-  // Even the right code is refused now.
-  await enterCode(page, code);
-  await expect(page.locator("main").getByRole("alert")).toContainText("Too many wrong tries");
-  expect(await prisma.user.count({ where: { phone: phone.e164 } })).toBe(0);
-
-  await wipe(phone.e164);
-});
-
-test("a new number that logs in is asked for a name only after verifying", async ({ page }) => {
+test("locks a number after eight wrong passwords", async ({ page }) => {
   const phone = phoneFor(5);
   await wipe(phone.e164);
+  await signUp(page, "Target", phone.typed);
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+
+  // Eight failures are allowed; the ninth attempt is refused before the
+  // password is even looked at — so the right one does not get in either.
+  for (let i = 0; i < 8; i++) await logIn(page, phone.typed, `guess number ${i}`);
+  await expect(page.locator("main").getByRole("alert")).toContainText("don't match");
 
   await logIn(page, phone.typed);
-  await expect(page).toHaveURL(/\/signup\/details/);
-  await expect(page.getByText("There's no account for")).toBeVisible();
+  await expect(page.locator("main").getByRole("alert")).toContainText("Too many failed attempts");
+  await expect(page).toHaveURL(/\/login/);
 
-  await page.getByLabel("Your name").fill("Priya");
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Priya");
+  expect(
+    await prisma.loginAttempt.count({ where: { phone: phone.e164, success: true } }),
+  ).toBe(0);
 
   await wipe(phone.e164);
 });
 
-test("signing up with an existing number just signs in to that account", async ({ page }) => {
+test("refuses a second account on the same number", async ({ page }) => {
   const phone = phoneFor(6);
   await wipe(phone.e164);
   await prisma.user.create({ data: { phone: phone.e164, name: "Original Name" } });
 
-  await signUp(page, "Somebody Else", phone.typed);
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Original");
+  await page.goto("/signup");
+  await page.getByLabel("Your name").fill("Somebody Else");
+  await page.getByLabel("Mobile number").fill(phone.typed);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account" }).click();
 
+  await expect(page.getByText("There's already an account with that number")).toBeVisible();
   const user = await prisma.user.findUniqueOrThrow({ where: { phone: phone.e164 } });
   expect(user.name).toBe("Original Name");
 
@@ -190,14 +167,17 @@ test("signing up with an existing number just signs in to that account", async (
 test("validates the sign-up form on the server", async ({ page }) => {
   await page.goto("/signup");
   await page.getByLabel("Mobile number").fill("12345");
+  await page.getByLabel("Password", { exact: true }).fill("short");
   await page.getByLabel("Email (optional)").fill("not-an-email");
   await page.getByRole("button", { name: "Create account" }).click();
 
   await expect(page.getByText("Tell us your name.")).toBeVisible();
   await expect(page.getByText("Enter a valid US mobile number.")).toBeVisible();
+  await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
   await expect(page.getByText("Enter a valid email, or leave it blank.")).toBeVisible();
-  // What they typed is kept.
+  // What they typed is kept, except the password.
   await expect(page.getByLabel("Mobile number")).toHaveValue("12345");
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue("");
 });
 
 test("edits the profile", async ({ page }) => {
@@ -216,43 +196,84 @@ test("edits the profile", async ({ page }) => {
   await wipe(phone.e164);
 });
 
-test("changing phone number requires a code sent to the new number", async ({ page }) => {
-  const oldPhone = phoneFor(8);
-  const newPhone = phoneFor(9);
+test("changes the password, signs other devices out, and requires the new one", async ({
+  browser,
+}) => {
+  const phone = phoneFor(8);
+  await wipe(phone.e164);
+
+  const phoneCtx = await browser.newContext();
+  const pageA = await phoneCtx.newPage();
+  await signUp(pageA, "Hassan", phone.typed);
+  await expect(pageA).toHaveURL(/\/account$/);
+
+  const laptop = await browser.newContext();
+  const pageB = await laptop.newPage();
+  await logIn(pageB, phone.typed);
+  await expect(pageB).toHaveURL(/\/account$/);
+
+  await pageA.getByRole("button", { name: "Change password" }).click();
+  await pageA.getByLabel("Current password").fill(PASSWORD);
+  await pageA.getByLabel("New password").fill("a different good password");
+  await pageA.getByRole("button", { name: "Change password" }).click();
+  await expect(pageA.locator("main").getByRole("status")).toContainText("Password changed");
+
+  // This device stays in; the other one is out.
+  await pageA.goto("/account");
+  await expect(pageA).toHaveURL(/\/account$/);
+  await pageB.goto("/account");
+  await expect(pageB).toHaveURL(/\/login/);
+
+  // The old password no longer works, the new one does.
+  await logIn(pageB, phone.typed, PASSWORD);
+  await expect(pageB).toHaveURL(/\/login/);
+  await logIn(pageB, phone.typed, "a different good password");
+  await expect(pageB).toHaveURL(/\/account$/);
+
+  await phoneCtx.close();
+  await laptop.close();
+  await wipe(phone.e164);
+});
+
+test("changing the phone number requires the password", async ({ page }) => {
+  const oldPhone = phoneFor(9);
+  const newPhone = phoneFor(10);
   await wipe(oldPhone.e164, newPhone.e164);
   await signUp(page, "Layla", oldPhone.typed);
 
   await page.getByRole("button", { name: "Change number" }).click();
   await page.getByLabel("New mobile number").fill(newPhone.typed);
-  await page.getByRole("button", { name: "Text the new number" }).click();
-  await expect(page).toHaveURL(/\/verify/);
-  await expect(page.getByText(`•••-${newPhone.e164.slice(-4)}`)).toBeVisible();
+  await page.getByLabel("Your password").fill("not the right one");
+  await page.getByRole("button", { name: "Change number" }).click();
+  await expect(page.getByText("That's not your current password.")).toBeVisible();
 
-  // Until the code is entered, nothing has changed.
   let user = await prisma.user.findUniqueOrThrow({ where: { phone: oldPhone.e164 } });
   expect(user.phone).toBe(oldPhone.e164);
 
-  await completeVerify(page);
-  await expect(page).toHaveURL(/\/account\?updated=phone/);
-  await expect(page.locator("main").getByRole("status")).toContainText("phone number has been updated");
+  await page.getByLabel("Your password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Change number" }).click();
+  await expect(page.locator("main").getByRole("status")).toContainText("number has been updated");
 
   user = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
   expect(user.phone).toBe(newPhone.e164);
+
+  // The new number is what logs in now.
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await logIn(page, newPhone.typed);
+  await expect(page).toHaveURL(/\/account$/);
 
   await wipe(oldPhone.e164, newPhone.e164);
 });
 
 test("log out of all devices ends every session", async ({ browser }) => {
-  const phone = phoneFor(10);
+  const phone = phoneFor(11);
   await wipe(phone.e164);
 
-  const phoneA = await browser.newContext();
-  const pageA = await phoneA.newPage();
-  await signUp(pageA, "Hassan", phone.typed);
+  const phoneCtx = await browser.newContext();
+  const pageA = await phoneCtx.newPage();
+  await signUp(pageA, "Bilal", phone.typed);
   await expect(pageA).toHaveURL(/\/account$/);
 
-  // A second device signs in to the same account.
-  await prisma.otpCode.deleteMany({ where: { phone: phone.e164 } });
   const laptop = await browser.newContext();
   const pageB = await laptop.newPage();
   await logIn(pageB, phone.typed);
@@ -266,13 +287,13 @@ test("log out of all devices ends every session", async ({ browser }) => {
   await expect(pageB).toHaveURL(/\/login/);
   expect(await prisma.session.count({ where: { user: { phone: phone.e164 } } })).toBe(0);
 
-  await phoneA.close();
+  await phoneCtx.close();
   await laptop.close();
   await wipe(phone.e164);
 });
 
 test("keeps customers out of the manager area and lets the owner in", async ({ page }) => {
-  const phone = phoneFor(11);
+  const phone = phoneFor(12);
   await wipe(phone.e164);
   await signUp(page, "Customer", phone.typed);
   await expect(page).toHaveURL(/\/account$/);
@@ -288,11 +309,12 @@ test("keeps customers out of the manager area and lets the owner in", async ({ p
 });
 
 test("never redirects off-site after login", async ({ page }) => {
-  const phone = phoneFor(12);
+  const phone = phoneFor(13);
   await wipe(phone.e164);
-  await prisma.user.create({ data: { phone: phone.e164, name: "Nadia" } });
+  await signUp(page, "Nadia", phone.typed);
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
 
-  await logIn(page, phone.typed, "//evil.example/steal");
+  await logIn(page, phone.typed, PASSWORD, "//evil.example/steal");
   await expect(page).toHaveURL(/localhost|127\.0\.0\.1/);
   await expect(page).toHaveURL(/\/account$/);
 
@@ -303,7 +325,7 @@ test("the homepage offers log in and sign up, then shows the account", async ({
   page,
   isMobile,
 }) => {
-  const phone = phoneFor(13);
+  const phone = phoneFor(14);
   await wipe(phone.e164);
 
   await page.goto("/");
@@ -318,6 +340,7 @@ test("the homepage offers log in and sign up, then shows the account", async ({
   }
 
   await signUp(page, "Yusuf Ali", phone.typed);
+  await expect(page).toHaveURL(/\/account$/);
   await page.goto("/");
   if (isMobile) {
     await page.getByLabel("Open menu").click();

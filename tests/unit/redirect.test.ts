@@ -14,7 +14,6 @@ describe("safeNextPath", () => {
     "account",
     "/login",
     "/signup?next=/x",
-    "/verify",
     "/\u0000x",
     "",
     undefined,

@@ -1,20 +1,35 @@
 import { describe, expect, it } from "vitest";
 import {
-  codeSchema,
-  detailsSchema,
+  changePasswordSchema,
   fieldErrorsFrom,
   loginSchema,
+  profileSchema,
   signupSchema,
 } from "@/lib/auth/schemas";
 
+const validSignup = {
+  name: "Aisha Khan",
+  phone: "(732) 555-0123",
+  password: "a good enough password",
+  email: "",
+  marketingOptIn: null,
+};
+
 describe("signupSchema", () => {
-  const valid = { name: "Aisha Khan", phone: "(732) 555-0123", email: "", marketingOptIn: null };
+  const valid = {
+    name: "Aisha Khan",
+    phone: "(732) 555-0123",
+    password: "a good enough password",
+    email: "",
+    marketingOptIn: null,
+  };
 
   it("accepts a minimal sign-up and normalises it", () => {
     const r = signupSchema.parse(valid);
     expect(r).toEqual({
       name: "Aisha Khan",
       phone: "+17325550123",
+      password: "a good enough password",
       email: null,
       marketingOptIn: false,
     });
@@ -54,30 +69,51 @@ describe("signupSchema", () => {
 });
 
 describe("loginSchema", () => {
-  it("needs a phone", () => {
-    expect(loginSchema.safeParse({ phone: "" }).success).toBe(false);
-    expect(loginSchema.parse({ phone: "848 202 1430" }).phone).toBe("+18482021430");
+  it("needs a phone and a password", () => {
+    expect(loginSchema.safeParse({ phone: "", password: "something" }).success).toBe(false);
+    expect(loginSchema.safeParse({ phone: "848 202 1430", password: "" }).success).toBe(false);
+    expect(loginSchema.parse({ phone: "848 202 1430", password: "x" }).phone).toBe("+18482021430");
+  });
+
+  it("applies no strength rules when logging in — it either matches or it does not", () => {
+    expect(loginSchema.safeParse({ phone: "848 202 1430", password: "short" }).success).toBe(true);
   });
 });
 
-describe("codeSchema", () => {
-  it.each([
-    ["123456", "123456"],
-    ["123 456", "123456"],
-    ["123-456", "123456"],
-    ["000042", "000042"],
-  ])("accepts %s", (input, out) => {
-    expect(codeSchema.parse(input)).toBe(out);
-  });
-
-  it.each(["12345", "1234567", "abcdef", "12 34 5", ""])("rejects %s", (input) => {
-    expect(codeSchema.safeParse(input).success).toBe(false);
+describe("password rules at sign-up", () => {
+  it.each(["short", "password", "7325550123"])("rejects %j", (password) => {
+    const r = signupSchema.safeParse({ ...validSignup, password });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(fieldErrorsFrom(r.error).password).toBeDefined();
   });
 });
 
-describe("detailsSchema", () => {
-  it("does not accept a phone number — the verified one is used", () => {
-    const r = detailsSchema.parse({ name: "Sam", email: "", marketingOptIn: null, phone: "+15555550100" });
-    expect(r).not.toHaveProperty("phone");
+describe("changePasswordSchema", () => {
+  it("requires both fields and refuses a no-op change", () => {
+    expect(changePasswordSchema.safeParse({ currentPassword: "", newPassword: "long enough" }).success).toBe(false);
+    const same = changePasswordSchema.safeParse({
+      currentPassword: "the same one here",
+      newPassword: "the same one here",
+    });
+    expect(same.success).toBe(false);
+    if (!same.success) expect(fieldErrorsFrom(same.error).newPassword).toMatch(/already have/);
+    expect(
+      changePasswordSchema.safeParse({ currentPassword: "old one", newPassword: "a brand new one" })
+        .success,
+    ).toBe(true);
+  });
+});
+
+describe("profileSchema", () => {
+  it("cannot be used to change the phone number or the password", () => {
+    const r = profileSchema.parse({
+      name: "Sam",
+      email: "",
+      marketingOptIn: null,
+      phone: "+15555550100",
+      password: "sneaky",
+      role: "OWNER",
+    });
+    expect(r).toEqual({ name: "Sam", email: null, marketingOptIn: false });
   });
 });
