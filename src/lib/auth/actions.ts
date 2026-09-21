@@ -4,44 +4,39 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "./dal";
-import {
-  clearChallengeCookie,
-  consumeChallenge,
-  getActiveChallenge,
-  getVerifiedUnspentChallenge,
-  issueCode,
-  verifyCode,
-  type ActiveChallenge,
-} from "./otp";
+import { decideLogin, lockoutMessage } from "./login-policy";
+import { decoyVerify, hashPassword, needsRehash, verifyPassword } from "./password";
 import { safeNextPath } from "./redirect";
+import { requestMeta } from "./request";
 import {
-  codeSchema,
-  detailsSchema,
   field,
   fieldErrorsFrom,
   loginSchema,
-  signupPayloadSchema,
   signupSchema,
   type FormState,
 } from "./schemas";
 import { createSession, endAllSessions, endCurrentSession } from "./session";
 
 /**
- * Every server action is a public POST endpoint. Each one validates its own
- * input with Zod and re-derives the user from the session — nothing is taken
- * on trust from the form.
+ * Sign up, log in, log out.
  *
- * Account existence is never revealed before the phone number is proven:
- * "Sign up" with a number that already has an account just signs that account
- * in, and "Log in" with an unknown number sends a code anyway and asks for a
- * name only after the code is confirmed.
+ * Accounts are created immediately: the phone number is the login name, a
+ * password is the proof, and nothing is texted. Nothing here proves the number
+ * actually belongs to the person — when SMS is switched on, verification slots
+ * in on top and sets User.phoneVerified.
+ *
+ * Every server action is a public POST endpoint, so each validates its own
+ * input with Zod and re-derives the user from the session.
  */
 
-const verifyUrl = (next: string) => `/verify?next=${encodeURIComponent(next)}`;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+/** Deliberately identical whether the number is unknown or the password is wrong. */
+const BAD_CREDENTIALS = "That number and password don't match.";
 
 // ------------------------------------------------------------------ sign up
 
-export async function startSignup(_prev: FormState, form: FormData): Promise<FormState> {
+export async function signup(_prev: FormState, form: FormData): Promise<FormState> {
   const values = {
     name: field(form, "name") ?? "",
     phone: field(form, "phone") ?? "",
@@ -49,142 +44,109 @@ export async function startSignup(_prev: FormState, form: FormData): Promise<For
   };
   const parsed = signupSchema.safeParse({
     ...values,
+    password: field(form, "password") ?? "",
     marketingOptIn: form.get("marketingOptIn"),
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), values };
 
-  const { name, phone, email, marketingOptIn } = parsed.data;
-  const sent = await issueCode({
-    phone,
-    purpose: "SIGNUP",
-    payload: { name, email, marketingOptIn },
-  });
-  if (!sent.ok) return { error: sent.error, values };
+  const { name, phone, password, email, marketingOptIn } = parsed.data;
+  const passwordHash = await hashPassword(password);
 
-  redirect(verifyUrl(safeNextPath(field(form, "next"))));
+  let userId: string;
+  try {
+    const user = await prisma.user.create({
+      data: {
+        name,
+        phone,
+        passwordHash,
+        email,
+        marketingOptIn,
+        role: "CUSTOMER",
+        lastLoginAt: new Date(),
+      },
+      select: { id: true },
+    });
+    userId = user.id;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        fieldErrors: {
+          phone: "There's already an account with that number. Log in instead.",
+        },
+        values,
+      };
+    }
+    throw error;
+  }
+
+  await createSession(userId);
+  redirect(safeNextPath(field(form, "next")));
 }
 
 // ------------------------------------------------------------------- log in
 
-export async function startLogin(_prev: FormState, form: FormData): Promise<FormState> {
+export async function login(_prev: FormState, form: FormData): Promise<FormState> {
   const values = { phone: field(form, "phone") ?? "" };
-  const parsed = loginSchema.safeParse(values);
+  const parsed = loginSchema.safeParse({
+    phone: values.phone,
+    password: field(form, "password") ?? "",
+  });
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), values };
 
-  const sent = await issueCode({ phone: parsed.data.phone, purpose: "LOGIN" });
-  if (!sent.ok) return { error: sent.error, values };
+  const { phone, password } = parsed.data;
+  const meta = await requestMeta();
+  const since = new Date(Date.now() - LOGIN_WINDOW_MS);
 
-  redirect(verifyUrl(safeNextPath(field(form, "next"))));
-}
+  const [phoneFailures, ipFailures] = await Promise.all([
+    prisma.loginAttempt.findMany({
+      where: { phone, success: false, createdAt: { gte: since } },
+      select: { createdAt: true },
+    }),
+    meta.ipHash
+      ? prisma.loginAttempt.findMany({
+          where: { ipHash: meta.ipHash, success: false, createdAt: { gte: since } },
+          select: { createdAt: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
-// ------------------------------------------------------------------- verify
+  const decision = decideLogin(
+    phoneFailures.map((a) => a.createdAt),
+    ipFailures.map((a) => a.createdAt),
+  );
+  if (!decision.ok) return { error: lockoutMessage(decision.retryAfterSec), values };
 
-export async function submitCode(_prev: FormState, form: FormData): Promise<FormState> {
-  const next = safeNextPath(field(form, "next"));
-  const parsed = codeSchema.safeParse(field(form, "code") ?? "");
-  if (!parsed.success) return { fieldErrors: { code: parsed.error.issues[0]?.message } };
-
-  const result = await verifyCode(parsed.data);
-  if (!result.ok) return { error: result.error };
-
-  return completeVerifiedChallenge(result.challenge, next);
-}
-
-export async function resendCode(_prev: FormState): Promise<FormState> {
-  const challenge = await getActiveChallenge();
-  if (!challenge || challenge.verifiedAt || challenge.consumedAt) {
-    return { error: "This sign-in has expired. Please start again." };
-  }
-
-  const sent = await issueCode({
-    phone: challenge.phone,
-    purpose: challenge.purpose,
-    payload: (challenge.payload ?? undefined) as Prisma.InputJsonValue | undefined,
-    userId: challenge.userId ?? undefined,
+  const user = await prisma.user.findUnique({
+    where: { phone },
+    select: { id: true, passwordHash: true },
   });
-  return sent.ok ? { notice: "We sent you a new code.", sentAt: Date.now() } : { error: sent.error };
-}
 
-async function completeVerifiedChallenge(
-  challenge: ActiveChallenge,
-  next: string,
-): Promise<FormState> {
-  if (challenge.purpose === "CHANGE_PHONE") return completePhoneChange(challenge);
+  // An unknown number still costs a full scrypt, so response time gives away
+  // nothing about who has an account.
+  const ok = user?.passwordHash
+    ? await verifyPassword(password, user.passwordHash)
+    : await decoyVerify(password);
 
-  const existing = await prisma.user.findUnique({ where: { phone: challenge.phone } });
+  await prisma.loginAttempt.create({
+    data: { phone, ipHash: meta.ipHash, success: ok },
+  });
 
-  if (existing) {
-    if (!(await consumeChallenge(challenge.id))) {
-      return { error: "That code was already used. Please start again." };
-    }
-    await prisma.user.update({
-      where: { id: existing.id },
-      data: { phoneVerified: true, lastLoginAt: new Date() },
-    });
-    await signInAndLeave(existing.id, next);
+  if (!ok) {
+    // An invited manager who has not set a password yet cannot log in, and
+    // must not be told that a half-made account exists.
+    return { error: BAD_CREDENTIALS, values };
   }
 
-  // A new number. If they came through sign-up we already have their details.
-  const payload = signupPayloadSchema.safeParse(challenge.payload);
-  if (challenge.purpose === "SIGNUP" && payload.success) {
-    if (!(await consumeChallenge(challenge.id))) {
-      return { error: "That code was already used. Please start again." };
-    }
-    const userId = await createCustomer(challenge.phone, payload.data);
-    await signInAndLeave(userId, next);
-  }
-
-  // Logged in with a number we have never seen: the phone is now proven, so it
-  // is safe to say there is no account yet and ask for their name.
-  redirect(`/signup/details?next=${encodeURIComponent(next)}`);
-}
-
-async function completePhoneChange(challenge: ActiveChallenge): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user || user.id !== challenge.userId) {
-    return { error: "Please log in again to change your number." };
-  }
-
-  const owner = await prisma.user.findUnique({ where: { phone: challenge.phone } });
-  if (!(await consumeChallenge(challenge.id))) {
-    return { error: "That code was already used. Please start again." };
-  }
-  await clearChallengeCookie();
-
-  if (owner && owner.id !== user.id) {
-    return { error: "That number belongs to another account. Log in with it instead." };
-  }
-
+  // Upgrade hashes written with older parameters, now that we have the password.
   await prisma.user.update({
-    where: { id: user.id },
-    data: { phone: challenge.phone, phoneVerified: true },
+    where: { id: user!.id },
+    data: {
+      lastLoginAt: new Date(),
+      ...(needsRehash(user!.passwordHash!) ? { passwordHash: await hashPassword(password) } : {}),
+    },
   });
-  redirect("/account?updated=phone");
-}
-
-// ---------------------------------------------- finish sign-up after log in
-
-export async function finishSignup(_prev: FormState, form: FormData): Promise<FormState> {
-  const next = safeNextPath(field(form, "next"));
-  const values = { name: field(form, "name") ?? "", email: field(form, "email") ?? "" };
-
-  const challenge = await getVerifiedUnspentChallenge();
-  if (!challenge || challenge.purpose === "CHANGE_PHONE") {
-    return { error: "Your verification expired. Please log in again." };
-  }
-
-  const parsed = detailsSchema.safeParse({
-    ...values,
-    marketingOptIn: form.get("marketingOptIn"),
-  });
-  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), values };
-
-  if (!(await consumeChallenge(challenge.id))) {
-    return { error: "Your verification expired. Please log in again." };
-  }
-  const userId = await createCustomer(challenge.phone, parsed.data);
-  await signInAndLeave(userId, next);
-  return undefined;
+  await createSession(user!.id);
+  redirect(safeNextPath(field(form, "next")));
 }
 
 // ------------------------------------------------------------------ log out
@@ -199,40 +161,4 @@ export async function logoutEverywhere(): Promise<void> {
   if (user) await endAllSessions(user.id);
   else await endCurrentSession();
   redirect("/login?signedOut=all");
-}
-
-// ------------------------------------------------------------------ helpers
-
-async function createCustomer(
-  phone: string,
-  details: { name: string; email: string | null; marketingOptIn: boolean },
-): Promise<string> {
-  try {
-    const user = await prisma.user.create({
-      data: {
-        phone,
-        name: details.name,
-        email: details.email,
-        marketingOptIn: details.marketingOptIn,
-        phoneVerified: true,
-        lastLoginAt: new Date(),
-        role: "CUSTOMER",
-      },
-      select: { id: true },
-    });
-    return user.id;
-  } catch (error) {
-    // Two tabs racing to create the same account: the loser signs in to the winner's.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      const existing = await prisma.user.findUniqueOrThrow({ where: { phone } });
-      return existing.id;
-    }
-    throw error;
-  }
-}
-
-async function signInAndLeave(userId: string, next: string): Promise<never> {
-  await createSession(userId);
-  await clearChallengeCookie();
-  redirect(next);
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizePhone } from "./phone";
-import { OTP_LENGTH } from "./otp-policy";
+import { MAX_PASSWORD_LENGTH, passwordProblem } from "./login-policy";
 
 /**
  * Server-side validation for every auth form. The browser-side `required` and
@@ -43,46 +43,82 @@ export const checkboxSchema = z
   .union([z.literal("on"), z.literal("true"), z.null(), z.undefined()])
   .transform((value) => value === "on" || value === "true");
 
-export const codeSchema = z
-  .string({ error: "Enter the 6-digit code." })
-  .transform((value) => value.replace(/\s|-/g, ""))
-  .pipe(z.string().regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), "Enter the 6-digit code."));
+/**
+ * A password being *set*. Never trimmed — leading and trailing spaces are the
+ * customer's business — but capped so a megabyte of text cannot tie up a
+ * server thread in scrypt.
+ */
+export const newPasswordSchema = z
+  .string({ error: "Choose a password." })
+  .min(1, "Choose a password.")
+  .max(MAX_PASSWORD_LENGTH, `That's longer than ${MAX_PASSWORD_LENGTH} characters.`)
+  // Strength is checked on the field, not on the whole form, so a weak
+  // password is reported even when another field is also wrong.
+  .superRefine((value, ctx) => {
+    const problem = passwordProblem(value);
+    if (problem) ctx.addIssue({ code: "custom", message: problem });
+  });
 
-export const signupSchema = z.object({
-  name: nameSchema,
+/** A password being *typed to log in*: no rules, it either matches or it does not. */
+export const givenPasswordSchema = z
+  .string({ error: "Enter your password." })
+  .min(1, "Enter your password.")
+  .max(MAX_PASSWORD_LENGTH, "That's not your password.");
+
+export const signupSchema = z
+  .object({
+    name: nameSchema,
+    phone: phoneSchema,
+    password: newPasswordSchema,
+    email: optionalEmailSchema,
+    marketingOptIn: checkboxSchema,
+  })
+  // The only rule that needs two fields: don't let the password be the number.
+  .superRefine((value, ctx) => {
+    const problem = passwordProblem(value.password, value.phone);
+    if (problem) ctx.addIssue({ code: "custom", path: ["password"], message: problem });
+  });
+
+export const loginSchema = z.object({
   phone: phoneSchema,
-  email: optionalEmailSchema,
-  marketingOptIn: checkboxSchema,
+  password: givenPasswordSchema,
 });
 
-export const loginSchema = z.object({ phone: phoneSchema });
-
-export const detailsSchema = z.object({
+export const profileSchema = z.object({
   name: nameSchema,
   email: optionalEmailSchema,
   marketingOptIn: checkboxSchema,
 });
 
-export const profileSchema = detailsSchema;
+export const changePasswordSchema = z
+  .object({
+    currentPassword: givenPasswordSchema,
+    newPassword: newPasswordSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.currentPassword === value.newPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["newPassword"],
+        message: "That's the password you already have.",
+      });
+    }
+  });
 
-/** What a SIGNUP challenge carries until the code is confirmed. */
-export const signupPayloadSchema = z.object({
-  name: nameSchema,
-  email: z.string().nullable(),
-  marketingOptIn: z.boolean(),
+export const changePhoneSchema = z.object({
+  phone: phoneSchema,
+  password: givenPasswordSchema,
 });
-
-export type SignupPayload = z.infer<typeof signupPayloadSchema>;
 
 /** Form state returned by every auth server action. */
-export type FormState = {
-  error?: string;
-  notice?: string;
-  /** When a code was just (re)sent, so the client can run the resend countdown. */
-  sentAt?: number;
-  fieldErrors?: Partial<Record<string, string>>;
-  values?: Record<string, string>;
-} | undefined;
+export type FormState =
+  | {
+      error?: string;
+      notice?: string;
+      fieldErrors?: Partial<Record<string, string>>;
+      values?: Record<string, string>;
+    }
+  | undefined;
 
 /** Flattens Zod issues into one message per field, for inline display. */
 export function fieldErrorsFrom(error: z.ZodError): Record<string, string> {

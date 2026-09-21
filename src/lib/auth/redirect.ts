@@ -9,6 +9,6 @@ export function safeNextPath(next: unknown, fallback = "/account"): string {
   if (next.startsWith("//") || next.startsWith("/\\")) return fallback;
   if (/[\u0000-\u001f]/.test(next)) return fallback;
   // Never bounce back into the sign-in flow itself.
-  if (/^\/(login|signup|verify)(\/|\?|$)/.test(next)) return fallback;
+  if (/^\/(login|signup)(\/|\?|$)/.test(next)) return fallback;
   return next;
 }

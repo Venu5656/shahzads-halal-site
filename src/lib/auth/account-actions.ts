@@ -1,12 +1,21 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireUser } from "./dal";
-import { issueCode } from "./otp";
-import { field, fieldErrorsFrom, phoneSchema, profileSchema, type FormState } from "./schemas";
+import { hashPassword, verifyPassword } from "./password";
+import {
+  changePasswordSchema,
+  changePhoneSchema,
+  field,
+  fieldErrorsFrom,
+  profileSchema,
+  type FormState,
+} from "./schemas";
+import { endAllSessions, createSession } from "./session";
 
+/** Name, email and whether they want the occasional deal texted to them. */
 export async function updateProfile(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
   const values = { name: field(form, "name") ?? "", email: field(form, "email") ?? "" };
@@ -29,20 +38,78 @@ export async function updateProfile(_prev: FormState, form: FormData): Promise<F
   return { notice: "Saved." };
 }
 
-/** A new number must be proven with a code before it replaces the old one. */
-export async function startPhoneChange(_prev: FormState, form: FormData): Promise<FormState> {
+/**
+ * Changing the number that logs you in needs the current password — otherwise
+ * anyone borrowing an unlocked phone could move the account to their own
+ * number and lock the owner out.
+ */
+export async function changePhone(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
   const values = { phone: field(form, "phone") ?? "" };
-  const parsed = phoneSchema.safeParse(values.phone);
-  if (!parsed.success) {
-    return { fieldErrors: { phone: parsed.error.issues[0]?.message }, values };
-  }
-  if (parsed.data === user.phone) {
+  const parsed = changePhoneSchema.safeParse({
+    phone: values.phone,
+    password: field(form, "password") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), values };
+
+  if (parsed.data.phone === user.phone) {
     return { fieldErrors: { phone: "That's already your number." }, values };
   }
+  if (!(await checkPassword(user.id, parsed.data.password))) {
+    return { fieldErrors: { password: "That's not your current password." }, values };
+  }
 
-  const sent = await issueCode({ phone: parsed.data, purpose: "CHANGE_PHONE", userId: user.id });
-  if (!sent.ok) return { error: sent.error, values };
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { phone: parsed.data.phone, phoneVerified: false },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        fieldErrors: { phone: "That number belongs to another account." },
+        values,
+      };
+    }
+    throw error;
+  }
 
-  redirect(`/verify?next=${encodeURIComponent("/account")}`);
+  revalidatePath("/account");
+  return { notice: "Your number has been updated. Use it to log in from now on." };
+}
+
+/**
+ * Changing the password signs every other device out, which is the point of
+ * changing it after losing a phone. This session is re-issued so the person
+ * doing it stays logged in.
+ */
+export async function changePassword(_prev: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: field(form, "currentPassword") ?? "",
+    newPassword: field(form, "newPassword") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error) };
+
+  if (!(await checkPassword(user.id, parsed.data.currentPassword))) {
+    return { fieldErrors: { currentPassword: "That's not your current password." } };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await hashPassword(parsed.data.newPassword) },
+  });
+  await endAllSessions(user.id);
+  await createSession(user.id);
+
+  revalidatePath("/account");
+  return { notice: "Password changed. Every other device has been signed out." };
+}
+
+async function checkPassword(userId: string, password: string): Promise<boolean> {
+  const row = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+  return row?.passwordHash ? verifyPassword(password, row.passwordHash) : false;
 }
