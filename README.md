@@ -8,8 +8,8 @@ The marketing homepage from the old static site is preserved exactly as it was �
 same markup, same stylesheet, same animations. See
 [Homepage port](#the-homepage-port) before touching it.
 
-**Status: phase 2 of 8 (accounts).** People can sign up and log in; nothing is
-orderable yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
+**Status: phase 2 of 8 (accounts).** People can sign up and log in with a phone
+number and password; nothing is orderable yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
 you.
 
 ## Local setup
@@ -80,12 +80,11 @@ and `AUTH_SECRET` are needed today; the rest land in later phases.
 | `DATABASE_URL` | now | Postgres connection string |
 | `NEXT_PUBLIC_SITE_URL` | now | Absolute links; also decides whether cookies are marked Secure |
 | `AUTH_SECRET` | now | **Required.** `openssl rand -base64 32`. Changing it signs everyone out |
-| `SMS_PROVIDER` | now | `console` (default) while SMS is on hold |
-| `TWILIO_*` | later | Real SMS, once A2P 10DLC registration is approved |
+| `TWILIO_*` | later | Order-ready texts, once A2P 10DLC registration is approved |
 | `STRIPE_*` | phase 4 | Payments and webhook signature verification |
 | `RESEND_API_KEY`, `RECEIPT_FROM_EMAIL` | phase 4 | Emailed receipts |
 | `PRINT_AGENT_TOKEN` | phase 6 | Shared secret for the in-store printer |
-| `SEED_OWNER_PHONE`, `SEED_OWNER_NAME` | optional | Creates the first OWNER account when seeding |
+| `SEED_OWNER_PHONE`, `SEED_OWNER_PASSWORD`, `SEED_OWNER_NAME` | optional | Creates the first OWNER account when seeding |
 
 ## Project layout
 
@@ -101,7 +100,7 @@ src/proxy.ts             optimistic cookie check (Next 16's renamed middleware)
 src/components/home/     homepage behaviour (client components)
 src/components/auth/     login/signup/verify forms
 src/components/ui/       form fields, buttons, headers shared by new pages
-src/lib/auth/            sessions, one-time codes, rate limits, validation
+src/lib/auth/            sessions, password hashing, login limits, validation
 src/lib/                 hours, menu data, money, Prisma client
 prisma/schema.prisma     the data model
 prisma/seed.ts           idempotent menu seed
@@ -145,66 +144,84 @@ checkout in phase 4.
 
 ## Accounts and login
 
-There are no passwords. People enter their mobile number, we text a 6-digit
-code, and the code signs them in — the same thing they already do for every
-delivery app, and nothing for them (or us) to leak.
+Accounts are a **mobile number and a password**. Signing up creates the account
+immediately — nothing is texted and there is no code to wait for.
 
-**SMS is on hold**, so codes are not texted yet. The `console` provider prints
-the code to the server terminal and shows it on the verify screen, which is
-enough to build and test the whole flow. A production build **refuses** to use
-it, so a real deployment without a texting provider fails closed rather than
-showing codes to strangers. Switching to Twilio later means writing one
-`SmsSender` and setting `SMS_PROVIDER=twilio` — no other change.
+Note what this does and does not prove: the password proves someone knows the
+password, and nothing proves the phone number belongs to them. `phoneVerified`
+stays `false` on every account for now. If SMS is switched on later, a
+verification step slots on top and flips that flag; nothing else has to change.
 
 ### The screens
 
 | Route | What it does |
 |-------|--------------|
-| `/login` | Number in, code out. Has a Log in / Sign up switch |
-| `/signup` | Name, number, optional email, optional marketing opt-in |
-| `/verify` | The 6 digits, with a 30-second resend countdown |
-| `/signup/details` | Name, for someone who logged in with an unknown number |
-| `/account` | Edit details, change number, log out, log out everywhere |
+| `/login` | Number + password. Has a Log in / Sign up switch |
+| `/signup` | Name, number, password, optional email, optional marketing opt-in |
+| `/account` | Edit details, change number, change password, log out, log out everywhere |
 | `/admin` | Manager area. Placeholder, but already behind the role check |
 
-The homepage header gains **Log in** and **Sign up**, or your name when signed
-in; on phones they live in the burger drawer.
+The homepage header gains **Log in** and **Sign up**, or the customer's name
+when signed in; on phones they live in the burger drawer.
 
 ### How it is kept safe
 
+- **Passwords are hashed with scrypt** (Node's own, no native dependency):
+  random salt per password, 64MB of memory per hash, and the parameters stored
+  alongside so they can be raised later. Old hashes are upgraded automatically
+  the next time that person logs in.
 - **Sessions live in the database.** The browser holds a random token; we store
-  only its SHA-256. "Log out of all devices" deletes the rows, so a stolen
-  cookie stops working immediately — a signed token could not do that.
-- **Codes are never stored.** Only an HMAC of them, keyed with `AUTH_SECRET`, so
-  a database dump cannot be brute-forced back into working codes.
-- **A code belongs to one browser.** It is bound to a random challenge held in
-  an httpOnly cookie, so a code read over someone's shoulder is useless
-  elsewhere.
-- **Rate limits:** 5 wrong guesses burn a code, 30 seconds between codes, 5
-  codes per number per hour, 20 per IP per hour. IP addresses are only ever
-  stored hashed.
-- **Account existence is never revealed.** Signing up with a number that already
-  has an account just logs that account in; logging in with an unknown number
-  asks for a name only *after* the code proves the number belongs to them.
+  only its SHA-256. "Log out of all devices" and changing the password both
+  delete the rows, so a stolen cookie stops working immediately.
+- **Login tells you nothing you didn't already know.** A wrong password and an
+  unknown number give the identical message, and an unknown number still costs
+  a full scrypt hash so the response time doesn't give it away either.
+- **Brute force is capped:** 8 failed attempts freeze a number for 15 minutes,
+  30 failures freeze an IP. Only failures count, and IPs are stored hashed.
+- **Weak passwords are refused at sign-up** — under 8 characters, the obvious
+  ones, or the customer's own phone number. No forced symbols: length is the
+  rule that actually matters.
+- **Changing the phone number needs the current password**, so someone with a
+  borrowed unlocked phone cannot move the account to their own number.
 - **Every server action re-checks the session and validates its own input** with
-  Zod. The proxy (`src/proxy.ts`, what used to be called middleware) only does a
-  fast cookie check; the real gate is `src/lib/auth/dal.ts`.
+  Zod. The proxy (`src/proxy.ts`, Next 16's renamed middleware) only does a fast
+  cookie check; the real gate is `src/lib/auth/dal.ts`.
 - Non-staff get a **404** on `/admin`, not a 403 — the manager area does not
   advertise that it exists.
 
-### Making yourself the owner
+### Forgotten passwords
+
+There is no self-service reset yet, because there is no way to reach a customer:
+no SMS, and no email service until phase 4. The login screen tells people to
+call the store. To reset one by hand:
 
 ```bash
-SEED_OWNER_PHONE="+1XXXXXXXXXX" npm run db:seed   # before first login
-# or, for an account that already exists:
+npm run db:studio     # find the user, clear passwordHash
+```
+
+An account with no `passwordHash` cannot log in at all, so clearing it locks the
+account until a new password is set. A proper reset flow (emailed link, or a
+texted code once Twilio is live) is on the list in OPEN-QUESTIONS.md.
+
+### Making yourself the owner
+
+Sign up normally, then promote yourself:
+
+```bash
 psql shahzads -c "UPDATE \"User\" SET role = 'OWNER' WHERE phone = '+1XXXXXXXXXX';"
+```
+
+Or create the account straight from the seed:
+
+```bash
+SEED_OWNER_PHONE="+1XXXXXXXXXX" SEED_OWNER_PASSWORD='choose something long' npm run db:seed
 ```
 
 ## Testing
 
 ```bash
-npm test          # pricing, tax, opening hours, menu data, OTP rules, phone parsing
-npm run test:e2e  # homepage, plus sign-up/login/verify/profile end to end
+npm test          # pricing, tax, opening hours, menu data, password hashing, login limits
+npm run test:e2e  # homepage, plus sign-up/login/profile/lockout end to end
 ```
 
 The end-to-end tests sign up and log in for real against your database, using

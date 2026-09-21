@@ -80,10 +80,8 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npx playwright install --with-deps chromium webkit
-      # The auth tests sign up and log in for real; SMS is in console mode.
+      # The auth tests sign up and log in for real against the database above.
       - run: npm run test:e2e
-        env:
-          ALLOW_CONSOLE_SMS: "1"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

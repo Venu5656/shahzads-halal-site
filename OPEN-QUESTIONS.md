@@ -12,26 +12,35 @@ real customer until the items marked **BLOCKER** are answered.
 | 2 | **NJ sales tax treatment.** Is prepared food taxed at 6.625%? Are menu prices tax-inclusive or is tax added at checkout? Is New Brunswick in an Urban Enterprise Zone (which would halve the rate)? | `StoreSettings.taxRatePpm` defaults to `66_250` (6.625%); `NJ_SALES_TAX_PPM` in `src/lib/money.ts`. Confirm with the restaurant's accountant — I am not qualified to decide this. | Phase 4 |
 | 3 | **Who is legally taking the payments.** The Stripe account holder must be the restaurant's business entity, with its own EIN and bank account — not me and not you personally. | No code yet. | Phase 4 |
 | 4 | **Stripe account** — created, business details verified, bank account attached. Also: is PayPal enabled on it? (I will verify whether Stripe's PayPal payment method is available for US accounts before writing any PayPal code.) | `.env.example` → `STRIPE_*` | Phase 4 |
-| 5 | **Twilio account + A2P 10DLC registration.** US carriers reject unregistered application-to-person SMS. Approval takes days to weeks — still the longest lead time in the project. You asked to hold off on SMS, so login is built and working with codes shown on screen in development; **nobody outside your machine can log in until this is done**, because a production build refuses to display codes. | `SMS_PROVIDER` in `.env.example`; `src/lib/auth/sms.ts` | Before launch |
+| 5 | **How customers reset a forgotten password.** There is no way to reach them today: no SMS, and no email service until phase 4. Right now the login screen says to call the store, and I reset it by hand. Pick one before launch: emailed reset link (needs the phase 4 email service, and only works for customers who gave an email), or a texted code (needs Twilio + A2P 10DLC, which takes days to weeks to approve). | `src/components/auth/LoginForm.tsx` tells people to call | Before launch |
+| 5b | **Twilio account + A2P 10DLC registration**, if you want order-ready texts or phone verification later. Approval takes days to weeks. Not needed for login any more. | `.env.example` → `TWILIO_*` | Phase 6-ish |
 | 6 | **Printer decision** (see phase 6 options) and whether there is a PC or spare tablet in the store. | No code yet. | Phase 6 |
 | 7 | **Domain name** and who controls the DNS. Needed for Apple Pay domain verification and for the SMS/email sender identity. | `.env.example` → `NEXT_PUBLIC_SITE_URL` | Phase 4 |
-| 8 | **Privacy policy and terms pages.** We store phone numbers and order history and will send SMS, which requires a published privacy policy, and the consent wording has to appear at sign-up. The sign-up and login screens already carry the disclosure line ("we'll text a 6-digit code… msg & data rates may apply") and an unticked marketing opt-in; what is missing is the actual policy pages to link to. Twilio will ask to see them during A2P registration. | `src/components/auth/SignupForm.tsx`, `LoginForm.tsx` | Before launch |
+| 8 | **Privacy policy and terms pages.** We store names, phone numbers, passwords and order history, which needs a published privacy policy. The sign-up screen has an unticked marketing opt-in ready; what is missing is the actual policy pages to link to. Twilio will also ask to see them if you ever register for SMS. | Sign-up screen | Before launch |
 | 9 | **Owner's phone number** for the first `OWNER` account. | `prisma/seed.ts` reads `SEED_OWNER_PHONE`; nothing is created without it. | Phase 2 |
 
 ## Decisions I made in phase 2
 
-1. **No passwords.** Login is the phone number plus a 6-digit code — the same
-   as every delivery app, and there is no password to leak, reset or support.
-2. **Sessions are stored in the database**, not signed tokens, so "log out of
-   all devices" takes effect immediately.
-3. **US and Canadian numbers only** (+1). International numbers are refused:
-   the store is in New Brunswick, and SMS to far-flung numbers is the usual
-   route for pumping fraud at your expense.
-4. **A number can hold exactly one account.** Signing up with a number that
-   already exists simply logs that account in.
-5. **Managers are invited, never self-registered.** The invite screen itself is
-   phase 5; today an owner is set with `SEED_OWNER_PHONE` or one SQL update
-   (see the README).
+1. **Phone number + password**, at your instruction to drop SMS codes. Accounts
+   are created instantly, with nothing texted.
+2. **Nothing proves a phone number belongs to the person who typed it.** That is
+   the trade for dropping codes. It matters most at pickup: someone could sign
+   up with a number that is not theirs, so staff should keep checking the name
+   on the order. It also means a customer who mistypes their number will not
+   get a call about their food. If that turns out to bite, phone verification
+   can be added later without changing anything else.
+3. **Passwords are scrypt-hashed** with per-password salts, and never stored or
+   logged in the clear.
+4. **Sessions are stored in the database**, not signed tokens, so "log out of
+   all devices" takes effect immediately — and changing the password does the
+   same thing.
+5. **US and Canadian numbers only** (+1), since the store is in New Brunswick.
+6. **A number can hold exactly one account**, and sign-up says so plainly when
+   the number is taken. That does reveal whether a number is registered; the
+   alternative (staying vague) would leave people stuck with no way forward.
+   Logging in reveals nothing.
+7. **Managers are invited, never self-registered.** The invite screen is phase
+   5; today an owner is set with one SQL update (see the README).
 
 ## Smaller decisions I have made provisionally
 
