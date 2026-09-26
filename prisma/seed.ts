@@ -131,11 +131,16 @@ async function main() {
   }
 
   // --- owner account (optional) -------------------------------------------
-  // SEED_OWNER_PHONE=+1XXXXXXXXXX SEED_OWNER_PASSWORD='...' npm run db:seed
+  // SEED_OWNER_EMAIL=... SEED_OWNER_PHONE=+1XXXXXXXXXX SEED_OWNER_PASSWORD='...' npm run db:seed
   const rawOwnerPhone = process.env.SEED_OWNER_PHONE;
   if (rawOwnerPhone) {
     const ownerPhone = normalizePhone(rawOwnerPhone);
     if (!ownerPhone) throw new Error(`SEED_OWNER_PHONE is not a valid US number: ${rawOwnerPhone}`);
+
+    const ownerEmail = process.env.SEED_OWNER_EMAIL?.trim().toLowerCase();
+    if (!ownerEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail)) {
+      throw new Error("SEED_OWNER_EMAIL must be a valid address — it is how the owner logs in.");
+    }
 
     const ownerPassword = process.env.SEED_OWNER_PASSWORD;
     if (ownerPassword) {
@@ -149,12 +154,18 @@ async function main() {
       // Never overwrite a password that is already set.
       update: {
         role: "OWNER",
+        email: ownerEmail,
+        emailVerifiedAt: existing?.emailVerifiedAt ?? new Date(),
         ...(ownerPassword && !existing?.passwordHash
           ? { passwordHash: await hashPassword(ownerPassword) }
           : {}),
       },
       create: {
         phone: ownerPhone,
+        email: ownerEmail,
+        // Seeded by hand at the console, so the address is taken as proved —
+        // there is nobody to click a link in a fresh install.
+        emailVerifiedAt: new Date(),
         name: process.env.SEED_OWNER_NAME ?? "Owner",
         role: "OWNER",
         ...(ownerPassword ? { passwordHash: await hashPassword(ownerPassword) } : {}),
@@ -163,10 +174,10 @@ async function main() {
 
     const hasPassword = Boolean(ownerPassword || existing?.passwordHash);
     console.log(
-      `Owner account ready for ${ownerPhone.slice(0, 2)}••••${ownerPhone.slice(-2)}` +
+      `Owner account ready for ${ownerEmail.slice(0, 1)}••••${ownerEmail.slice(ownerEmail.indexOf("@"))}` +
         (hasPassword
           ? ""
-          : " — no password set, so it cannot log in yet. Re-run with SEED_OWNER_PASSWORD, or sign up with that number and then set the role."),
+          : " — no password set, so it cannot log in yet. Re-run with SEED_OWNER_PASSWORD, or sign up with that address and then set the role."),
     );
   } else {
     console.log("SEED_OWNER_PHONE not set — no owner account created.");

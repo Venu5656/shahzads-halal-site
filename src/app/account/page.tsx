@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { EmailNotice } from "@/components/account/EmailNotice";
 import { PasswordForm } from "@/components/account/PasswordForm";
 import { PhoneForm } from "@/components/account/PhoneForm";
 import { ProfileForm } from "@/components/account/ProfileForm";
@@ -52,6 +53,16 @@ export default async function AccountPage() {
             {firstName}.
           </em>
         </h1>
+
+        {user.pendingEmail || !user.emailVerifiedAt ? (
+          <div className="mb-8">
+            <EmailNotice
+              pendingEmail={user.pendingEmail}
+              email={user.email}
+              verified={Boolean(user.emailVerifiedAt)}
+            />
+          </div>
+        ) : null}
 
         <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
           <div className="flex flex-col gap-5">

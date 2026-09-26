@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Log in · Shahzad's Halal Food" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; signedOut?: string }>;
+  searchParams: Promise<{ next?: string; signedOut?: string; reset?: string }>;
 }) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
@@ -24,11 +24,16 @@ export default async function LoginPage({
         eyebrow="Welcome back"
         title="Log"
         accent="in."
-        intro="Your mobile number and password get you back in."
+        intro="Your email address — or your mobile number — and your password."
       >
         {params.signedOut === "all" ? (
           <div className="mb-5">
             <FormAlert notice="You're signed out on every device." />
+          </div>
+        ) : null}
+        {params.reset === "1" ? (
+          <div className="mb-5">
+            <FormAlert notice="Password changed. Log in with your new one." />
           </div>
         ) : null}
         <LoginForm next={next} />

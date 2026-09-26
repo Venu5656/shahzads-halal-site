@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { login } from "@/lib/auth/actions";
 import { PasswordField } from "@/components/ui/PasswordField";
@@ -13,16 +14,16 @@ export function LoginForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
       <FormAlert error={state?.error} />
       <Field
-        label="Mobile number"
-        name="phone"
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel-national"
-        placeholder="(732) 555-0123"
+        label="Email or mobile number"
+        name="identifier"
+        type="text"
+        inputMode="email"
+        autoComplete="username"
+        placeholder="you@example.com"
         required
         autoFocus
-        defaultValue={state?.values?.phone}
-        error={state?.fieldErrors?.phone}
+        defaultValue={state?.values?.identifier}
+        error={state?.fieldErrors?.identifier}
       />
       <PasswordField
         label="Password"
@@ -34,11 +35,10 @@ export function LoginForm({ next }: { next: string }) {
         Log in
       </SubmitButton>
       <p className="text-center text-[13px] leading-relaxed text-muted">
-        Forgotten your password? Call the store on{" "}
-        <a href="tel:+18482021430" className="text-gold underline-offset-4 hover:underline">
-          (848) 202-1430
-        </a>{" "}
-        and we&apos;ll sort it out.
+        <Link href="/forgot-password" className="text-gold underline-offset-4 hover:underline">
+          Forgotten your password?
+        </Link>{" "}
+        We&apos;ll email you a link.
       </p>
     </form>
   );

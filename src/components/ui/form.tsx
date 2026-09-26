@@ -55,21 +55,34 @@ export function Checkbox({
   name,
   children,
   defaultChecked,
+  error,
 }: {
   name: string;
   children: ReactNode;
   defaultChecked?: boolean;
+  error?: string;
 }) {
-  return (
+  const box = (
     <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-snug text-muted">
       <input
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
+        aria-invalid={error ? true : undefined}
         className="peer mt-0.5 grid size-5 shrink-0 cursor-pointer appearance-none place-content-center rounded-md border border-line-strong bg-ink transition-colors duration-200 checked:border-brand checked:bg-brand checked:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22white%22%20stroke-width=%223.5%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M5%2012.5l4.5%204.5L19%207%22/%3E%3C/svg%3E')] checked:bg-[length:14px] checked:bg-center checked:bg-no-repeat hover:border-cream/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       />
       <span>{children}</span>
     </label>
+  );
+
+  if (!error) return box;
+  return (
+    <div className="flex flex-col gap-2">
+      {box}
+      <p role="alert" className="text-sm font-medium text-brand-2">
+        {error}
+      </p>
+    </div>
   );
 }
 
