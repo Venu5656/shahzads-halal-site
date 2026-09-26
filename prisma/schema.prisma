@@ -24,25 +24,31 @@ enum Role {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  name           String
+  id              String    @id @default(cuid())
+  name            String
   /// E.164, e.g. +17325551234. Unique, and how people log in.
-  phone          String    @unique
+  phone           String    @unique
   /// scrypt hash of the password. Null only for an invited manager who has not
   /// set one yet.
-  passwordHash   String?
+  passwordHash    String?
   /// Nothing proves the number yet — SMS verification is deferred. The flag is
   /// kept ready for when codes are switched on.
-  phoneVerified  Boolean   @default(false)
-  /// Optional — used for emailed receipts only.
-  email          String?
-  role           Role      @default(CUSTOMER)
-  marketingOptIn Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  lastLoginAt    DateTime?
+  phoneVerified   Boolean   @default(false)
+  /// Required, unique, and the address every verification and password-reset
+  /// link is sent to. Also where receipts go.
+  email           String    @unique
+  /// When the address was proved. Null means the account cannot log in yet.
+  emailVerifiedAt DateTime?
+  /// A new address the customer asked for, held until they prove it.
+  pendingEmail    String?
+  role            Role      @default(CUSTOMER)
+  marketingOptIn  Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
 
   sessions     Session[]
+  emailTokens  EmailToken[]
   orders       Order[]
   cart         Cart?
   auditLogs    AuditLog[]    @relation("AuditActor")
@@ -72,16 +78,47 @@ model Session {
 /// One row per login attempt, for rate limiting. Kept short-lived: anything
 /// older than a day can be deleted.
 model LoginAttempt {
-  id        String   @id @default(cuid())
-  /// The number that was typed, whether or not it has an account.
-  phone     String
+  id         String   @id @default(cuid())
+  /// What was typed in the identifier box — an email address or an E.164
+  /// number — whether or not it has an account.
+  identifier String
   /// HMAC of the requesting IP — we never store raw addresses.
-  ipHash    String?
-  success   Boolean
-  createdAt DateTime @default(now())
+  ipHash     String?
+  success    Boolean
+  createdAt  DateTime @default(now())
 
-  @@index([phone, createdAt])
+  @@index([identifier, createdAt])
   @@index([ipHash, createdAt])
+}
+
+enum EmailTokenPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+/// One row per emailed link. The link itself is never stored — only the
+/// SHA-256 of its token — so a database dump cannot be used to verify an
+/// address or reset a password. Single-use: `consumedAt` is set the moment a
+/// token is spent, in the same transaction that acts on it.
+model EmailToken {
+  id         String            @id @default(cuid())
+  /// SHA-256 (hex) of the token that travels in the link.
+  tokenHash  String            @unique
+  purpose    EmailTokenPurpose
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The address this link was sent to — kept so a token issued for an old
+  /// address cannot verify a newer one.
+  email      String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  /// HMAC of the requesting IP — we never store raw addresses.
+  ipHash     String?
+  createdAt  DateTime          @default(now())
+
+  @@index([userId, purpose, createdAt])
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
 }
 
 /// Pending invitation for a manager, redeemed on first login.
