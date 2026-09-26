@@ -12,12 +12,12 @@ real customer until the items marked **BLOCKER** are answered.
 | 2 | **NJ sales tax treatment.** Is prepared food taxed at 6.625%? Are menu prices tax-inclusive or is tax added at checkout? Is New Brunswick in an Urban Enterprise Zone (which would halve the rate)? | `StoreSettings.taxRatePpm` defaults to `66_250` (6.625%); `NJ_SALES_TAX_PPM` in `src/lib/money.ts`. Confirm with the restaurant's accountant — I am not qualified to decide this. | Phase 4 |
 | 3 | **Who is legally taking the payments.** The Stripe account holder must be the restaurant's business entity, with its own EIN and bank account — not me and not you personally. | No code yet. | Phase 4 |
 | 4 | **Stripe account** — created, business details verified, bank account attached. Also: is PayPal enabled on it? (I will verify whether Stripe's PayPal payment method is available for US accounts before writing any PayPal code.) | `.env.example` → `STRIPE_*` | Phase 4 |
-| 5 | **How customers reset a forgotten password.** There is no way to reach them today: no SMS, and no email service until phase 4. Right now the login screen says to call the store, and I reset it by hand. Pick one before launch: emailed reset link (needs the phase 4 email service, and only works for customers who gave an email), or a texted code (needs Twilio + A2P 10DLC, which takes days to weeks to approve). | `src/components/auth/LoginForm.tsx` tells people to call | Before launch |
-| 5b | **Twilio account + A2P 10DLC registration**, if you want order-ready texts or phone verification later. Approval takes days to weeks. Not needed for login any more. | `.env.example` → `TWILIO_*` | Phase 6-ish |
+| 5 | **Twilio account + A2P 10DLC registration**, if you want order-ready texts or a verified phone number later. Approval takes days to weeks. Not needed for accounts any more — email verification replaced it. | `.env.example` → `TWILIO_*` | Phase 4-6 |
 | 6 | **Printer decision** (see phase 6 options) and whether there is a PC or spare tablet in the store. | No code yet. | Phase 6 |
 | 7 | **Domain name** and who controls the DNS. Needed for Apple Pay domain verification and for the SMS/email sender identity. | `.env.example` → `NEXT_PUBLIC_SITE_URL` | Phase 4 |
-| 8 | **Privacy policy and terms pages.** We store names, phone numbers, passwords and order history, which needs a published privacy policy. The sign-up screen has an unticked marketing opt-in ready; what is missing is the actual policy pages to link to. Twilio will also ask to see them if you ever register for SMS. | Sign-up screen | Before launch |
-| 9 | **Owner's phone number** for the first `OWNER` account. | `prisma/seed.ts` reads `SEED_OWNER_PHONE`; nothing is created without it. | Phase 2 |
+| 8 | **A domain, and email authentication on it.** Verification and reset links need a real sending domain with SPF, DKIM and DMARC records, plus a Resend (or equivalent) account. Until then mail sends from the provider's shared domain in development only, and would land in spam in production. | `.env.example` → `RESEND_API_KEY`, `RECEIPT_FROM_EMAIL` | Before launch |
+| 9 | **Privacy policy and terms pages — a lawyer's review.** Drafts are now live at `/legal/terms` and `/legal/privacy`, describing what the software actually does with personal data. They are marked as drafts on the page and are not binding text. Sign-up requires ticking a box that links to both. Twilio will also ask to see them if you ever register for SMS. | `src/app/legal/` | Before launch |
+| 10 | **Owner's email and phone number** for the first `OWNER` account. | `prisma/seed.ts` reads `SEED_OWNER_EMAIL` and `SEED_OWNER_PHONE`; nothing is created without them. | Phase 2 |
 
 ## Decisions I made in phase 2
 
@@ -46,6 +46,12 @@ real customer until the items marked **BLOCKER** are answered.
 
 These have a working default. Tell me if any is wrong and I will change it.
 
+0. **Email is the account identity; the phone number is contact detail.** Since
+   SMS verification is deferred, the email address is the thing we can actually
+   prove, so it is required, unique and verified before an account works. The
+   mobile number is still required at signup — the kitchen calls about
+   pickups — but unverified. Logging in accepts either one plus the password.
+   Say the word if you would rather the number stayed the only login name.
 1. **Which items come with a free sauce choice.** Seeded as: all Platters and all
    Gyros (8 items). Cheesesteaks, burgers and sides do not. The homepage copy
    says "every platter and gyro", but Onion Rings also mentions sauces.

@@ -8,8 +8,8 @@ The marketing homepage from the old static site is preserved exactly as it was �
 same markup, same stylesheet, same animations. See
 [Homepage port](#the-homepage-port) before touching it.
 
-**Status: phase 2 of 8 (accounts).** People can sign up and log in with a phone
-number and password; nothing is orderable yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
+**Status: phase 2 of 8 (accounts).** People can sign up, confirm their email
+address, log in, and reset a forgotten password; nothing is orderable yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
 you.
 
 ## Local setup
@@ -82,9 +82,10 @@ and `AUTH_SECRET` are needed today; the rest land in later phases.
 | `AUTH_SECRET` | now | **Required.** `openssl rand -base64 32`. Changing it signs everyone out |
 | `TWILIO_*` | later | Order-ready texts, once A2P 10DLC registration is approved |
 | `STRIPE_*` | phase 4 | Payments and webhook signature verification |
-| `RESEND_API_KEY`, `RECEIPT_FROM_EMAIL` | phase 4 | Emailed receipts |
+| `RESEND_API_KEY`, `RECEIPT_FROM_EMAIL` | now (optional) | Real email sending. Leave empty in development and mail goes to `.mail/outbox.jsonl` |
+| `EMAIL_TRANSPORT` | optional | Force `outbox` or `resend` |
 | `PRINT_AGENT_TOKEN` | phase 6 | Shared secret for the in-store printer |
-| `SEED_OWNER_PHONE`, `SEED_OWNER_PASSWORD`, `SEED_OWNER_NAME` | optional | Creates the first OWNER account when seeding |
+| `SEED_OWNER_EMAIL`, `SEED_OWNER_PHONE`, `SEED_OWNER_PASSWORD`, `SEED_OWNER_NAME` | optional | Creates the first OWNER account when seeding. The email is required when the phone is set — it is the login |
 
 ## Project layout
 
@@ -93,14 +94,15 @@ src/app/                 App Router pages
   layout.tsx             <html>/<body>, metadata, global stylesheet
   page.tsx               the homepage markup (ported 1:1)
   globals.css            Tailwind + the original homepage stylesheet
-src/app/(auth)/          login, signup, verify screens
+src/app/(auth)/          signup, login, check-email, verify, forgot/reset password
 src/app/account/         the customer's own account page
 src/app/admin/           manager area (placeholder, role-gated)
 src/proxy.ts             optimistic cookie check (Next 16's renamed middleware)
 src/components/home/     homepage behaviour (client components)
-src/components/auth/     login/signup/verify forms
+src/components/auth/     signup, login, forgot/reset password, resend forms
 src/components/ui/       form fields, buttons, headers shared by new pages
-src/lib/auth/            sessions, password hashing, login limits, validation
+src/lib/auth/            sessions, password hashing, login limits, emailed links, validation
+src/lib/email/           mail transports (dev outbox / Resend) and templates
 src/lib/                 hours, menu data, money, Prisma client
 prisma/schema.prisma     the data model
 prisma/seed.ts           idempotent menu seed
@@ -144,22 +146,31 @@ checkout in phase 4.
 
 ## Accounts and login
 
-Accounts are a **mobile number and a password**. Signing up creates the account
-immediately — nothing is texted and there is no code to wait for.
+Accounts are an **email address and a password**. Signing up does not log you
+in: the account is created unverified, a link goes to the address, and only
+opening that link makes the account usable. You can then log in with **either
+the address or the mobile number**, because people remember whichever they gave
+us.
 
-Note what this does and does not prove: the password proves someone knows the
-password, and nothing proves the phone number belongs to them. `phoneVerified`
-stays `false` on every account for now. If SMS is switched on later, a
-verification step slots on top and flips that flag; nothing else has to change.
+Note what this does and does not prove. The email address is proved — someone
+received mail there and opened the link. The mobile number is not: it is
+collected because the kitchen needs to call about a pickup, and `phoneVerified`
+stays `false` on every account. When A2P 10DLC registration clears, SMS
+verification slots on top and flips that flag; nothing else has to change.
 
 ### The screens
 
 | Route | What it does |
 |-------|--------------|
-| `/login` | Number + password. Has a Log in / Sign up switch |
-| `/signup` | Name, number, password, optional email, optional marketing opt-in |
-| `/account` | Edit details, change number, change password, log out, log out everywhere |
+| `/signup` | Name, email, number, password, terms, separate marketing opt-in |
+| `/check-email` | "We sent you a link" — shown after signup and after asking for a reset |
+| `/verify-email?token=…` | Opens a verification link. Single use |
+| `/login` | Email **or** number + password. Log in / Sign up switch |
+| `/forgot-password` | Asks for an address and emails a reset link |
+| `/reset-password?token=…` | Choose a new password. Single use, one hour |
+| `/account` | Edit details, change email, change number, change password, log out everywhere |
 | `/admin` | Manager area. Placeholder, but already behind the role check |
+| `/legal/terms`, `/legal/privacy` | Draft policies — see OPEN-QUESTIONS.md |
 
 The homepage header gains **Log in** and **Sign up**, or the customer's name
 when signed in; on phones they live in the burger drawer.
@@ -183,44 +194,80 @@ when signed in; on phones they live in the burger drawer.
   rule that actually matters.
 - **Changing the phone number needs the current password**, so someone with a
   borrowed unlocked phone cannot move the account to their own number.
+- **Emailed links are stored only as a SHA-256**, like sessions, so a database
+  dump cannot verify an address or reset a password. Each link is single-use —
+  spending one is a conditional `UPDATE`, so a mail client that prefetches the
+  URL cannot burn it before the human clicks — and issuing a new one retires
+  any still in flight.
+- **Neither email form says who has an account.** Signing up with a taken
+  address, and asking to reset an address that has none, both land on the same
+  "check your email" screen. A taken address gets no new account; an unverified
+  one gets its link re-sent, which is almost always the same person trying again.
+- **Link sending is capped**: one per purpose per minute, five to an address per
+  hour, twenty per IP per hour. The cooldown is per purpose, so asking to reset
+  a password right after signing up is not met with silence.
+- **Using a reset link signs out every device** — the point of resetting after
+  someone else has been in the account — and so does moving an account to a new
+  address.
+- **A new address is never switched in on the spot.** It is parked in
+  `pendingEmail` and mail keeps going to the old one until the link is opened,
+  so a typo cannot lock anyone out of their own account.
 - **Every server action re-checks the session and validates its own input** with
   Zod. The proxy (`src/proxy.ts`, Next 16's renamed middleware) only does a fast
   cookie check; the real gate is `src/lib/auth/dal.ts`.
 - Non-staff get a **404** on `/admin`, not a 403 — the manager area does not
   advertise that it exists.
 
+### Email in development
+
+You do not need a mail account to work on any of this. With `RESEND_API_KEY`
+empty, every message is written to `.mail/outbox.jsonl` (gitignored) and its
+link is printed to the terminal running `npm run dev`:
+
+```
+[mail:verify] to sam@example.com — Confirm your email — Shahzad's Halal Food
+[mail:verify] http://localhost:3000/verify-email?token=…
+```
+
+Paste that into the browser and the flow continues. The end-to-end tests read
+the same file, which is how they follow real links out of real emails without a
+network. `EMAIL_TRANSPORT=outbox|resend` forces one either way.
+
+For real sending, set `RESEND_API_KEY` and a `RECEIPT_FROM_EMAIL` at a domain
+verified with the provider. Until SPF, DKIM and DMARC are set up on that domain,
+expect mail to land in spam — see OPEN-QUESTIONS.md.
+
 ### Forgotten passwords
 
-There is no self-service reset yet, because there is no way to reach a customer:
-no SMS, and no email service until phase 4. The login screen tells people to
-call the store. To reset one by hand:
+Self-service: **Forgotten your password?** on the login screen emails a link
+that lasts an hour. To fix one by hand instead:
 
 ```bash
 npm run db:studio     # find the user, clear passwordHash
 ```
 
 An account with no `passwordHash` cannot log in at all, so clearing it locks the
-account until a new password is set. A proper reset flow (emailed link, or a
-texted code once Twilio is live) is on the list in OPEN-QUESTIONS.md.
+account until a new password is set.
 
 ### Making yourself the owner
 
 Sign up normally, then promote yourself:
 
 ```bash
-psql shahzads -c "UPDATE \"User\" SET role = 'OWNER' WHERE phone = '+1XXXXXXXXXX';"
+psql shahzads -c "UPDATE \"User\" SET role = 'OWNER' WHERE email = 'you@example.com';"
 ```
 
 Or create the account straight from the seed:
 
 ```bash
-SEED_OWNER_PHONE="+1XXXXXXXXXX" SEED_OWNER_PASSWORD='choose something long' npm run db:seed
+SEED_OWNER_EMAIL="you@example.com" SEED_OWNER_PHONE="+1XXXXXXXXXX" \
+  SEED_OWNER_PASSWORD='choose something long' npm run db:seed
 ```
 
 ## Testing
 
 ```bash
-npm test          # pricing, tax, opening hours, menu data, password hashing, login limits
+npm test          # pricing, tax, hours, menu data, password hashing, login + email limits
 npm run test:e2e  # homepage, plus sign-up/login/profile/lockout end to end
 ```
 
