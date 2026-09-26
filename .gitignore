@@ -3,6 +3,7 @@ node_modules/
 out/
 build/
 coverage/
+.mail/
 test-results/
 playwright-report/
 blob-report/
