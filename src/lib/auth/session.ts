@@ -16,6 +16,8 @@ export const sessionUserSelect = {
   name: true,
   phone: true,
   email: true,
+  emailVerifiedAt: true,
+  pendingEmail: true,
   role: true,
   marketingOptIn: true,
   createdAt: true,
@@ -68,8 +70,19 @@ export async function endCurrentSession(): Promise<void> {
   jar.delete({ name: SESSION_COOKIE, path: "/" });
 }
 
-/** Sign out every device, this one included. */
-export async function endAllSessions(userId: string): Promise<void> {
+/**
+ * Revokes every session row for a user, without touching this request's
+ * cookie. Safe to call while rendering a page: Next.js only allows cookies to
+ * be written from a server action or route handler, and the leftover cookie is
+ * harmless — it now points at a session row that no longer exists, so the very
+ * next request treats it as signed out.
+ */
+export async function revokeAllSessions(userId: string): Promise<void> {
   await prisma.session.deleteMany({ where: { userId } });
+}
+
+/** Sign out every device, this one included. Server actions only. */
+export async function endAllSessions(userId: string): Promise<void> {
+  await revokeAllSessions(userId);
   (await cookies()).delete({ name: SESSION_COOKIE, path: "/" });
 }

@@ -30,13 +30,53 @@ export const phoneSchema = z
     return e164;
   });
 
-export const optionalEmailSchema = z
-  .string()
+/**
+ * Every account needs an address we can prove: it is where the verification
+ * link and any password reset go. Lower-cased on the way in so "Sam@" and
+ * "sam@" cannot become two accounts.
+ */
+export const emailSchema = z
+  .string({ error: "Enter your email address." })
   .trim()
+  .min(1, "Enter your email address.")
   .max(254, "That email is too long.")
   .transform((value) => value.toLowerCase())
-  .pipe(z.union([z.literal(""), z.email("Enter a valid email, or leave it blank.")]))
-  .transform((value) => (value === "" ? null : value));
+  .pipe(z.email("Enter a valid email address."));
+
+/**
+ * The login box takes either an email address or a mobile number, because
+ * people remember whichever they gave us. Anything with an @ is treated as an
+ * email; everything else is run through the phone normaliser.
+ */
+export const loginIdentifierSchema = z
+  .string({ error: "Enter your email or mobile number." })
+  .trim()
+  .min(1, "Enter your email or mobile number.")
+  .max(254, "That's too long.")
+  .transform((value, ctx) => {
+    if (value.includes("@")) {
+      const email = value.toLowerCase();
+      if (!z.email().safeParse(email).success) {
+        ctx.addIssue({ code: "custom", message: "Enter a valid email address." });
+        return z.NEVER;
+      }
+      return { kind: "email" as const, value: email };
+    }
+    const e164 = normalizePhone(value);
+    if (!e164) {
+      ctx.addIssue({ code: "custom", message: "Enter your email or a valid US mobile number." });
+      return z.NEVER;
+    }
+    return { kind: "phone" as const, value: e164 };
+  });
+
+/** A checkbox that has to be ticked, such as accepting the terms. */
+export function requiredCheckboxSchema(message: string) {
+  return z
+    .union([z.literal("on"), z.literal("true"), z.null(), z.undefined()])
+    .transform((value) => value === "on" || value === "true")
+    .refine((checked) => checked, { message });
+}
 
 /** HTML checkboxes submit "on" when ticked and nothing when not. */
 export const checkboxSchema = z
@@ -69,8 +109,9 @@ export const signupSchema = z
   .object({
     name: nameSchema,
     phone: phoneSchema,
+    email: emailSchema,
     password: newPasswordSchema,
-    email: optionalEmailSchema,
+    acceptTerms: requiredCheckboxSchema("Accept the terms to continue."),
     marketingOptIn: checkboxSchema,
   })
   // The only rule that needs two fields: don't let the password be the number.
@@ -80,13 +121,22 @@ export const signupSchema = z
   });
 
 export const loginSchema = z.object({
-  phone: phoneSchema,
+  identifier: loginIdentifierSchema,
   password: givenPasswordSchema,
 });
 
+/** Asking for a link — verification or reset. Always answered the same way. */
+export const emailOnlySchema = z.object({ email: emailSchema });
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1).max(128),
+    newPassword: newPasswordSchema,
+  });
+
 export const profileSchema = z.object({
   name: nameSchema,
-  email: optionalEmailSchema,
+  email: emailSchema,
   marketingOptIn: checkboxSchema,
 });
 
