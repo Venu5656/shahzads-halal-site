@@ -213,6 +213,23 @@ browser's arithmetic is a preview; the server's is the price.
 - A line that stops pricing (sold out, an option withdrawn) is flagged in the
   panel and refused by the server, rather than failing at checkout.
 
+## Payments (phase 4, in progress)
+
+Card, **Apple Pay** and **Google Pay**, all through Stripe.
+
+**PayPal is deliberately not offered.** Stripe's PayPal payment method is not
+available to US-based merchants — Stripe supports it for businesses in the EU
+(except Hungary), Liechtenstein, Norway, the UK and Switzerland. Adding it
+through PayPal's own SDK would mean a second merchant account, a second
+webhook, a second refund path and reconciling two sets of books every month,
+for a payment method that Apple Pay and Google Pay already cover on the phone
+where these orders actually get placed. The `PAYPAL` value stays in the
+`PaymentMethod` enum so the decision can be reversed without a migration.
+
+Apple Pay additionally needs a verified domain serving a file Apple checks —
+see OPEN-QUESTIONS.md. It cannot be verified on localhost, so it is the last
+thing to switch on.
+
 ## Accounts and login
 
 Accounts are an **email address and a password**. Signing up does not log you
