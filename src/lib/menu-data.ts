@@ -1,15 +1,17 @@
 /**
- * The real menu: 21 items, their prices, and the rules that govern what can be
- * added to them.
+ * The menu, transcribed from the printed menu in the shop
+ * (`menu prices/Screenshot 2026-09-27 at 6.52.48 PM.png`).
  *
- * Taken from the owner's price list and `menu prices/rules.txt`. This module is
- * the single source of truth for the database seed, so the menu and the
- * database can never drift apart. Everything downstream — the menu page, the
- * cart, the checkout — reads the database, never this file.
+ * Names, prices and category names are the board's, exactly. Where a printed
+ * row carries its sizes in the name — "Fries (Sm / Lg)", "Falafel 4Pc / 8Pc" —
+ * the sizes become an option group and the name is the dish, so one card holds
+ * one dish and the price moves with the choice.
  *
- * Money is integer cents everywhere. Option prices are the *difference* from
- * the item's base price, which is why a size is modelled as an option group
- * rather than as separate items: one card, one photo, one price that moves.
+ * This module is the source of truth for the database seed. Everything the
+ * customer sees is read from the database, never from here.
+ *
+ * Money is integer cents. Option prices are the *difference* from the item's
+ * base price.
  */
 
 export type MenuTag = { kind: "star" | "veg"; label: string };
@@ -22,31 +24,27 @@ export type SeedMenuItem = {
   imagePath: string;
   description: string;
   /**
-   * Base price in cents — the cheapest configuration of the item. Null means
-   * the owner has not priced it yet, which shows on the menu as "Ask in store"
-   * and cannot be added to a cart.
+   * Base price in cents — the cheapest configuration. Null means unpriced,
+   * which shows as "Ask in store" and cannot be added to a cart.
    */
   basePriceCents: number | null;
   tags: MenuTag[];
-  /** Option group slugs, in the order they should appear on the item. */
+  /** Option group slugs, in the order they appear on the item. */
   optionGroups: string[];
-  /**
-   * Whether sales tax applies. Defaults to true — everything Shahzad's sells
-   * is prepared food except the bottled water, which New Jersey exempts.
-   * Confirm with the accountant (OPEN-QUESTIONS.md).
-   */
+  /** Defaults to true. New Jersey exempts unflavoured bottled water. */
   isTaxable?: boolean;
 };
 
+/** Exactly the section names on the printed menu, in its order. */
 export const CATEGORIES = [
   "Platters",
   "Gyros",
-  "Cheesesteaks",
-  "Burgers & Sandwiches",
+  "Sandwiches",
   "Wings",
   "Sides",
-  "Dips",
-  "Drinks",
+  "Desserts & Sweets",
+  "Beverages",
+  "Extra Sauces",
 ] as const;
 
 export type CategoryName = (typeof CATEGORIES)[number];
@@ -56,20 +54,18 @@ export type CategoryName = (typeof CATEGORIES)[number];
 export type Sauce = {
   slug: string;
   name: string;
-  /** Sauce colour, used by the homepage blob and the swatches. */
   color: string;
-  /** Text colour that stays legible on top of `color`. */
   ink: string;
   /** Heat, 0–5. */
   heat: number;
   description: string;
 };
 
-/** The six house sauces. Free with platters and gyros, 75¢ on the side. */
+/** The six house sauces: free on platters and gyros, 75¢ on the side. */
 export const SAUCES: Sauce[] = [
   {
     slug: "white-sauce",
-    name: "White Sauce",
+    name: "White",
     color: "#f3eee2",
     ink: "#1b140f",
     heat: 0,
@@ -78,7 +74,7 @@ export const SAUCES: Sauce[] = [
   },
   {
     slug: "hot-sauce",
-    name: "Hot Sauce",
+    name: "Hot",
     color: "#d8321f",
     ink: "#fff",
     heat: 5,
@@ -87,7 +83,7 @@ export const SAUCES: Sauce[] = [
   },
   {
     slug: "green-sauce",
-    name: "Green Sauce",
+    name: "Green",
     color: "#7eae47",
     ink: "#12200a",
     heat: 2,
@@ -108,7 +104,7 @@ export const SAUCES: Sauce[] = [
     color: "#6e2716",
     ink: "#fff",
     heat: 1,
-    description: "Smoky and sweet. Unexpectedly great on a combo gyro.",
+    description: "Smoky and sweet. Unexpectedly great on a chicken and lamb gyro.",
   },
   {
     slug: "buffalo",
@@ -120,7 +116,7 @@ export const SAUCES: Sauce[] = [
   },
 ];
 
-/** Wing sauces are their own list — one is picked, and it is tossed on. */
+/** The seven wing sauces printed under the WINGS heading. */
 export const WING_SAUCES = [
   { slug: "hot", name: "Hot" },
   { slug: "buffalo", name: "Buffalo" },
@@ -138,13 +134,11 @@ export type SeedOption = {
   name: string;
   /** Added to the item's base price, in cents. */
   priceCents: number;
-  description?: string;
 };
 
 export type SeedOptionGroup = {
   slug: string;
   name: string;
-  /** Shown under the group name on the item page. */
   hint?: string;
   minSelect: number;
   maxSelect: number;
@@ -170,6 +164,7 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
     maxSelect: 1,
     options: [
       { slug: "regular-rice", name: "Regular rice", priceCents: 0 },
+      // "Spicy Rice FREE" on the board.
       { slug: "spicy-rice", name: "Spicy rice", priceCents: 0 },
     ],
   },
@@ -182,15 +177,26 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
       { slug: "extra-protein", name: "Extra protein", priceCents: 300 },
       { slug: "add-fries", name: "Add fries", priceCents: 200 },
       { slug: "add-pita", name: "Add pita", priceCents: 200 },
+      // The board prints "No Salad +$2"; the owner asked for it to be free.
+      // See OPEN-QUESTIONS.md — his instruction wins until he says otherwise.
       { slug: "no-salad", name: "No salad", priceCents: 0 },
     ],
   },
   {
-    slug: "meal-deal",
+    // "Add Fries & Soda +$5" under GYROS.
+    slug: "meal-deal-gyro",
     name: "Make it a meal",
     minSelect: 0,
     maxSelect: 1,
     options: [{ slug: "fries-and-soda", name: "Add fries and a soda", priceCents: 500 }],
+  },
+  {
+    // "Add Fries & Soda +$4.99" under SANDWICHES — a penny less than the gyro.
+    slug: "meal-deal-sandwich",
+    name: "Make it a meal",
+    minSelect: 0,
+    maxSelect: 1,
+    options: [{ slug: "fries-and-soda", name: "Add fries and a soda", priceCents: 499 }],
   },
   {
     slug: "wing-size",
@@ -198,10 +204,10 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
     minSelect: 1,
     maxSelect: 1,
     options: [
-      { slug: "6-pc", name: "6 pc", priceCents: 0 },
-      { slug: "12-pc", name: "12 pc", priceCents: 800 },
-      { slug: "18-pc", name: "18 pc", priceCents: 1700 },
-      { slug: "21-pc", name: "21 pc", priceCents: 2200 },
+      { slug: "6-pc", name: "6 Pc", priceCents: 0 },
+      { slug: "12-pc", name: "12 Pc", priceCents: 800 },
+      { slug: "18-pc", name: "18 Pc", priceCents: 1700 },
+      { slug: "21-pc", name: "21 Pc", priceCents: 2200 },
     ],
   },
   {
@@ -218,8 +224,8 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
     minSelect: 1,
     maxSelect: 1,
     options: [
-      { slug: "4-pc", name: "4 pc", priceCents: 0 },
-      { slug: "8-pc", name: "8 pc", priceCents: 400 },
+      { slug: "4-pc", name: "4 Pc", priceCents: 0 },
+      { slug: "8-pc", name: "8 Pc", priceCents: 400 },
     ],
   },
   {
@@ -228,8 +234,8 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
     minSelect: 1,
     maxSelect: 1,
     options: [
-      { slug: "regular", name: "Regular", priceCents: 0 },
-      { slug: "large", name: "Large", priceCents: 200 },
+      { slug: "sm", name: "Sm", priceCents: 0 },
+      { slug: "lg", name: "Lg", priceCents: 200 },
     ],
   },
   {
@@ -256,87 +262,115 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
 
 // ------------------------------------------------------------------ items
 
-// Sauce on the side is an option only where a sauce is part of the dish —
-// platters and gyros. Everywhere else a dip is its own item from the Dips
-// section, so it can be ordered on its own or alongside anything.
 const PLATTER_GROUPS = ["rice-style", "sauce-choice", "platter-extras", "extra-sauce"];
-const GYRO_GROUPS = ["sauce-choice", "meal-deal", "extra-sauce"];
-const SANDWICH_GROUPS = ["meal-deal"];
-const SIDE_GROUPS: string[] = [];
+const GYRO_GROUPS = ["sauce-choice", "meal-deal-gyro", "extra-sauce"];
+const SANDWICH_GROUPS = ["meal-deal-sandwich"];
+
+const pending = (slug: string) => `/img/menu/extras/pending-${slug}.svg`;
 
 export const MENU_ITEMS: SeedMenuItem[] = [
-  // ---------------------------------------------------------- platters
+  // --------------------------------------------------------- PLATTERS
+  // "Over brown basmati rice · salad · Shahzad's sauces"
+  {
+    slug: "fish-over-rice",
+    name: "2 Pc Fish over Rice",
+    category: "Platters",
+    imagePath: "/img/menu/fish-over-rice.jpg",
+    description: "Two fried fish fillets over brown basmati with salad and your sauce.",
+    basePriceCents: 1199,
+    tags: [],
+    optionGroups: PLATTER_GROUPS,
+  },
+  {
+    slug: "falafel-over-rice",
+    name: "Falafel over Rice",
+    category: "Platters",
+    imagePath: "/img/menu/falafel-over-rice.jpg",
+    description:
+      "Crispy falafel over brown basmati with a side salad and your choice of sauce.",
+    basePriceCents: 1199,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: PLATTER_GROUPS,
+  },
   {
     slug: "chicken-over-rice",
-    name: "Chicken Over Rice",
+    name: "Chicken over Rice",
     category: "Platters",
     imagePath: "/img/menu/chicken-over-rice.jpg",
     description:
-      "Marinated chicken chopped hot off the flat-top, over rice with salad and your pick of sauce.",
+      "Marinated chicken chopped hot off the flat-top, over brown basmati with salad.",
     basePriceCents: 1299,
     tags: [{ kind: "star", label: "Popular" }],
     optionGroups: PLATTER_GROUPS,
   },
   {
     slug: "lamb-over-rice",
-    name: "Lamb Over Rice",
+    name: "Lamb over Rice",
     category: "Platters",
     imagePath: "/img/menu/lamb-over-rice.jpg",
-    description: "Lamb cut from the spit and crisped on the griddle, over rice with salad.",
+    description: "Lamb cut from the spit and crisped on the griddle, over brown basmati.",
     basePriceCents: 1299,
+    tags: [],
+    optionGroups: PLATTER_GROUPS,
+  },
+  {
+    slug: "chicken-kofta-kabab-over-rice",
+    name: "Chicken Kofta Kabab",
+    category: "Platters",
+    imagePath: "/img/menu/chicken-kofta-kabab-over-rice.jpg",
+    description:
+      "Freshly ground chicken with herbs and spices, chopped and served over rice.",
+    basePriceCents: 1299,
+    tags: [],
+    optionGroups: PLATTER_GROUPS,
+  },
+  {
+    slug: "chicken-chapli-kabab",
+    name: "Chicken Chapli Kabab",
+    category: "Platters",
+    imagePath: "/img/menu/chicken-chapli-kabab.jpg",
+    description: "Spiced chicken chapli patties over rice with a crisp side salad.",
+    basePriceCents: 1299,
+    tags: [],
+    optionGroups: PLATTER_GROUPS,
+  },
+  {
+    slug: "beef-chapli-kabab-rice",
+    name: "Beef Chapli Kabab",
+    category: "Platters",
+    imagePath: "/img/menu/beef-chapli-kabab-rice.jpg",
+    description: "Savory beef chapli kebabs over seasoned rice with a crisp side salad.",
+    basePriceCents: 1399,
     tags: [],
     optionGroups: PLATTER_GROUPS,
   },
   {
     slug: "mix-platter",
-    name: "Mix Platter",
+    name: "Lamb & Chicken Mix",
     category: "Platters",
     imagePath: "/img/menu/mix-platter.jpg",
     description:
-      "Chicken and lamb together over rice, with fries, salad and any of Shahzad's sauces.",
+      "Chicken and lamb together over brown basmati, with salad and any of Shahzad's sauces.",
     basePriceCents: 1399,
     tags: [{ kind: "star", label: "Signature" }],
     optionGroups: PLATTER_GROUPS,
   },
   {
-    slug: "chicken-kofta-kabab-over-rice",
-    name: "Chicken Kofta Kabab Over Rice",
+    slug: "chapli-kabab-mix",
+    name: "Chapli Kabab Mix",
     category: "Platters",
-    imagePath: "/img/menu/chicken-kofta-kabab-over-rice.jpg",
-    description:
-      "Freshly ground chicken with herbs and spices, chopped and served over rice with salad.",
-    basePriceCents: 1299,
-    tags: [],
-    optionGroups: PLATTER_GROUPS,
-  },
-  {
-    slug: "falafel-over-rice",
-    name: "Falafel Over Rice",
-    category: "Platters",
-    imagePath: "/img/menu/falafel-over-rice.jpg",
-    description: "Crispy falafel over rice with a side salad and your choice of sauce.",
-    basePriceCents: 1199,
-    tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: PLATTER_GROUPS,
-  },
-
-  {
-    slug: "beef-chapli-kabab-rice",
-    name: "Beef Chapli Kabab Rice",
-    category: "Platters",
-    // No official photo yet — the old site's picture of the same platter.
-    imagePath: "/img/chapli.webp",
-    description:
-      "Savory beef chapli kebabs over seasoned rice with a crisp side salad.",
-    basePriceCents: 1399,
+    imagePath: pending("chapli-kabab-mix"),
+    description: "Chicken and beef chapli kebabs together over rice, with salad.",
+    basePriceCents: 1499,
     tags: [],
     optionGroups: PLATTER_GROUPS,
   },
 
-  // ------------------------------------------------------------- gyros
+  // ------------------------------------------------------------ GYROS
+  // "Pita · salad · sauces | Add Fries & Soda +$5"
   {
     slug: "chicken-gyro",
-    name: "Chicken Gyro",
+    name: "Chicken",
     category: "Gyros",
     imagePath: "/img/menu/chicken-gyro.jpg",
     description: "Chopped chicken, lettuce, tomato and sauce wrapped in warm pita.",
@@ -346,72 +380,91 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   },
   {
     slug: "lamb-gyro",
-    name: "Lamb Gyro",
+    name: "Lamb",
     category: "Gyros",
     imagePath: "/img/menu/lamb-gyro.jpg",
-    description:
-      "Lamb pieces with salad in pita — white, hot, tahini, BBQ, buffalo or green.",
+    description: "Lamb with salad in pita — white, hot, tahini, BBQ, buffalo or green.",
     basePriceCents: 999,
     tags: [],
     optionGroups: GYRO_GROUPS,
   },
-
+  {
+    slug: "combo-gyro",
+    name: "Chicken & Lamb",
+    category: "Gyros",
+    imagePath: "/img/menu/combo-gyro.jpg",
+    description: "Chicken and lamb together in warm pita with salad and your sauce.",
+    basePriceCents: 999,
+    tags: [],
+    optionGroups: GYRO_GROUPS,
+  },
   {
     slug: "falafel-gyro",
-    name: "Falafel Gyro",
+    name: "Falafel on Pita",
     category: "Gyros",
-    // No official photo in the owner's shoot yet — this is the old site's
-    // picture of the same wrap. Swap it the moment a proper one arrives.
-    imagePath: "/img/falafel-wrap.webp",
-    description:
-      "Crispy falafel, lettuce, tomato, onion and pickles on grilled pita with white sauce.",
+    imagePath: "/img/menu/falafel-gyro.jpg",
+    description: "Crispy falafel, lettuce, tomato, onion and pickles on grilled pita.",
     basePriceCents: 1099,
     tags: [{ kind: "veg", label: "Veggie" }],
     optionGroups: GYRO_GROUPS,
   },
-
   {
-    slug: "combo-gyro",
-    name: "Combo Gyro",
+    slug: "fish-pita",
+    name: "2 Pc Fish Pita",
     category: "Gyros",
-    // The old site's photo, until the studio set covers it.
-    imagePath: "/img/combo-gyro.webp",
-    description:
-      "Chicken and lamb in warm pita with salad and any of Shahzad's sauces.",
-    basePriceCents: 1399,
-    tags: [{ kind: "star", label: "Popular" }],
+    imagePath: pending("fish-pita"),
+    description: "Two fried fish fillets in pita with salad and sauce.",
+    basePriceCents: 1099,
+    tags: [],
+    optionGroups: GYRO_GROUPS,
+  },
+  {
+    slug: "kofta-kabab-gyro",
+    name: "Kofta Kabab",
+    category: "Gyros",
+    imagePath: "/img/menu/kofta-kabab-gyro.jpg",
+    description: "Ground chicken kofta with salad, wrapped in warm pita.",
+    basePriceCents: 1099,
+    tags: [],
+    optionGroups: GYRO_GROUPS,
+  },
+  {
+    slug: "chicken-chapli-gyro",
+    name: "Chicken Chapli",
+    category: "Gyros",
+    imagePath: "/img/menu/chicken-chapli-gyro.jpg",
+    description: "Spiced chicken chapli patty in pita with salad and sauce.",
+    basePriceCents: 1099,
+    tags: [],
+    optionGroups: GYRO_GROUPS,
+  },
+  {
+    slug: "mix-chapli-gyro",
+    name: "Mix Chapli",
+    category: "Gyros",
+    imagePath: pending("mix-chapli-gyro"),
+    description: "Chicken and beef chapli together in pita with salad.",
+    basePriceCents: 1099,
+    tags: [],
+    optionGroups: GYRO_GROUPS,
+  },
+  {
+    slug: "beef-chapli-gyro",
+    name: "Beef Chapli",
+    category: "Gyros",
+    imagePath: "/img/menu/beef-chapli-gyro.jpg",
+    description: "Beef chapli patty in warm pita with salad and your sauce.",
+    basePriceCents: 1199,
+    tags: [],
     optionGroups: GYRO_GROUPS,
   },
 
-  // ------------------------------------------------------ cheesesteaks
-  {
-    slug: "philly-cheesesteak",
-    name: "Philly Cheesesteak",
-    category: "Cheesesteaks",
-    imagePath: "/img/menu/philly-cheesesteak.jpg",
-    description:
-      "Cheese, onion, green pepper, ketchup and mayonnaise on a toasted roll.",
-    basePriceCents: 1099,
-    tags: [{ kind: "star", label: "Must-try" }],
-    optionGroups: SANDWICH_GROUPS,
-  },
-  {
-    slug: "chicken-cheesesteak",
-    name: "Chicken Cheesesteak",
-    category: "Cheesesteaks",
-    imagePath: "/img/menu/chicken-cheesesteak.jpg",
-    description:
-      "Chopped chicken, cheese, onion and green pepper with ketchup and mayo.",
-    basePriceCents: 1099,
-    tags: [],
-    optionGroups: SANDWICH_GROUPS,
-  },
-
-  // --------------------------------------------- burgers and sandwiches
+  // ------------------------------------------------------- SANDWICHES
+  // "Add Fries & Soda +$4.99"
   {
     slug: "cheeseburger",
-    name: "Cheeseburger",
-    category: "Burgers & Sandwiches",
+    name: "Cheese Burger",
+    category: "Sandwiches",
     imagePath: "/img/menu/cheeseburger.jpg",
     description: "Griddled patty with melted cheese, grilled onions, lettuce and tomato.",
     basePriceCents: 699,
@@ -419,19 +472,29 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: SANDWICH_GROUPS,
   },
   {
-    slug: "crispy-chicken-burger",
-    name: "Crispy Chicken Burger",
-    category: "Burgers & Sandwiches",
-    imagePath: "/img/menu/crispy-chicken-burger.jpg",
-    description: "Fried chicken fillet, lettuce and mayo in a toasted bun.",
-    basePriceCents: 799,
+    slug: "chicken-sandwich",
+    name: "Chicken Sandwich",
+    category: "Sandwiches",
+    imagePath: "/img/menu/chicken-sandwich.jpg",
+    description: "Grilled chicken with lettuce, tomato and sauce on a soft roll.",
+    basePriceCents: 699,
+    tags: [],
+    optionGroups: SANDWICH_GROUPS,
+  },
+  {
+    slug: "fish-sandwich",
+    name: "Fish Sandwich",
+    category: "Sandwiches",
+    imagePath: "/img/menu/fish-sandwich.jpg",
+    description: "Fried fish fillet with lettuce, tomato and sauce in a toasted bun.",
+    basePriceCents: 699,
     tags: [],
     optionGroups: SANDWICH_GROUPS,
   },
   {
     slug: "veggie-burger",
     name: "Veggie Burger",
-    category: "Burgers & Sandwiches",
+    category: "Sandwiches",
     imagePath: "/img/menu/veggie-burger.jpg",
     description: "Veggie patty with lettuce, tomato and sauce in a toasted bun.",
     basePriceCents: 699,
@@ -439,20 +502,50 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: SANDWICH_GROUPS,
   },
   {
-    slug: "chicken-sandwich",
-    name: "Chicken Sandwich",
-    category: "Burgers & Sandwiches",
-    imagePath: "/img/menu/chicken-sandwich.jpg",
-    description: "Grilled chicken with lettuce, tomato and sauce on a soft roll.",
-    basePriceCents: 699,
+    slug: "crispy-chicken-burger",
+    name: "Crispy Chicken Burger",
+    category: "Sandwiches",
+    imagePath: "/img/menu/crispy-chicken-burger.jpg",
+    description: "Fried chicken fillet, lettuce and mayo in a toasted bun.",
+    basePriceCents: 799,
+    tags: [],
+    optionGroups: SANDWICH_GROUPS,
+  },
+  {
+    slug: "double-cheese-burger",
+    name: "Double Cheese Burger",
+    category: "Sandwiches",
+    imagePath: "/img/menu/double-cheese-burger.jpg",
+    description: "Two patties, double cheese, grilled onions, lettuce and tomato.",
+    basePriceCents: 999,
+    tags: [],
+    optionGroups: SANDWICH_GROUPS,
+  },
+  {
+    slug: "philly-cheesesteak",
+    name: "Philly Cheese Steak",
+    category: "Sandwiches",
+    imagePath: "/img/menu/philly-cheesesteak.jpg",
+    description: "Cheese, onion, green pepper, ketchup and mayonnaise on a toasted roll.",
+    basePriceCents: 1099,
+    tags: [{ kind: "star", label: "Must-try" }],
+    optionGroups: SANDWICH_GROUPS,
+  },
+  {
+    slug: "chicken-cheesesteak",
+    name: "Chicken Cheese Steak",
+    category: "Sandwiches",
+    imagePath: "/img/menu/chicken-cheesesteak.jpg",
+    description: "Chopped chicken, cheese, onion and green pepper with ketchup and mayo.",
+    basePriceCents: 1099,
     tags: [],
     optionGroups: SANDWICH_GROUPS,
   },
 
-  // ------------------------------------------------------------- wings
+  // ------------------------------------------------------------ WINGS
   {
     slug: "chicken-wings",
-    name: "Chicken Wings",
+    name: "Wings",
     category: "Wings",
     imagePath: "/img/menu/chicken-wings.jpg",
     description:
@@ -462,54 +555,44 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: ["wing-size", "wing-sauce"],
   },
 
-  // ------------------------------------------------------------- sides
+  // ------------------------------------------------------------ SIDES
   {
-    slug: "chicken-tenders",
-    name: "3 pc Chicken Tenders",
+    slug: "pita-bread",
+    name: "Pita Bread",
     category: "Sides",
-    imagePath: "/img/menu/chicken-tenders.jpg",
-    description: "Three breaded tenders, fried crisp, with a dipping sauce.",
-    basePriceCents: 599,
-    tags: [],
-    optionGroups: SIDE_GROUPS,
-  },
-  {
-    slug: "chicken-nuggets",
-    name: "6 pc Nuggets",
-    category: "Sides",
-    imagePath: "/img/menu/chicken-nuggets.jpg",
-    description: "Six chicken nuggets with a dipping sauce.",
-    basePriceCents: 499,
-    tags: [],
-    optionGroups: SIDE_GROUPS,
-  },
-  {
-    slug: "mozzarella-sticks",
-    name: "6 pc Mozzarella Sticks",
-    category: "Sides",
-    imagePath: "/img/menu/mozzarella-sticks.jpg",
-    description: "Six sticks, fried golden, with marinara on the side.",
-    basePriceCents: 499,
+    imagePath: pending("pita-bread"),
+    description: "Warm pita, straight off the griddle.",
+    basePriceCents: 199,
     tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: SIDE_GROUPS,
+    optionGroups: [],
   },
   {
-    slug: "falafel",
-    name: "Falafel",
+    slug: "french-fries",
+    name: "Fries",
     category: "Sides",
-    imagePath: "/img/menu/falafel.jpg",
-    description: "Crispy chickpea patties seasoned with herbs and spices.",
-    basePriceCents: 599,
-    tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: ["falafel-size"],
-  },
-  {
-    slug: "masala-fries",
-    name: "Masala Fries",
-    category: "Sides",
-    imagePath: "/img/menu/masala-fries.jpg",
-    description: "Golden fries tossed in house masala seasoning.",
+    imagePath: pending("french-fries"),
+    description: "Golden fries, straight out of the fryer.",
     basePriceCents: 399,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: ["side-size"],
+  },
+  {
+    slug: "salad",
+    name: "Salad",
+    category: "Sides",
+    imagePath: pending("salad"),
+    description: "Crisp greens, cucumber, tomato and onion.",
+    basePriceCents: 399,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "onion-rings",
+    name: "Onion Rings",
+    category: "Sides",
+    imagePath: "/img/menu/onion-rings.jpg",
+    description: "Crispy battered rings, fried golden.",
+    basePriceCents: 499,
     tags: [{ kind: "veg", label: "Veggie" }],
     optionGroups: ["side-size"],
   },
@@ -524,38 +607,133 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: ["side-size"],
   },
   {
-    slug: "onion-rings",
-    name: "Onion Rings",
+    slug: "masala-fries",
+    name: "Masala Fries",
     category: "Sides",
-    imagePath: "/img/menu/onion-rings.jpg",
-    description: "Crispy battered rings with your choice of dipping sauce.",
+    imagePath: "/img/menu/masala-fries.jpg",
+    description: "Golden fries tossed in house masala seasoning.",
     basePriceCents: 499,
     tags: [{ kind: "veg", label: "Veggie" }],
     optionGroups: ["side-size"],
   },
-];
+  {
+    slug: "curly-fries",
+    name: "Curly Fries",
+    category: "Sides",
+    imagePath: pending("curly-fries"),
+    description: "Seasoned curly fries, fried crisp.",
+    basePriceCents: 499,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: ["side-size"],
+  },
+  {
+    slug: "chicken-nuggets",
+    name: "6 Pc Nuggets",
+    category: "Sides",
+    imagePath: "/img/menu/chicken-nuggets.jpg",
+    description: "Six chicken nuggets with a dipping sauce.",
+    basePriceCents: 499,
+    tags: [],
+    optionGroups: [],
+  },
+  {
+    slug: "mozzarella-sticks",
+    name: "6 Pc Mozz Sticks",
+    category: "Sides",
+    imagePath: "/img/menu/mozzarella-sticks.jpg",
+    description: "Six sticks, fried golden, with marinara on the side.",
+    basePriceCents: 499,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "chicken-tenders",
+    name: "3 Pc Tenders",
+    category: "Sides",
+    imagePath: "/img/menu/chicken-tenders.jpg",
+    description: "Three breaded tenders, fried crisp, with a dipping sauce.",
+    basePriceCents: 599,
+    tags: [],
+    optionGroups: [],
+  },
+  {
+    slug: "falafel",
+    name: "Falafel",
+    category: "Sides",
+    imagePath: "/img/menu/falafel.jpg",
+    description: "Crispy chickpea patties seasoned with herbs and spices.",
+    basePriceCents: 599,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: ["falafel-size"],
+  },
+  {
+    slug: "chicken-tenders-6pc",
+    name: "6 Pc Chicken Tenders",
+    category: "Sides",
+    imagePath: pending("chicken-tenders-6pc"),
+    description: "Six breaded tenders with a dipping sauce.",
+    basePriceCents: 999,
+    tags: [],
+    optionGroups: [],
+  },
 
-// ------------------------------------------------------------ dips & drinks
+  // ------------------------------------------------ DESSERTS & SWEETS
+  {
+    slug: "cheese-cake",
+    name: "Cheese Cake",
+    category: "Desserts & Sweets",
+    imagePath: pending("cheese-cake"),
+    description: "A thick slice, cold from the fridge.",
+    basePriceCents: 349,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "chocolate-cake",
+    name: "Chocolate Cake",
+    category: "Desserts & Sweets",
+    imagePath: pending("chocolate-cake"),
+    description: "Dark, rich and generous.",
+    basePriceCents: 399,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "red-velvet-cake",
+    name: "Red Velvet Cake",
+    category: "Desserts & Sweets",
+    imagePath: pending("red-velvet-cake"),
+    description: "Red velvet with cream cheese frosting.",
+    basePriceCents: 399,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "gulab-jamun",
+    name: "Gulab Jamun",
+    category: "Desserts & Sweets",
+    imagePath: pending("gulab-jamun"),
+    description: "Warm, syrup-soaked and worth the mess.",
+    basePriceCents: 599,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "baklava",
+    name: "Baklava",
+    category: "Desserts & Sweets",
+    imagePath: "/img/menu/baklava.jpg",
+    description: "Layered filo, nuts and honey.",
+    basePriceCents: 599,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
 
-/** 75¢ a pot, orderable on their own or alongside anything. */
-const DIPS: SeedMenuItem[] = SAUCES.map((sauce) => ({
-  slug: `dip-${sauce.slug}`,
-  name: `${sauce.name} Dip`,
-  category: "Dips" as const,
-  imagePath: `/img/menu/extras/dip-${sauce.slug}.svg`,
-  description: sauce.description,
-  basePriceCents: 75,
-  tags: sauce.slug === "tahini" || sauce.slug === "green-sauce"
-    ? [{ kind: "veg" as const, label: "Veggie" }]
-    : [],
-  optionGroups: [],
-}));
-
-const DRINKS: SeedMenuItem[] = [
+  // -------------------------------------------------------- BEVERAGES
   {
     slug: "water",
     name: "Water",
-    category: "Drinks",
+    category: "Beverages",
     imagePath: "/img/menu/extras/drink-water.svg",
     description: "Bottled water, cold.",
     basePriceCents: 199,
@@ -568,7 +746,7 @@ const DRINKS: SeedMenuItem[] = [
   {
     slug: "soda",
     name: "Soda",
-    category: "Drinks",
+    category: "Beverages",
     imagePath: "/img/menu/extras/drink-soda.svg",
     description: "Coke, Diet Coke, Sprite or Ginger Ale.",
     basePriceCents: 199,
@@ -578,32 +756,43 @@ const DRINKS: SeedMenuItem[] = [
   {
     slug: "snapple",
     name: "Snapple",
-    category: "Drinks",
+    category: "Beverages",
     imagePath: "/img/menu/extras/drink-snapple.svg",
     description: "Whatever flavour the fridge is holding.",
-    basePriceCents: 199,
+    basePriceCents: 299,
     tags: [{ kind: "veg", label: "Veggie" }],
     optionGroups: [],
   },
 ];
 
-MENU_ITEMS.push(...DIPS, ...DRINKS);
+// ----------------------------------------------------- EXTRA SAUCES
 
 /**
- * Items the old homepage advertised that are still not on the owner's price
- * list: Combo Gyro and plain French Fries. (Falafel Gyro and Beef Chapli Kabab
- * Rice came back once their prices arrived.)
- *
- * Deactivated rather than deleted — `isActive: false` hides them from the menu
- * and the cart while keeping any order history that points at them intact. If
- * the kitchen still sells them, send prices and they come straight back.
- *
- * The rest are old slugs for dishes that now live under their real names.
+ * The six sauces at 75¢ a pot. They are an add-on on a platter or a gyro, and
+ * a line of their own with anything else.
+ */
+const EXTRA_SAUCES: SeedMenuItem[] = SAUCES.map((sauce) => ({
+  slug: `dip-${sauce.slug}`,
+  name: sauce.name,
+  category: "Extra Sauces" as const,
+  imagePath: `/img/menu/extras/dip-${sauce.slug}.svg`,
+  description: sauce.description,
+  basePriceCents: 75,
+  tags:
+    sauce.slug === "tahini" || sauce.slug === "green-sauce"
+      ? [{ kind: "veg" as const, label: "Veggie" }]
+      : [],
+  optionGroups: [],
+}));
+
+MENU_ITEMS.push(...EXTRA_SAUCES);
+
+/**
+ * Slugs that are not on the printed menu under any name. Deactivated rather
+ * than deleted, so order history that points at them still reads correctly.
  */
 export const RETIRED_SLUGS = [
   "combo-over-rice",
-  // Plain fries are the same thing as the masala fries on the price list.
-  "french-fries",
   "kofta-kebab-over-rice",
   "4-pc-falafel",
   "philly-cheese-steak",

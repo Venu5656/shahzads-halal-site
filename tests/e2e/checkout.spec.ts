@@ -74,7 +74,14 @@ async function addItem(page: Page, name: string, choose: string[] = []) {
     .getByRole("button")
     .click();
   for (const option of choose) {
-    await page.getByText(option, { exact: true }).first().click();
+    // By control, not by text: the menu behind the dialog repeats these words,
+    // and the accessible name carries the surcharge as well as the label.
+    const at = new RegExp("^" + option.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    await page
+      .getByRole("checkbox", { name: at })
+      .or(page.getByRole("radio", { name: at }))
+      .first()
+      .check();
   }
   await page.getByRole("button", { name: /^Add to cart/ }).click();
   await expect(page.getByRole("dialog", { name: "Your cart" })).toBeVisible();
@@ -117,7 +124,7 @@ test("prices the order on the server, with tax", async ({ page }) => {
   await registerAndLogIn(page, "Tax Payer", account);
 
   // Lamb gyro 9.99 + fries and a soda 5.00 = 14.99, tax at 6.625% = 0.99
-  await addItem(page, "Lamb Gyro", ["Add fries and a soda"]);
+  await addItem(page, "Lamb", ["Add fries and a soda"]);
   await cartSaved(account.email, 1);
   await page.goto("/checkout");
 
@@ -213,7 +220,7 @@ test("says payment is not switched on, rather than showing a dead card form", as
   await wipe(account);
   await openTheKitchen();
   await registerAndLogIn(page, "No Keys", account);
-  await addItem(page, "Cheeseburger");
+  await addItem(page, "Cheese Burger");
   await cartSaved(account.email, 1);
 
   await page.goto("/checkout");
@@ -237,7 +244,7 @@ test("reaches checkout from the cart panel", async ({ page }) => {
   await page.goto("/menu");
   await page
     .locator("article")
-    .filter({ has: page.getByRole("heading", { name: "Chicken Gyro", exact: true }) })
+    .filter({ has: page.getByRole("heading", { name: "Chicken", exact: true }) })
     .getByRole("button")
     .click();
   await page.getByRole("button", { name: /^Add to cart/ }).click();

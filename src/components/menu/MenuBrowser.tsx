@@ -197,6 +197,11 @@ function ItemCard({
       </div>
 
       <div className="flex flex-1 flex-col p-5">
+        {/* The printed menu names a gyro just "Chicken", so the section it
+            came from has to travel with the name. */}
+        <p className="mb-1 text-[12px] font-bold tracking-[0.16em] uppercase text-gold">
+          {categoryName}
+        </p>
         <h3 className="font-display text-[27px] leading-none font-extrabold uppercase">
           {item.name}
         </h3>

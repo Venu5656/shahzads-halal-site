@@ -61,14 +61,22 @@ export function ItemForm({
       ? priced.problems.find((p) => "groupSlug" in p && p.groupSlug === groupSlug)?.message
       : undefined;
 
-  const toggle = (groupId: string, optionId: string, single: boolean) => {
+  const toggle = (groupId: string, optionId: string) => {
     setSelected((current) => {
       const group = item.optionGroups.find((g) => g.id === groupId)!;
       const ids = group.options.map((o) => o.id);
-      if (single) return [...current.filter((id) => !ids.includes(id)), optionId];
-      return current.includes(optionId)
-        ? current.filter((id) => id !== optionId)
-        : [...current, optionId];
+      const exclusive = group.maxSelect === 1;
+      const checked = current.includes(optionId);
+
+      if (exclusive) {
+        // Choosing replaces whatever else was chosen in this group. Choosing
+        // the same one again clears it, but only where the group is optional —
+        // a required choice cannot be left blank.
+        if (checked) return group.minSelect >= 1 ? current : current.filter((id) => id !== optionId);
+        return [...current.filter((id) => !ids.includes(id)), optionId];
+      }
+
+      return checked ? current.filter((id) => id !== optionId) : [...current, optionId];
     });
   };
 
@@ -85,9 +93,13 @@ export function ItemForm({
   return (
     <div className="flex flex-col gap-7">
       {item.optionGroups.map((group) => {
-        const single = group.maxSelect === 1;
+        // A required one-of-many is a radio. An optional one is a checkbox: a
+        // radio can never be un-ticked, and "Add fries and a soda" has to be
+        // something you can change your mind about.
+        const single = group.maxSelect === 1 && group.minSelect >= 1;
+        const exclusive = group.maxSelect === 1;
         const chosenInGroup = group.options.filter((o) => selected.includes(o.id)).length;
-        const atLimit = !single && chosenInGroup >= group.maxSelect;
+        const atLimit = !exclusive && chosenInGroup >= group.maxSelect;
         const error = showErrors ? problemFor(group.slug) : undefined;
 
         return (
@@ -97,7 +109,7 @@ export function ItemForm({
             </legend>
             <p className="mb-4 text-[14px] text-muted">
               {group.minSelect >= 1 ? "Required. " : ""}
-              {single
+              {exclusive
                 ? "Pick one."
                 : `Pick up to ${group.maxSelect}.${atLimit ? " That's the limit." : ""}`}
             </p>
@@ -105,7 +117,7 @@ export function ItemForm({
             <div className="flex flex-col gap-2">
               {group.options.map((option) => {
                 const checked = selected.includes(option.id);
-                const disabled = !single && atLimit && !checked;
+                const disabled = !exclusive && atLimit && !checked;
                 return (
                   <label
                     key={option.id}
@@ -122,7 +134,7 @@ export function ItemForm({
                       name={single ? group.id : `${group.id}-${option.id}`}
                       checked={checked}
                       disabled={disabled}
-                      onChange={() => toggle(group.id, option.id, single)}
+                      onChange={() => toggle(group.id, option.id)}
                       className="size-5 shrink-0 accent-[#e23a2f]"
                     />
                     <span className="flex-1">{option.name}</span>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
+  <rect width="600" height="400" fill="#f4f1ea"/>
+  <circle cx="300" cy="178" r="86" fill="#ffffff" stroke="#ded6c6" stroke-width="3"/>
+  <text x="300" y="204" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="62" font-weight="700" fill="#1b140f" opacity="0.82">RV</text>
+  <text x="300" y="306" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="700" fill="#1b140f" opacity="0.72">Red Velvet Cake</text>
+  <text x="300" y="336" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="16" fill="#1b140f" opacity="0.45">Photo coming soon</text>
+</svg>

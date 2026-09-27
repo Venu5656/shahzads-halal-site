@@ -45,18 +45,22 @@ real customer until the items marked **BLOCKER** are answered.
 
 ## Still needed to finish the menu
 
+The menu is now transcribed from the printed board in the shop — names, prices
+and section names exactly as they read. 53 dishes across the 8 sections.
+
 | # | Question | Why it matters |
 |---|----------|----------------|
-| A | ~~Combo Gyro price~~ — **answered: $13.99.** Every item on the menu is priced. | Done |
-| B | **Studio photos for Combo Gyro, Falafel Gyro and Beef Chapli Kabab Rice.** All three use the old site's pictures for now, at your instruction, and they look noticeably softer beside the rest. | Three more shots in the same style. |
-| C | **Snapple flavours.** Sold as one $1.99 item; if the fridge has a fixed set, it can ask which one the way the soda does. | Small. |
-| D | **Dip and drink photography.** Both sections use simple tiles I drew in the brand colours, not photographs. | They look deliberate, but a real shot is better. |
+| A | **"No Salad +$2" is printed on the board**, but you asked for it to be free. The site charges nothing. Which is right? | It is on all nine platters. |
+| B | **The board prices the Chicken & Lamb gyro at $9.99**, while you earlier said the combo gyro was $13.99. The site uses the board's $9.99. | A $4 difference on a popular item. |
+| C | **Studio photos for twelve dishes.** Chapli Kabab Mix, Mix Chapli, 2 Pc Fish Pita, Fries, Curly Fries, Salad, Pita Bread, 6 Pc Chicken Tenders, and the four desserts all show a branded tile rather than a photo. | They look deliberate, not broken — but a photo sells food. |
+| D | **Snapple flavours.** Sold as one $2.99 item; if the fridge has a fixed set, it can ask which one the way the soda does. | Small. |
+| E | **Sales tax on the new lines.** Desserts, Snapple and the sodas are all taxed at 6.625%; only bottled water is exempt. Worth confirming with the accountant now that there are cakes on the menu. | Wrong tax is a real liability. |
 
-Everything else on the price list is answered and live: 6.625% tax, drinks at
-$1.99, "no salad" free, fries-and-soda on the cheesesteaks too, sauce on the
-side for platters and gyros with a separate Dips section for everything else,
-Mix Platter as the old combo, plain fries as the masala fries, and 20 minutes
-pickup lead time counted from confirmation.
+Everything else is live as the board prints it: 6.625% tax with bottled water
+exempt, "Add Fries & Soda" at $5 on a gyro and $4.99 on a sandwich, free sauce
+on platters and gyros with Extra Sauces orderable on their own, the four wing
+sizes, Sm/Lg on the fries and rings, and 20 minutes pickup lead time counted
+from confirmation.
 
 ## Checkout decisions, as answered
 

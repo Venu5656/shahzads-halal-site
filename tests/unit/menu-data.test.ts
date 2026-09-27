@@ -14,8 +14,36 @@ import {
 const publicDir = join(process.cwd(), "public");
 
 describe("menu data", () => {
-  it("carries the 33 items on the owner's price list", () => {
-    expect(MENU_ITEMS).toHaveLength(33);
+  it("carries all 53 items on the printed menu", () => {
+    expect(MENU_ITEMS).toHaveLength(53);
+  });
+
+  it("has the sections the printed menu has, in its order", () => {
+    expect(CATEGORIES).toEqual([
+      "Platters",
+      "Gyros",
+      "Sandwiches",
+      "Wings",
+      "Sides",
+      "Desserts & Sweets",
+      "Beverages",
+      "Extra Sauces",
+    ]);
+  });
+
+  it("has the same number of dishes per section as the board", () => {
+    const counts: Record<string, number> = {};
+    for (const item of MENU_ITEMS) counts[item.category] = (counts[item.category] ?? 0) + 1;
+    expect(counts).toEqual({
+      Platters: 9,
+      Gyros: 9,
+      Sandwiches: 8,
+      Wings: 1,
+      Sides: 12,
+      "Desserts & Sweets": 5,
+      Beverages: 3,
+      "Extra Sauces": 6,
+    });
   });
 
   it("has unique slugs", () => {
@@ -53,38 +81,95 @@ describe("menu data", () => {
     expect(exempt.map((item) => item.slug)).toEqual(["water"]);
   });
 
-  it("matches the price list the owner sent", () => {
+  it("matches the printed menu, to the cent", () => {
     const priced = Object.fromEntries(MENU_ITEMS.map((i) => [i.slug, i.basePriceCents]));
-    expect(priced).toMatchObject({
+    expect(priced).toEqual({
+      // PLATTERS
+      "fish-over-rice": 1199,
+      "falafel-over-rice": 1199,
       "chicken-over-rice": 1299,
       "lamb-over-rice": 1299,
-      "mix-platter": 1399,
       "chicken-kofta-kabab-over-rice": 1299,
-      "falafel-over-rice": 1199,
+      "chicken-chapli-kabab": 1299,
+      "beef-chapli-kabab-rice": 1399,
+      "mix-platter": 1399,
+      "chapli-kabab-mix": 1499,
+      // GYROS
       "chicken-gyro": 999,
       "lamb-gyro": 999,
+      "combo-gyro": 999,
+      "falafel-gyro": 1099,
+      "fish-pita": 1099,
+      "kofta-kabab-gyro": 1099,
+      "chicken-chapli-gyro": 1099,
+      "mix-chapli-gyro": 1099,
+      "beef-chapli-gyro": 1199,
+      // SANDWICHES
+      cheeseburger: 699,
+      "chicken-sandwich": 699,
+      "fish-sandwich": 699,
+      "veggie-burger": 699,
+      "crispy-chicken-burger": 799,
+      "double-cheese-burger": 999,
       "philly-cheesesteak": 1099,
       "chicken-cheesesteak": 1099,
-      cheeseburger: 699,
-      "crispy-chicken-burger": 799,
-      "veggie-burger": 699,
-      "chicken-sandwich": 699,
+      // WINGS
       "chicken-wings": 999,
-      "chicken-tenders": 599,
+      // SIDES
+      "pita-bread": 199,
+      "french-fries": 399,
+      salad: 399,
+      "onion-rings": 499,
+      "waffle-fries": 499,
+      "masala-fries": 499,
+      "curly-fries": 499,
       "chicken-nuggets": 499,
       "mozzarella-sticks": 499,
+      "chicken-tenders": 599,
       falafel: 599,
-      "masala-fries": 399,
-      "waffle-fries": 499,
-      "onion-rings": 499,
-      "falafel-gyro": 1099,
-      "beef-chapli-kabab-rice": 1399,
+      "chicken-tenders-6pc": 999,
+      // DESSERTS & SWEETS
+      "cheese-cake": 349,
+      "chocolate-cake": 399,
+      "red-velvet-cake": 399,
+      "gulab-jamun": 599,
+      baklava: 599,
+      // BEVERAGES
       water: 199,
       soda: 199,
-      snapple: 199,
+      snapple: 299,
+      // EXTRA SAUCES
       "dip-white-sauce": 75,
+      "dip-hot-sauce": 75,
+      "dip-green-sauce": 75,
+      "dip-tahini": 75,
+      "dip-bbq": 75,
       "dip-buffalo": 75,
     });
+  });
+
+  it("prices the sized dishes the way the board does", () => {
+    const group = (slug: string) => OPTION_GROUPS.find((g) => g.slug === slug)!;
+    const price = (slug: string) => MENU_ITEMS.find((i) => i.slug === slug)!.basePriceCents!;
+    const large = group("side-size").options.find((o) => o.slug === "lg")!.priceCents;
+
+    // Fries 3.99 / 5.99; the other four 4.99 / 6.99.
+    expect([price("french-fries"), price("french-fries") + large]).toEqual([399, 599]);
+    for (const slug of ["onion-rings", "waffle-fries", "masala-fries", "curly-fries"]) {
+      expect([price(slug), price(slug) + large]).toEqual([499, 699]);
+    }
+
+    // Falafel 4Pc / 8Pc at 5.99 / 9.99.
+    const eight = group("falafel-size").options.find((o) => o.slug === "8-pc")!.priceCents;
+    expect([price("falafel"), price("falafel") + eight]).toEqual([599, 999]);
+  });
+
+  it("charges the board's two different meal upgrades", () => {
+    const deal = (slug: string) =>
+      OPTION_GROUPS.find((g) => g.slug === slug)!.options[0]!.priceCents;
+    // "Add Fries & Soda +$5" on gyros, "+$4.99" on sandwiches.
+    expect(deal("meal-deal-gyro")).toBe(500);
+    expect(deal("meal-deal-sandwich")).toBe(499);
   });
 
   it("only attaches option groups that exist", () => {
@@ -102,8 +187,8 @@ describe("menu data", () => {
     }
   });
 
-  it("sells every house sauce as a dip you can order on its own", () => {
-    const dips = MENU_ITEMS.filter((item) => item.category === "Dips");
+  it("sells every house sauce on its own, at the board's 75c", () => {
+    const dips = MENU_ITEMS.filter((item) => item.category === "Extra Sauces");
     expect(dips).toHaveLength(SAUCES.length);
     for (const dip of dips) {
       expect(dip.basePriceCents).toBe(75);

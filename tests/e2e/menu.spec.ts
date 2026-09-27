@@ -37,17 +37,43 @@ async function wipe(...accounts: Account[]) {
   await prisma.user.deleteMany({ where: { OR: [{ email: { in: emails } }, { phone: { in: phones } }] } });
 }
 
-/** Opens an item, whichever way this viewport does it. */
+/**
+ * Opens an item, whichever way this viewport does it.
+ *
+ * Matched on the exact heading, not on text: the board has a "Lamb" gyro and a
+ * "Lamb over Rice" platter, and a "Cheese Burger" beside a "Double Cheese
+ * Burger".
+ */
 async function openItem(page: Page, name: string) {
   await page.goto("/menu");
   await page
     .locator("article")
-    .filter({ hasText: name })
+    .filter({ has: page.getByRole("heading", { name, exact: true }) })
     .first()
     .getByRole("button")
     .click();
-  // A phone navigates to the item's page; a desktop opens the dialog.
-  await expect(page.getByRole("heading", { level: 1, name }).or(page.getByRole("heading", { level: 2, name }))).toBeVisible();
+  // A phone navigates to the item's page; a desktop opens the dialog. Either
+  // way the form is ready when its Add to cart button is.
+  await expect(page.getByRole("button", { name: /^Add to cart/ })).toBeVisible();
+}
+
+/**
+ * Ticks an option by its control rather than its text: the menu behind the
+ * dialog has cards carrying the same words (an "Extra Sauces" card called
+ * "White", for instance), and text matching would find those instead.
+ *
+ * The control's accessible name carries the surcharge too — "12 Pc +$8.00" —
+ * so match on the start of the name.
+ */
+async function pick(page: Page, name: string) {
+  const at = new RegExp("^" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  // .or() waits for whichever control the group renders; counting first would
+  // be a snapshot taken before the dialog has drawn.
+  await page
+    .getByRole("checkbox", { name: at })
+    .or(page.getByRole("radio", { name: at }))
+    .first()
+    .check();
 }
 
 async function addToCart(page: Page) {
@@ -86,18 +112,21 @@ test("lists the whole menu, filters by category and searches", async ({ page }) 
   await page.goto("/menu");
 
   const cards = page.locator("article");
-  await expect(cards).toHaveCount(33);
+  // Every dish on the printed menu.
+  await expect(cards).toHaveCount(53);
 
   await page.getByRole("tab", { name: /^Gyros/ }).click();
-  await expect(cards).toHaveCount(4);
+  await expect(cards).toHaveCount(9);
+
+  await page.getByRole("tab", { name: /^Sandwiches/ }).click();
+  await expect(cards).toHaveCount(8);
 
   await page.getByRole("tab", { name: /^All/ }).click();
-  await expect(cards).toHaveCount(33);
+  await expect(cards).toHaveCount(53);
 
-  await page.getByPlaceholder("Search").fill("falafel");
-  // The three falafel dishes, plus the two dips whose descriptions recommend
-  // themselves for falafel — searching the description is the point.
-  await expect(cards).toHaveCount(5);
+  await page.getByPlaceholder("Search").fill("chapli");
+  // Chicken, Beef and Mix chapli — as platters and as gyros.
+  await expect(cards).toHaveCount(6);
 
   await page.getByPlaceholder("Search").fill("zzzz");
   await expect(page.getByText(/Nothing matches/)).toBeVisible();
@@ -106,24 +135,28 @@ test("lists the whole menu, filters by category and searches", async ({ page }) 
 test("shows the real prices, and marks the ones that vary", async ({ page }) => {
   await page.goto("/menu");
 
-  const wings = page.locator("article").filter({ hasText: "Chicken Wings" });
+  const wings = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Wings", exact: true }) });
   await expect(wings).toContainText("from");
   await expect(wings).toContainText("$9.99");
 
-  const platter = page.locator("article").filter({ hasText: "Mix Platter" });
+  const platter = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Lamb & Chicken Mix" }) });
   await expect(platter).toContainText("$13.99");
 });
 
 test("sells dips and drinks as their own items", async ({ page }) => {
   await page.goto("/menu");
 
-  await page.getByRole("tab", { name: /^Dips/ }).click();
+  await page.getByRole("tab", { name: /^Extra Sauces/ }).click();
   await expect(page.locator("article")).toHaveCount(6);
   await expect(
-    page.locator("article").filter({ has: page.getByRole("heading", { name: "White Sauce Dip" }) }),
+    page.locator("article").filter({ has: page.getByRole("heading", { name: "White", exact: true }) }),
   ).toContainText("$0.75");
 
-  await page.getByRole("tab", { name: /^Drinks/ }).click();
+  await page.getByRole("tab", { name: /^Beverages/ }).click();
   await expect(page.locator("article")).toHaveCount(3);
   await expect(
     page.locator("article").filter({ has: page.getByRole("heading", { name: "Water" }) }),
@@ -132,22 +165,22 @@ test("sells dips and drinks as their own items", async ({ page }) => {
 
 test("adds a dip on its own, without buying anything else", async ({ page }) => {
   await page.goto("/menu");
-  await page.getByRole("tab", { name: /^Dips/ }).click();
+  await page.getByRole("tab", { name: /^Extra Sauces/ }).click();
   await page
     .locator("article")
-    .filter({ has: page.getByRole("heading", { name: "Hot Sauce Dip" }) })
+    .filter({ has: page.getByRole("heading", { name: "Hot", exact: true }) })
     .getByRole("button")
     .click();
   await page.getByRole("button", { name: /^Add to cart/ }).click();
 
   const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Hot Sauce Dip");
+  await expect(panel).toContainText("Hot");
   await expect(panel).toContainText("$0.75");
 });
 
 test("a soda has to say which one", async ({ page }) => {
   await openItem(page, "Soda");
-  await page.getByText("Sprite", { exact: true }).click();
+  await pick(page, "Sprite");
   await page.getByRole("button", { name: /^Add to cart/ }).click();
   await expect(page.getByRole("dialog", { name: "Your cart" })).toContainText("Sprite");
 });
@@ -176,14 +209,14 @@ test("shows an unpriced item honestly instead of pretending", async ({ page }) =
 });
 
 test("leaving the salad off a platter is free", async ({ page }) => {
-  await openItem(page, "Mix Platter");
-  await page.getByText("No salad", { exact: true }).click();
+  await openItem(page, "Lamb & Chicken Mix");
+  await pick(page, "No salad");
   // Still 13.99 — removing something never costs anything.
   await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$13.99");
 });
 
 test("offers sauce on the side where a sauce belongs, and not elsewhere", async ({ page }) => {
-  await openItem(page, "Lamb Gyro");
+  await openItem(page, "Lamb");
   await expect(page.getByText("Extra sauce on the side")).toBeVisible();
 
   await openItem(page, "Waffle Fries");
@@ -193,57 +226,54 @@ test("offers sauce on the side where a sauce belongs, and not elsewhere", async 
 // ----------------------------------------------------------- the cart
 
 test("adds an item with options and prices it the way the menu says", async ({ page }) => {
-  await openItem(page, "Chicken Wings");
+  await openItem(page, "Wings");
 
-  // 6 pc is the default; 12 pc is +8.00 on a 9.99 base.
-  await page.getByText("12 pc", { exact: true }).click();
-  await page.getByText("Hot Honey", { exact: true }).click();
+  // 6 Pc is the default; 12 Pc is +8.00 on a 9.99 base.
+  await pick(page, "12 Pc");
+  await pick(page, "Hot Honey");
   await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$17.99");
 
   await addToCart(page);
 
   const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Chicken Wings");
-  await expect(panel).toContainText("12 pc · Hot Honey");
+  await expect(panel).toContainText("Wings");
+  await expect(panel).toContainText("12 Pc · Hot Honey");
   await expect(panel).toContainText("$17.99");
 });
 
 test("will not add an item until its required choices are made", async ({ page }) => {
-  await openItem(page, "Chicken Wings");
+  await openItem(page, "Wings");
 
   // Clearing the sauce is only possible by picking none — the group starts
   // empty because it has no default, so the button should refuse.
-  const sauce = page.getByText("Lemon Pepper", { exact: true });
-  await sauce.click();
-  await sauce.click(); // radios don't untick, so this stays chosen
+  await pick(page, "Lemon Pepper");
+  await pick(page, "Lemon Pepper"); // radios don't untick, so it stays chosen
   await expect(page.getByRole("button", { name: /^Add to cart/ })).toBeEnabled();
 });
 
 test("holds the sauce limit at three", async ({ page }) => {
-  await openItem(page, "Mix Platter");
+  await openItem(page, "Lamb & Chicken Mix");
 
-  for (const sauce of ["White Sauce", "Hot Sauce", "Green Sauce"]) {
-    await page.getByText(sauce, { exact: true }).first().click();
-  }
+  // The board names the sauces White, Hot, Green, Tahini, BBQ and Buffalo.
+  for (const sauce of ["White", "Hot", "Green"]) await pick(page, sauce);
 
   // The fourth is disabled rather than rejected after the fact.
-  const fourth = page.getByText("Tahini", { exact: true }).first();
-  await expect(fourth).toBeDisabled();
+  await expect(page.getByRole("checkbox", { name: /^Tahini/ }).first()).toBeDisabled();
   await expect(page.getByText("That's the limit")).toBeVisible();
 });
 
 test("charges for the paid extras", async ({ page }) => {
-  await openItem(page, "Mix Platter");
+  await openItem(page, "Lamb & Chicken Mix");
 
-  await page.getByText("Extra protein", { exact: true }).click();
-  await page.getByText("Add pita", { exact: true }).click();
+  await pick(page, "Extra protein");
+  await pick(page, "Add pita");
   // 13.99 + 3.00 + 2.00
   await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$18.99");
 });
 
 test("keeps a guest cart across a reload", async ({ page }) => {
   await openItem(page, "Masala Fries");
-  await page.getByText("Large", { exact: true }).click();
+  await pick(page, "Lg");
   await addToCart(page);
   await page.getByRole("button", { name: "Close cart" }).click();
 
@@ -252,16 +282,16 @@ test("keeps a guest cart across a reload", async ({ page }) => {
 
   const panel = page.getByRole("dialog", { name: "Your cart" });
   await expect(panel).toContainText("Masala Fries");
-  // 3.99 + 2.00 for the large
-  await expect(panel).toContainText("$5.99");
+  // 4.99 + 2.00 for the large
+  await expect(panel).toContainText("$6.99");
 });
 
 test("changes quantity and removes a line", async ({ page }) => {
-  await openItem(page, "Cheeseburger");
+  await openItem(page, "Cheese Burger");
   await addToCart(page);
 
   const panel = page.getByRole("dialog", { name: "Your cart" });
-  await panel.getByRole("button", { name: /Add one Cheeseburger/ }).click();
+  await panel.getByRole("button", { name: /Add one Cheese Burger/ }).click();
   await expect(panel).toContainText("$13.98");
 
   await panel.getByRole("button", { name: "Remove", exact: true }).click();
@@ -276,8 +306,8 @@ test("folds a guest cart into the account at sign-in, and keeps it after", async
   await register(page, "Cart Keeper", account);
 
   // Still logged out after verifying: fill a cart as a guest.
-  await openItem(page, "Lamb Gyro");
-  await page.getByText("Add fries and a soda", { exact: true }).click();
+  await openItem(page, "Lamb");
+  await pick(page, "Add fries and a soda");
   await addToCart(page);
   await page.getByRole("button", { name: "Close cart" }).click();
 
@@ -286,7 +316,8 @@ test("folds a guest cart into the account at sign-in, and keeps it after", async
   // The cart followed them in, and is now in the database.
   await page.getByRole("button", { name: /^Cart/ }).click();
   const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Lamb Gyro");
+  await expect(panel).toContainText("Lamb");
+  await expect(panel).toContainText("Add fries and a soda");
   // 9.99 + 5.00
   await expect(panel).toContainText("$14.99");
 
@@ -313,7 +344,7 @@ test("a signed-in cart comes back on another device", async ({ browser }) => {
   await register(pageA, "Two Devices", account);
   await logIn(pageA, account);
 
-  await openItem(pageA, "Philly Cheesesteak");
+  await openItem(pageA, "Philly Cheese Steak");
   await addToCart(pageA);
   await expect
     .poll(async () => prisma.cartItem.count({ where: { cart: { user: { email: account.email } } } }))
@@ -325,7 +356,7 @@ test("a signed-in cart comes back on another device", async ({ browser }) => {
   await logIn(pageB, account);
   await pageB.getByRole("button", { name: /^Cart/ }).click();
   await expect(pageB.getByRole("dialog", { name: "Your cart" })).toContainText(
-    "Philly Cheesesteak",
+    "Philly Cheese Steak",
   );
 
   await first.close();
@@ -393,12 +424,15 @@ test("the homepage teaser is the real menu now", async ({ page, isMobile }) => {
   const link = page.locator('.card a.add[href="/menu/mix-platter"]');
   await expect(link).toHaveCount(1);
 
-  // The two items whose prices arrived late are orderable again.
+  // The dishes that arrived with the printed menu are priced as it prints them.
   await page.goto("/menu");
-  await expect(page.locator("article").filter({ hasText: "Falafel Gyro" })).toContainText("$10.99");
-  await expect(
-    page.locator("article").filter({ hasText: "Beef Chapli Kabab Rice" }),
-  ).toContainText("$13.99");
+  const card = (name: string) =>
+    page.locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
+  await expect(card("Falafel on Pita")).toContainText("$10.99");
+  await expect(card("Beef Chapli Kabab")).toContainText("$13.99");
+  await expect(card("Chapli Kabab Mix")).toContainText("$14.99");
+  await expect(card("Double Cheese Burger")).toContainText("$9.99");
+  await expect(card("Baklava")).toContainText("$5.99");
   await page.goto("/");
 
   if (!isMobile) {

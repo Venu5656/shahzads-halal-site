@@ -150,8 +150,9 @@ checkout in phase 4.
 
 ## The menu and the cart
 
-33 items, priced from the owner's list, with the rules from
-`menu prices/rules.txt` modelled as option groups:
+53 dishes, transcribed from the printed menu in the shop — names, prices and
+section names exactly as the board reads them. The rules from
+`menu prices/rules.txt` are modelled as option groups:
 
 | Rule | How it is modelled |
 |------|--------------------|
@@ -159,13 +160,14 @@ checkout in phase 4.
 | No free sauce on fries, rings and sides | those items simply do not carry the group |
 | Extra protein $3, fries $2, pita $2, no salad $2 | `platter-extras`, multi-select |
 | Spicy rice, free | `rice-style`, required, both options 0¢ |
-| Fries and a soda, $5 | `meal-deal` on gyros, sandwiches and cheesesteaks |
+| Add Fries & Soda | `meal-deal-gyro` at $5 on a gyro, `meal-deal-sandwich` at $4.99 on a sandwich — the board prices them a penny apart |
 | Wings 6/12/18/21 pc at $9.99/$17.99/$26.99/$31.99 | `wing-size`, required, priced as the **difference** from the 6 pc base |
 | Seven wing sauces, pick one | `wing-sauce`, required |
-| Falafel 4 pc / 8 pc, fries and rings regular / large | `falafel-size`, `side-size` |
+| Falafel 4 Pc / 8 Pc, fries and rings Sm / Lg | `falafel-size`, `side-size` |
 | Any sauce on the side, 75¢ | `extra-sauce`, on platters and gyros only |
-| A dip with anything else | Its own **Dips** section — six house sauces at 75¢, orderable on their own |
-| Drinks $1.99 | **Drinks** section; a soda asks which of the four |
+| A sauce with anything else | The **Extra Sauces** section — six at 75¢, orderable on their own |
+| Beverages | Water and Soda $1.99, Snapple $2.99; a soda asks which of the four |
+| Desserts & Sweets | Five, $3.49–$5.99 |
 | No salad | Free — removing something never costs anything |
 | Instructions box | 200-character note per line |
 | Pickup in 20 minutes | `PICKUP_LEAD_MINUTES`, counted from **confirmation**, not payment |
@@ -173,9 +175,12 @@ checkout in phase 4.
 A size is an **option group, not a second item**, so each dish keeps one card,
 one photo and one price that moves as you choose.
 
-One item — the Combo Gyro — has no price yet. The menu shows it as "Ask in
-store" and refuses to add it to a cart, rather than guessing a number a
-customer would be charged.
+Where the board names a dish only by its protein — the GYROS section lists
+"Chicken", "Lamb", "Beef Chapli" — the card carries its section above the name,
+so the All view is not a guessing game.
+
+Twelve dishes have no studio photo yet and show a branded tile instead of
+borrowing a picture of something else.
 
 ### The homepage is a taste, not a copy
 

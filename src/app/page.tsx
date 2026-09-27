@@ -49,7 +49,6 @@ export default async function HomePage() {
       veggie: item.tags.includes("VEGGIE"),
     })),
   );
-  const itemCount = all.length;
   const bySlug = new Map(all.map((item) => [item.slug, item]));
   const items = FEATURED_SLUGS.map((slug) => bySlug.get(slug)).filter(
     (item): item is (typeof all)[number] => Boolean(item),
@@ -351,7 +350,7 @@ export default async function HomePage() {
             <div className="menu-grid" id="grid"></div>
             <div className="reveal mt-10 flex flex-col items-center gap-4 text-center">
               <Link className="btn btn-red" href="/menu">
-                See all {itemCount} dishes
+                Explore full menu
                 <ArrowIcon />
               </Link>
               <p className="menu-note">

@@ -35,8 +35,7 @@ test("sends people to the full menu rather than repeating it", async ({ page }) 
   await page.goto("/");
   await expect(page.locator(".menu-grid .card")).toHaveCount(4);
 
-  // The teaser says how much more there is, and the count is real.
-  const more = page.getByRole("link", { name: /See all \d+ dishes/ });
+  const more = page.getByRole("link", { name: "Explore full menu" });
   await expect(more).toBeVisible();
   await more.click();
   await expect(page).toHaveURL(/\/menu$/);
