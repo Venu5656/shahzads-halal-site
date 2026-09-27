@@ -41,6 +41,13 @@ export const STORE_TIME_ZONE = "America/New_York";
  */
 export const PICKUP_LEAD_MINUTES = 20;
 
+/**
+ * Online ordering closes this many minutes before the kitchen does, so the
+ * last ticket can actually be cooked and collected before the shutters come
+ * down. The store closes at 3:00 AM, so the last order goes in at 2:40 AM.
+ */
+export const LAST_ORDER_BEFORE_CLOSE_MINUTES = 20;
+
 export type WallClock = { d: number; h: number; m: number; s: number };
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -120,6 +127,60 @@ export function storeStatus(now: WallClock): StoreStatus {
     openAt: today[0],
     serviceDay: now.d,
     hoursUntilChange: today[0] - t,
+  };
+}
+
+export type OrderingStatus =
+  | { canOrder: true; lastOrderAt: number; minutesLeft: number }
+  | {
+      canOrder: false;
+      /** `closed` — the kitchen is shut. `cutoff` — open, but too late to cook. */
+      reason: "closed" | "cutoff";
+      /** When ordering resumes, as a decimal hour, or null if unknown. */
+      opensAt: number | null;
+      lastOrderAt: number | null;
+    };
+
+/**
+ * May an order be placed right now?
+ *
+ * Deliberately distinct from `storeStatus`: the counter is still open between
+ * 2:40 and 3:00 AM, but the website stops taking orders, because a ticket
+ * placed at 2:58 cannot be cooked and collected by three.
+ */
+export function orderingStatus(now: WallClock): OrderingStatus {
+  const status = storeStatus(now);
+  const t = now.h + now.m / 60;
+  const cutoff = LAST_ORDER_BEFORE_CLOSE_MINUTES / 60;
+
+  if (!status.open) {
+    return {
+      canOrder: false,
+      reason: "closed",
+      opensAt: status.openAt,
+      lastOrderAt: null,
+    };
+  }
+
+  // storeStatus already reports closeAt on the same clock as `t`: 27 during
+  // the evening, and 3 once the day has rolled over into the small hours. So
+  // the two are directly comparable in both cases.
+  const lastOrderAt = status.closeAt! - cutoff;
+
+  if (t >= lastOrderAt) {
+    return {
+      canOrder: false,
+      reason: "cutoff",
+      // Opening time for the coming service day.
+      opensAt: hoursFor(now.d)[0],
+      lastOrderAt,
+    };
+  }
+
+  return {
+    canOrder: true,
+    lastOrderAt,
+    minutesLeft: Math.round((lastOrderAt - t) * 60),
   };
 }
 

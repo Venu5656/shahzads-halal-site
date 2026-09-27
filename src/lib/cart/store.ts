@@ -80,16 +80,41 @@ function clearStored() {
 /** Strips the derived id before anything crosses the wire. */
 const forWire = (lines: CartLine[]) => lines.map(({ id: _id, ...rest }) => rest);
 
-function persist(lines: CartLine[]) {
+/** The most recent lines that still need writing to the database. */
+let unsaved: CartLine[] | null = null;
+
+function flush() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  if (!unsaved) return;
+  const lines = unsaved;
+  unsaved = null;
+  void saveCart({ lines: forWire(lines) });
+}
+
+/**
+ * Writes the cart where it belongs.
+ *
+ * Adding or removing a line saves immediately: someone who taps Add and then
+ * Checkout must not lose the line to a timer that had not fired yet. Only
+ * quantity changes are debounced, because that is the one control people tap
+ * repeatedly — four taps on + are one write, not four.
+ */
+function persist(lines: CartLine[], immediate = true) {
   if (!signedIn) {
     writeStored(lines);
     return;
   }
-  // Debounced: tapping + four times is one write, not four.
+
+  unsaved = lines;
+  if (immediate) {
+    flush();
+    return;
+  }
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    void saveCart({ lines: forWire(lines) });
-  }, SAVE_DEBOUNCE_MS);
+  saveTimer = setTimeout(flush, SAVE_DEBOUNCE_MS);
 }
 
 // --------------------------------------------------------------- store
@@ -123,6 +148,14 @@ export function start(initialLines: CartLine[], isSignedIn: boolean) {
   started = true;
   signedIn = isSignedIn;
 
+  // A debounced quantity change must not be lost to a hard navigation.
+  if (firstRun && typeof window !== "undefined") {
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flush();
+    });
+  }
+
   if (!isSignedIn) {
     const stored = readStored();
     emit({ lines: stored.length ? stored : initialLines, ready: true });
@@ -152,14 +185,15 @@ export function reset() {
   signedIn = false;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = null;
+  unsaved = null;
   emit(EMPTY);
 }
 
 // ------------------------------------------------------------ mutations
 
-function commit(lines: CartLine[]) {
+function commit(lines: CartLine[], immediate = true) {
   emit({ lines, ready: true });
-  persist(lines);
+  persist(lines, immediate);
 }
 
 export function addLine(input: Omit<CartLine, "id">) {
@@ -183,6 +217,8 @@ export function setLineQuantity(id: string, quantity: number) {
       : state.lines.map((line) =>
           line.id === id ? { ...line, quantity: Math.min(quantity, MAX_QUANTITY) } : line,
         ),
+    // Debounced — this is the button people tap several times in a row.
+    false,
   );
 }
 

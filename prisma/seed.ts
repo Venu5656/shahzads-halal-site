@@ -110,6 +110,7 @@ async function main() {
       sortOrder: index,
       tags,
       badge,
+      isTaxable: item.isTaxable ?? true,
       isActive: true,
     };
 

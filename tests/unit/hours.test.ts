@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   HOURS,
+  LAST_ORDER_BEFORE_CLOSE_MINUTES,
   fmtDuration,
   fmtHour,
   nyNow,
+  orderingStatus,
   storeStatus,
   type WallClock,
 } from "@/lib/hours";
@@ -93,5 +95,59 @@ describe("nyNow", () => {
     const clock = nyNow(new Date("2026-01-15T05:30:00Z"));
     expect(clock).toMatchObject({ d: 4, h: 0, m: 30 });
     expect(storeStatus(clock).open).toBe(true);
+  });
+});
+
+describe("orderingStatus", () => {
+  it("takes orders in the middle of the evening", () => {
+    const status = orderingStatus(at(3, 21, 0));
+    expect(status.canOrder).toBe(true);
+    if (status.canOrder) {
+      // Last order 2:40 AM, expressed on the service-day scale.
+      expect(status.lastOrderAt).toBeCloseTo(26 + 40 / 60);
+      expect(status.minutesLeft).toBe(340);
+    }
+  });
+
+  it("stops taking orders at 2:40 AM even though the door is open until three", () => {
+    // 2:39 AM on Thursday is still Wednesday's service day.
+    expect(orderingStatus(at(4, 2, 39)).canOrder).toBe(true);
+
+    const late = orderingStatus(at(4, 2, 41));
+    expect(late.canOrder).toBe(false);
+    if (!late.canOrder) {
+      expect(late.reason).toBe("cutoff");
+      // Open again at 10 AM the same morning.
+      expect(late.opensAt).toBe(10);
+    }
+  });
+
+  it("says closed, not cutoff, before the kitchen opens", () => {
+    const early = orderingStatus(at(3, 9, 0));
+    expect(early.canOrder).toBe(false);
+    if (!early.canOrder) {
+      expect(early.reason).toBe("closed");
+      expect(early.opensAt).toBe(10);
+    }
+  });
+
+  it("uses Sunday's later opening", () => {
+    const beforeNoon = orderingStatus(at(0, 11, 30));
+    expect(beforeNoon.canOrder).toBe(false);
+    if (!beforeNoon.canOrder) expect(beforeNoon.opensAt).toBe(12);
+    expect(orderingStatus(at(0, 12, 1)).canOrder).toBe(true);
+  });
+
+  it("still takes orders at 1:47 AM, the hour the whole site is built around", () => {
+    expect(orderingStatus(at(4, 1, 47)).canOrder).toBe(true);
+  });
+
+  it("leaves the kitchen exactly twenty minutes of slack", () => {
+    expect(LAST_ORDER_BEFORE_CLOSE_MINUTES).toBe(20);
+    const status = orderingStatus(at(2, 20, 0));
+    if (status.canOrder) {
+      // Close is 3 AM; the last order is twenty minutes before it.
+      expect(status.lastOrderAt).toBeCloseTo(27 - 20 / 60);
+    }
   });
 });

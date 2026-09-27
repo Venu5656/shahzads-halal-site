@@ -92,14 +92,13 @@ export function CartPanel() {
               <p className="mb-5 text-[13px] text-muted">
                 Tax is added at checkout. Pickup only — 152 Easton Ave.
               </p>
-              <button
-                type="button"
-                disabled
-                title="Checkout arrives in phase 4"
-                className="btn btn-red w-full cursor-not-allowed justify-center !rounded-2xl !py-4 text-[17px] opacity-60"
+              <Link
+                href="/checkout"
+                onClick={close}
+                className="btn btn-red w-full justify-center !rounded-2xl !py-4 text-[17px]"
               >
-                Checkout — coming next
-              </button>
+                Checkout
+              </Link>
             </footer>
           </>
         )}

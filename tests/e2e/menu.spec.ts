@@ -153,12 +153,26 @@ test("a soda has to say which one", async ({ page }) => {
 });
 
 test("shows an unpriced item honestly instead of pretending", async ({ page }) => {
-  await page.goto("/menu");
-  const card = page
-    .locator("article")
-    .filter({ has: page.getByRole("heading", { name: "Combo Gyro", exact: true }) });
-  await expect(card).toContainText("Ask in store");
-  await expect(card.getByRole("button")).toBeDisabled();
+  // Every item is priced today, so take one away to prove what happens when
+  // the owner adds a dish before deciding what to charge for it.
+  await prisma.menuItem.update({
+    where: { slug: "snapple" },
+    data: { basePriceCents: null },
+  });
+
+  try {
+    await page.goto("/menu");
+    const card = page
+      .locator("article")
+      .filter({ has: page.getByRole("heading", { name: "Snapple", exact: true }) });
+    await expect(card).toContainText("Ask in store");
+    await expect(card.getByRole("button")).toBeDisabled();
+  } finally {
+    await prisma.menuItem.update({
+      where: { slug: "snapple" },
+      data: { basePriceCents: 199 },
+    });
+  }
 });
 
 test("leaving the salad off a platter is free", async ({ page }) => {

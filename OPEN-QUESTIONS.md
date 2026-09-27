@@ -47,7 +47,7 @@ real customer until the items marked **BLOCKER** are answered.
 
 | # | Question | Why it matters |
 |---|----------|----------------|
-| A | **What does a Combo Gyro cost?** It is back on the menu as you asked, but no price came with it. Until one does it shows as **"Ask in store"** and cannot be added to a cart — I will not invent a price for something a customer pays. Chicken and lamb gyros are both $9.99 and the falafel is $10.99, if that helps. | It is the only unorderable item on the menu. |
+| A | ~~Combo Gyro price~~ — **answered: $13.99.** Every item on the menu is priced. | Done |
 | B | **Studio photos for Combo Gyro, Falafel Gyro and Beef Chapli Kabab Rice.** All three use the old site's pictures for now, at your instruction, and they look noticeably softer beside the rest. | Three more shots in the same style. |
 | C | **Snapple flavours.** Sold as one $1.99 item; if the fridge has a fixed set, it can ask which one the way the soda does. | Small. |
 | D | **Dip and drink photography.** Both sections use simple tiles I drew in the brand colours, not photographs. | They look deliberate, but a real shot is better. |
@@ -57,6 +57,21 @@ $1.99, "no salad" free, fries-and-soda on the cheesesteaks too, sauce on the
 side for platters and gyros with a separate Dips section for everything else,
 Mix Platter as the old combo, plain fries as the masala fries, and 20 minutes
 pickup lead time counted from confirmation.
+
+## Checkout decisions, as answered
+
+| Decision | Answer, now live |
+|----------|------------------|
+| Sales tax | 6.625% on everything **except bottled water**, which is exempt. Taxability is per item (`MenuItem.isTaxable`), and the tax is rounded once over the taxable subtotal rather than line by line |
+| Tips | **Not collected.** No tip UI at all. `Order.tipCents` stays 0 and the seam is kept open in the quote, so adding it later is a UI change rather than a data change |
+| Order cut-off | **2:40 AM** — twenty minutes before the 3 AM close, so the last ticket can be cooked and collected |
+| Pickup time | **ASAP only.** No scheduled slots. Quoted as "about 20 minutes after the kitchen confirms" |
+| Who holds the Stripe account | The business owner, with the developer invited as a team member |
+| PayPal | Not offered — unavailable through Stripe for US merchants |
+
+Still to confirm with the accountant before going live: whether the sodas and
+Snapple are taxable (currently taxed), and whether New Brunswick falls in an
+Urban Enterprise Zone, which would halve the rate.
 
 ## Smaller decisions I have made provisionally
 

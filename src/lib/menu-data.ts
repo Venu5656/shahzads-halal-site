@@ -30,6 +30,12 @@ export type SeedMenuItem = {
   tags: MenuTag[];
   /** Option group slugs, in the order they should appear on the item. */
   optionGroups: string[];
+  /**
+   * Whether sales tax applies. Defaults to true — everything Shahzad's sells
+   * is prepared food except the bottled water, which New Jersey exempts.
+   * Confirm with the accountant (OPEN-QUESTIONS.md).
+   */
+  isTaxable?: boolean;
 };
 
 export const CATEGORIES = [
@@ -372,9 +378,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     imagePath: "/img/combo-gyro.webp",
     description:
       "Chicken and lamb in warm pita with salad and any of Shahzad's sauces.",
-    // PLACEHOLDER: no price supplied. An unpriced item shows on the menu as
-    // "Ask in store" and cannot be added to a cart — see OPEN-QUESTIONS.md.
-    basePriceCents: null,
+    basePriceCents: 1399,
     tags: [{ kind: "star", label: "Popular" }],
     optionGroups: GYRO_GROUPS,
   },
@@ -557,6 +561,9 @@ const DRINKS: SeedMenuItem[] = [
     basePriceCents: 199,
     tags: [{ kind: "veg", label: "Veggie" }],
     optionGroups: [],
+    // New Jersey exempts unflavoured bottled water; everything else here is
+    // prepared food or a soft drink and is taxed.
+    isTaxable: false,
   },
   {
     slug: "soda",

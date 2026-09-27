@@ -43,9 +43,14 @@ describe("menu data", () => {
     }
   });
 
-  it("only leaves the combo gyro unpriced, because nobody has priced it", () => {
+  it("has a price for every single item now", () => {
     const unpriced = MENU_ITEMS.filter((item) => item.basePriceCents === null);
-    expect(unpriced.map((item) => item.slug)).toEqual(["combo-gyro"]);
+    expect(unpriced.map((item) => item.slug)).toEqual([]);
+  });
+
+  it("taxes everything except the bottled water", () => {
+    const exempt = MENU_ITEMS.filter((item) => item.isTaxable === false);
+    expect(exempt.map((item) => item.slug)).toEqual(["water"]);
   });
 
   it("matches the price list the owner sent", () => {

@@ -103,6 +103,7 @@ src/components/home/     homepage behaviour (client components)
 src/components/auth/     signup, login, forgot/reset password, resend forms
 src/components/ui/       form fields, buttons, headers shared by new pages
 src/lib/menu/            menu queries and the pricing rules
+src/lib/orders/          server-side quoting, order state machine, order numbers
 src/lib/cart/            cart store, persistence and server actions
 src/lib/auth/            sessions, password hashing, login limits, emailed links, validation
 src/lib/email/           mail transports (dev outbox / Resend) and templates
@@ -213,9 +214,29 @@ browser's arithmetic is a preview; the server's is the price.
 - A line that stops pricing (sold out, an option withdrawn) is flagged in the
   panel and refused by the server, rather than failing at checkout.
 
-## Payments (phase 4, in progress)
+## Checkout and payments (phase 4, in progress)
 
-Card, **Apple Pay** and **Google Pay**, all through Stripe.
+**Checkout is built.** The page at `/checkout` is signed-in only, reads the
+cart from the database, and re-prices every line against the live menu before
+showing a total. Nothing the browser says about money is trusted.
+
+It refuses, with an explanation and a way forward, when: the cart is empty, the
+kitchen is closed, it is past the **2:40 AM** cut-off, the owner has paused
+ordering, the total is below what a card can charge, or something on the menu
+changed while the customer was deciding.
+
+Pickup is **ASAP only** — quoted as about 20 minutes after the kitchen
+confirms, not after the payment clears. No tips are collected.
+
+Sales tax is **6.625% on everything except bottled water**, which New Jersey
+exempts. Taxability is per item, and tax is rounded once over the taxable
+subtotal — the way a register does it — so the printed total can never drift
+from the sum of its lines.
+
+**What is left:** the card form itself. Card, **Apple Pay** and **Google Pay**
+all arrive once the restaurant's Stripe keys are in the environment; until then
+the payment step says so plainly rather than rendering a form that cannot work.
+Owner setup steps: [docs/OWNER-PAYMENT-SETUP.md](docs/OWNER-PAYMENT-SETUP.md).
 
 **PayPal is deliberately not offered.** Stripe's PayPal payment method is not
 available to US-based merchants — Stripe supports it for businesses in the EU
