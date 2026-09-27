@@ -3,7 +3,7 @@ import { CartButton } from "@/components/cart/CartButton";
 import { DrawerAuth, NavAuth } from "@/components/home/AuthNav";
 import HomeInteractions from "@/components/home/HomeInteractions";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { SAUCES } from "@/lib/menu-data";
+import { FEATURED_SLUGS, SAUCES } from "@/lib/menu-data";
 import { getMenu } from "@/lib/menu/queries";
 
 /**
@@ -35,8 +35,10 @@ const ArrowIcon = () => (
 export default async function HomePage() {
   const [user, menu] = await Promise.all([getCurrentUser(), getMenu()]);
 
-  // The teaser grid is the real menu, drawn with the original card markup.
-  const items = menu.flatMap((category) =>
+  // The homepage shows a handful, drawn with the original card markup; the
+  // whole menu lives at /menu, so duplicating it here would just be a longer
+  // page saying the same thing.
+  const all = menu.flatMap((category) =>
     category.items.map((item) => ({
       slug: item.slug,
       name: item.name,
@@ -46,6 +48,11 @@ export default async function HomePage() {
       badge: item.badge,
       veggie: item.tags.includes("VEGGIE"),
     })),
+  );
+  const itemCount = all.length;
+  const bySlug = new Map(all.map((item) => [item.slug, item]));
+  const items = FEATURED_SLUGS.map((slug) => bySlug.get(slug)).filter(
+    (item): item is (typeof all)[number] => Boolean(item),
   );
 
   return (
@@ -61,8 +68,8 @@ export default async function HomePage() {
           </a>
           <nav className="links" aria-label="Primary">
             <a href="#signature">Signature</a>
-            <Link href="/menu">Menu</Link>
             <a href="#sauces">Sauces</a>
+            <Link href="/menu">Menu</Link>
             <a href="#hours">Hours</a>
             <a href="#visit">Visit</a>
           </nav>
@@ -86,8 +93,8 @@ export default async function HomePage() {
       </header>
 
       <div className="drawer" id="drawer">
-        <Link href="/menu">Menu</Link>
         <a href="#sauces">Sauces</a>
+        <Link href="/menu">Menu</Link>
         <a href="#hours">Hours</a>
         <a href="#visit">Visit</a>
         <DrawerAuth user={user} />
@@ -123,9 +130,9 @@ export default async function HomePage() {
                   Order delivery
                   <ArrowIcon />
                 </a>
-                <a className="btn btn-ghost" href="#menu">
+                <Link className="btn btn-ghost" href="/menu">
                   Explore the menu
-                </a>
+                </Link>
               </div>
               <div className="facts fade-up" style={{ animationDelay: ".8s" }}>
                 <div>
@@ -167,20 +174,20 @@ export default async function HomePage() {
                 <div className="plate">
                   <div className="inner">
                     <img
-                      src="/img/combo-rice.webp"
-                      alt="Combo over rice platter with chicken, lamb, chickpeas, black beans and salad"
+                      src="/img/menu/mix-platter.jpg"
+                      alt="Mix platter — chicken and lamb over rice with fries and salad"
                     />
                   </div>
                 </div>
                 <div className="orbit" aria-hidden="true">
                   <div className="sat">
-                    <img src="/img/falafel4.webp" alt="" />
+                    <img src="/img/menu/falafel.jpg" alt="" />
                   </div>
                   <div className="sat">
-                    <img src="/img/combo-gyro.webp" alt="" />
+                    <img src="/img/menu/lamb-gyro.jpg" alt="" />
                   </div>
                   <div className="sat">
-                    <img src="/img/philly.webp" alt="" />
+                    <img src="/img/menu/philly-cheesesteak.jpg" alt="" />
                   </div>
                 </div>
                 <div className="chip c1">
@@ -238,29 +245,34 @@ export default async function HomePage() {
         <section className="sec" id="signature">
           <div className="wrap sig">
             <div className="sig-img reveal" id="sigImg">
-              <img src="/img/combo-rice.webp" alt="Combo over rice, top-down view" />
-              <button className="pin" style={{ left: "24%", top: "20%" }} data-l="0" aria-label="Lamb">
+              <img
+                src="/img/menu/mix-platter.jpg"
+                alt="Mix platter — chicken and lamb over rice with fries and salad"
+              />
+              {/* Pin positions follow the official photo: lamb right, chicken
+                  centre, chickpeas and rice left of it, salad furthest left. */}
+              <button className="pin" style={{ left: "70%", top: "55%" }} data-l="0" aria-label="Lamb">
                 1
               </button>
-              <button className="pin" style={{ left: "14%", top: "76%" }} data-l="1" aria-label="Chicken">
+              <button className="pin" style={{ left: "49%", top: "62%" }} data-l="1" aria-label="Chicken">
                 2
               </button>
               <button
                 className="pin"
-                style={{ left: "48%", top: "45%" }}
+                style={{ left: "38%", top: "46%" }}
                 data-l="2"
                 aria-label="Chickpeas and black beans"
               >
                 3
               </button>
-              <button className="pin" style={{ left: "84%", top: "58%" }} data-l="3" aria-label="Salad">
+              <button className="pin" style={{ left: "30%", top: "58%" }} data-l="3" aria-label="Salad">
                 4
               </button>
             </div>
             <div className="reveal">
               <span className="eyebrow">The house signature</span>
               <h2>
-                The Combo,
+                The Mix Platter,
                 <br />
                 <em>layer by layer</em>
               </h2>
@@ -289,39 +301,12 @@ export default async function HomePage() {
                 </li>
               </ul>
               <div style={{ marginTop: "30px" }}>
-                <a className="btn btn-red" href={ORDER_URL} target="_blank" rel="noopener">
-                  Get the Combo
+                <Link className="btn btn-red" href="/menu/mix-platter">
+                  Get the Mix Platter
                   <ArrowIcon />
-                </a>
+                </Link>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* MENU */}
-        <section className="sec menu-bg" id="menu">
-          <div className="wrap">
-            <div className="sec-head reveal">
-              <div>
-                <span className="eyebrow">Fan favorites</span>
-                <h2>
-                  The <em>menu</em>
-                </h2>
-              </div>
-              <p>
-                Platters over brown basmati, gyros wrapped warm, cheesesteaks piled high. Everything
-                halal, everything made to order.
-              </p>
-            </div>
-            <div className="tabs reveal" id="tabs" role="tablist"></div>
-            <div className="menu-grid" id="grid"></div>
-            <p className="menu-note">
-              Prices, combos and extras are live on our{" "}
-              <a href={ORDER_URL} target="_blank" rel="noopener">
-                online ordering page
-              </a>
-              .
-            </p>
           </div>
         </section>
 
@@ -344,6 +329,34 @@ export default async function HomePage() {
             <div className="bottle-stage reveal" id="sauceStage">
               <div className="blob"></div>
               <div className="sauce-info" id="sauceInfo"></div>
+            </div>
+          </div>
+        </section>
+
+        {/* MENU — a taste of it. The whole thing lives at /menu. */}
+        <section className="sec menu-bg" id="menu">
+          <div className="wrap">
+            <div className="sec-head reveal">
+              <div>
+                <span className="eyebrow">Fan favorites</span>
+                <h2>
+                  The <em>menu</em>
+                </h2>
+              </div>
+              <p>
+                Platters over rice, gyros wrapped warm, cheesesteaks piled high and wings tossed to
+                order. Everything halal, everything made when you ask for it.
+              </p>
+            </div>
+            <div className="menu-grid" id="grid"></div>
+            <div className="reveal mt-10 flex flex-col items-center gap-4 text-center">
+              <Link className="btn btn-red" href="/menu">
+                See all {itemCount} dishes
+                <ArrowIcon />
+              </Link>
+              <p className="menu-note">
+                Pick your sauces, add a note for the kitchen, and collect it on Easton Ave.
+              </p>
             </div>
           </div>
         </section>

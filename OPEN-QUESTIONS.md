@@ -47,7 +47,8 @@ real customer until the items marked **BLOCKER** are answered.
 | # | Question | Why it matters |
 |---|----------|----------------|
 | A | **Drink prices.** The rules add "fries and soda +$5.00" to gyros and sandwiches, but there is no standalone drink on the price list. | There is no Drinks category yet. Nobody can order just a soda. |
-| B | **Four items from the old homepage are not on the price list**: Combo Gyro, Falafel Gyro, Beef Chapli Kabab Rice, and plain French Fries. I have hidden them rather than deleted them. | If the kitchen still sells them, send prices and they come straight back. I have assumed **Mix Platter** replaces the old "Combo Over Rice". |
+| B | **Two items from the old homepage are still not on the price list**: Combo Gyro and plain French Fries. Hidden, not deleted. (Falafel Gyro at $10.99 and Beef Chapli Kabab Rice at $13.99 are back.) | Send prices and they return the same way. I have assumed **Mix Platter** replaces the old "Combo Over Rice". |
+| H | **No official photo for Falafel Gyro or Beef Chapli Kabab Rice.** They are using the old site's picture of the same dish, which is noticeably lower quality than the rest. | Two more shots in the style of the others and they match. |
 | C | **"No salad +$2.00"** — charging to *remove* salad reads oddly, so I have labelled it "No salad, extra rice". Is that what it means? | It is on every platter. |
 | D | **Does "add fries and soda +$5.00" apply to the cheesesteaks too?** rules.txt lists it under GYRO and sandwiches. I have applied it to gyros, burgers, the chicken sandwich **and** both cheesesteaks. | Four items either gain or lose the option. |
 | E | **Size names.** Masala fries, waffle fries and onion rings each have two prices, which I have called **Regular** and **Large**. Falafel is 4 pc / 8 pc. | Just the words on the buttons. |

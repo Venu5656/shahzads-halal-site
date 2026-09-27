@@ -15,10 +15,11 @@ test("renders the ported homepage", async ({ page }) => {
   await expect(page).toHaveTitle(/Shahzad's Halal Food/);
   await expect(page.locator("h1")).toContainText("Stacked.");
 
-  // Menu grid, category tabs, sauces and the hours list are all script-built,
-  // and the grid is now the real menu read from the database.
-  await expect(page.locator(".menu-grid .card")).toHaveCount(21);
-  await expect(page.locator("#tabs .tab")).toHaveCount(7);
+  // The teaser grid, the sauces and the hours list are all script-built. The
+  // grid shows a handful of real dishes from the database; the whole menu
+  // lives on /menu, so there are no category tabs here any more.
+  await expect(page.locator(".menu-grid .card")).toHaveCount(4);
+  await expect(page.locator("#tabs")).toHaveCount(0);
   await expect(page.locator("#sauceBtns .sauce")).toHaveCount(6);
   await expect(page.locator("#days li")).toHaveCount(7);
   await expect(page.locator("#dialSvg circle")).not.toHaveCount(0);
@@ -30,16 +31,24 @@ test("renders the ported homepage", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("filters the menu by category", async ({ page }) => {
+test("sends people to the full menu rather than repeating it", async ({ page }) => {
   await page.goto("/");
-  // The grid is built by the client script; wait for it before filtering it.
-  await expect(page.locator(".menu-grid .card")).toHaveCount(21);
+  await expect(page.locator(".menu-grid .card")).toHaveCount(4);
 
-  await page.getByRole("tab", { name: /^Gyros/ }).click();
-  await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(2);
+  // The teaser says how much more there is, and the count is real.
+  const more = page.getByRole("link", { name: /See all \d+ dishes/ });
+  await expect(more).toBeVisible();
+  await more.click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("menu");
+});
 
-  await page.getByRole("tab", { name: /^All/ }).click();
-  await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(21);
+test("puts the sauces above the menu now that the menu has its own page", async ({ page }) => {
+  await page.goto("/");
+  const order = await page.evaluate(() =>
+    [...document.querySelectorAll("main > section")].map((s) => s.id).filter(Boolean),
+  );
+  expect(order).toEqual(["signature", "sauces", "menu", "hours", "visit"]);
 });
 
 test("opens the mobile drawer", async ({ page, isMobile }) => {

@@ -264,18 +264,8 @@ export default function HomeInteractions({ items, sauces }: Props) {
 
   /* ------------------------------------------------------------- menu grid */
   useEffect(() => {
-    const tabs = document.getElementById("tabs");
     const grid = document.getElementById("grid");
-    if (!tabs || !grid) return;
-
-    const categories = ["All", ...new Set(items.map((i) => i.category))];
-
-    tabs.innerHTML = categories
-      .map((c, i) => {
-        const count = c === "All" ? items.length : items.filter((x) => x.category === c).length;
-        return `<button class="tab${i ? "" : " on"}" role="tab" data-c="${escapeHtml(c)}">${escapeHtml(c)}<sup>${count}</sup></button>`;
-      })
-      .join("");
+    if (!grid) return;
 
     grid.innerHTML = items
       .map(
@@ -319,27 +309,6 @@ export default function HomeInteractions({ items, sauces }: Props) {
       observers.push(io);
     });
 
-    const onTabClick = (e: Event) => {
-      const button = (e.target as HTMLElement).closest<HTMLElement>(".tab");
-      if (!button) return;
-      tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t === button));
-      const category = button.dataset.c;
-      let shown = 0;
-      cards.forEach((card) => {
-        const show = category === "All" || card.dataset.c === category;
-        card.classList.toggle("gone", !show);
-        card.classList.remove("pop");
-        if (show) {
-          card.style.opacity = "";
-          card.style.transform = "";
-          void card.offsetWidth;
-          card.style.animationDelay = shown++ * 45 + "ms";
-          card.classList.add("pop");
-        }
-      });
-    };
-    tabs.addEventListener("click", onTabClick);
-
     const tiltHandlers: { el: HTMLElement; move: (e: PointerEvent) => void; leave: () => void }[] =
       [];
     if (finePointer() && !prefersReducedMotion()) {
@@ -364,14 +333,12 @@ export default function HomeInteractions({ items, sauces }: Props) {
     }
 
     return () => {
-      tabs.removeEventListener("click", onTabClick);
       tiltHandlers.forEach(({ el, move, leave }) => {
         el.removeEventListener("pointermove", move);
         el.removeEventListener("pointerleave", leave);
       });
       observers.forEach((io) => io.disconnect());
       timers.forEach(clearTimeout);
-      tabs.innerHTML = "";
       grid.innerHTML = "";
     };
   }, [items]);

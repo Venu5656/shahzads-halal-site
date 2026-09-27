@@ -337,6 +337,22 @@ footer p{color:var(--muted);font-size:14px}
 }
 
 /* ---------------------------------------------------------------------------
+ * The owner's product photography.
+ *
+ * The original photos were dark and full-bleed, so the signature image carried
+ * a dark gradient over its lower third and the cards sat on the card colour.
+ * The official shoot is lit on white, which that gradient turns into a grey
+ * smear — so it goes, and the photo areas get a warm off-white behind them so
+ * a transparent edge or a letterboxed crop never shows as a hard white box.
+ *
+ * Unlayered, so it wins over the legacy layer without editing it.
+ * ------------------------------------------------------------------------- */
+.sig-img::after { content: none; }
+.sig-img img,
+.card .ph img { background: #f4f1ea; }
+.card .ph { background: #f4f1ea; }
+
+/* ---------------------------------------------------------------------------
  * Preflight compatibility.
  *
  * Tailwind's preflight normalises two things the original page relied on the

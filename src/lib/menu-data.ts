@@ -293,6 +293,19 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: PLATTER_GROUPS,
   },
 
+  {
+    slug: "beef-chapli-kabab-rice",
+    name: "Beef Chapli Kabab Rice",
+    category: "Platters",
+    // No official photo yet — the old site's picture of the same platter.
+    imagePath: "/img/chapli.webp",
+    description:
+      "Savory beef chapli kebabs over seasoned rice with a crisp side salad.",
+    basePriceCents: 1399,
+    tags: [],
+    optionGroups: PLATTER_GROUPS,
+  },
+
   // ------------------------------------------------------------- gyros
   {
     slug: "chicken-gyro",
@@ -313,6 +326,20 @@ export const MENU_ITEMS: SeedMenuItem[] = [
       "Lamb pieces with salad in pita — white, hot, tahini, BBQ, buffalo or green.",
     basePriceCents: 999,
     tags: [],
+    optionGroups: GYRO_GROUPS,
+  },
+
+  {
+    slug: "falafel-gyro",
+    name: "Falafel Gyro",
+    category: "Gyros",
+    // No official photo in the owner's shoot yet — this is the old site's
+    // picture of the same wrap. Swap it the moment a proper one arrives.
+    imagePath: "/img/falafel-wrap.webp",
+    description:
+      "Crispy falafel, lettuce, tomato, onion and pickles on grilled pita with white sauce.",
+    basePriceCents: 1099,
+    tags: [{ kind: "veg", label: "Veggie" }],
     optionGroups: GYRO_GROUPS,
   },
 
@@ -469,22 +496,33 @@ export const MENU_ITEMS: SeedMenuItem[] = [
 ];
 
 /**
- * Items the old homepage advertised that are not on the owner's price list:
- * Combo Gyro, Falafel Gyro, Beef Chapli Kabab Rice and plain French Fries.
+ * Items the old homepage advertised that are still not on the owner's price
+ * list: Combo Gyro and plain French Fries. (Falafel Gyro and Beef Chapli Kabab
+ * Rice came back once their prices arrived.)
  *
- * They are deactivated rather than deleted — `isActive: false` hides them from
- * the menu and the cart while keeping any order history that points at them
- * intact. If the kitchen still sells them, send me the prices and they come
- * straight back.
+ * Deactivated rather than deleted — `isActive: false` hides them from the menu
+ * and the cart while keeping any order history that points at them intact. If
+ * the kitchen still sells them, send prices and they come straight back.
+ *
+ * The rest are old slugs for dishes that now live under their real names.
  */
 export const RETIRED_SLUGS = [
   "combo-over-rice",
   "combo-gyro",
-  "falafel-gyro",
-  "beef-chapli-kabab-rice",
   "french-fries",
   "kofta-kebab-over-rice",
   "4-pc-falafel",
   "philly-cheese-steak",
   "chicken-cheese-steak",
+] as const;
+
+/**
+ * The handful shown on the homepage. Everything else lives on /menu — the
+ * homepage is a taste, not a duplicate of the menu page.
+ */
+export const FEATURED_SLUGS = [
+  "mix-platter",
+  "chicken-over-rice",
+  "chicken-gyro",
+  "philly-cheesesteak",
 ] as const;

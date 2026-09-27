@@ -86,17 +86,17 @@ test("lists the whole menu, filters by category and searches", async ({ page }) 
   await page.goto("/menu");
 
   const cards = page.locator("article");
-  await expect(cards).toHaveCount(21);
+  await expect(cards).toHaveCount(23);
 
   await page.getByRole("tab", { name: /^Gyros/ }).click();
-  await expect(cards).toHaveCount(2);
+  await expect(cards).toHaveCount(3);
 
   await page.getByRole("tab", { name: /^All/ }).click();
-  await expect(cards).toHaveCount(21);
+  await expect(cards).toHaveCount(23);
 
   await page.getByPlaceholder("Search").fill("falafel");
-  // Falafel Over Rice and the falafel side.
-  await expect(cards).toHaveCount(2);
+  // Falafel Over Rice, the Falafel Gyro and the falafel side.
+  await expect(cards).toHaveCount(3);
 
   await page.getByPlaceholder("Search").fill("zzzz");
   await expect(page.getByText(/Nothing matches/)).toBeVisible();
@@ -308,16 +308,21 @@ test("tells someone when something in their cart has sold out", async ({ page })
 
 // ------------------------------------------------------- the homepage
 
-test("the homepage grid is the real menu now", async ({ page, isMobile }) => {
+test("the homepage teaser is the real menu now", async ({ page, isMobile }) => {
   await page.goto("/");
-  await expect(page.locator("#grid .card")).toHaveCount(21);
-
-  // Its tabs come from the database's categories.
-  await expect(page.locator("#tabs .tab")).toHaveCount(7);
+  await expect(page.locator("#grid .card")).toHaveCount(4);
 
   // A card links into the real item page.
   const link = page.locator('.card a.add[href="/menu/mix-platter"]');
   await expect(link).toHaveCount(1);
+
+  // The two items whose prices arrived late are orderable again.
+  await page.goto("/menu");
+  await expect(page.locator("article").filter({ hasText: "Falafel Gyro" })).toContainText("$10.99");
+  await expect(
+    page.locator("article").filter({ hasText: "Beef Chapli Kabab Rice" }),
+  ).toContainText("$13.99");
+  await page.goto("/");
 
   if (!isMobile) {
     await expect(page.locator("#nav").getByRole("link", { name: "Order now" })).toHaveAttribute(

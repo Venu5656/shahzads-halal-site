@@ -1,13 +1,21 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CATEGORIES, MENU_ITEMS, OPTION_GROUPS, SAUCES, WING_SAUCES } from "@/lib/menu-data";
+import {
+  CATEGORIES,
+  FEATURED_SLUGS,
+  MENU_ITEMS,
+  OPTION_GROUPS,
+  RETIRED_SLUGS,
+  SAUCES,
+  WING_SAUCES,
+} from "@/lib/menu-data";
 
 const publicDir = join(process.cwd(), "public");
 
 describe("menu data", () => {
-  it("carries the 21 items on the owner's price list", () => {
-    expect(MENU_ITEMS).toHaveLength(21);
+  it("carries the 23 items on the owner's price list", () => {
+    expect(MENU_ITEMS).toHaveLength(23);
   });
 
   it("has unique slugs", () => {
@@ -58,6 +66,8 @@ describe("menu data", () => {
       "masala-fries": 399,
       "waffle-fries": 499,
       "onion-rings": 499,
+      "falafel-gyro": 1099,
+      "beef-chapli-kabab-rice": 1399,
     });
   });
 
@@ -73,6 +83,23 @@ describe("menu data", () => {
       const free = item.optionGroups.includes("sauce-choice");
       const expected = item.category === "Platters" || item.category === "Gyros";
       expect(free).toBe(expected);
+    }
+  });
+});
+
+describe("the homepage teaser", () => {
+  it("features items that are actually on the menu", () => {
+    const slugs = new Set(MENU_ITEMS.map((item) => item.slug));
+    for (const slug of FEATURED_SLUGS) expect(slugs).toContain(slug);
+  });
+
+  it("features four, which is one full row of cards", () => {
+    expect(FEATURED_SLUGS).toHaveLength(4);
+  });
+
+  it("does not feature anything that has been retired", () => {
+    for (const slug of FEATURED_SLUGS) {
+      expect(RETIRED_SLUGS as readonly string[]).not.toContain(slug);
     }
   });
 });

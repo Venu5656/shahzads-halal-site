@@ -149,7 +149,7 @@ checkout in phase 4.
 
 ## The menu and the cart
 
-21 items, priced from the owner's list, with the rules from
+23 items, priced from the owner's list, with the rules from
 `menu prices/rules.txt` modelled as option groups:
 
 | Rule | How it is modelled |
@@ -167,6 +167,18 @@ checkout in phase 4.
 
 A size is an **option group, not a second item**, so each dish keeps one card,
 one photo and one price that moves as you choose.
+
+### The homepage is a taste, not a copy
+
+Now that `/menu` exists, the homepage shows **four featured dishes** and a link
+to the rest, with the sauces section above it. The card markup, the tilt and
+the scroll reveal are the original ones; only the contents and the ordering
+changed. Which four is `FEATURED_SLUGS` in `src/lib/menu-data.ts`.
+
+All the food photography on the homepage — the hero plate, the three orbiting
+dishes and the signature shot — is the owner's official studio set from
+`menu prices/`. The legacy dark gradient over the signature photo is turned off
+in `globals.css`, since it was drawn for dark photos and smears a white one.
 
 ### Where the prices live
 
