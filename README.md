@@ -8,8 +8,9 @@ The marketing homepage from the old static site is preserved exactly as it was �
 same markup, same stylesheet, same animations. See
 [Homepage port](#the-homepage-port) before touching it.
 
-**Status: phase 2 of 8 (accounts).** People can sign up, confirm their email
-address, log in, and reset a forgotten password; nothing is orderable yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
+**Status: phase 3 of 8 (menu and cart).** The real menu is live with real
+prices, options and a working cart. Checkout — taking the money — is phase 4,
+so nothing can actually be paid for yet. See [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) for what I need from
 you.
 
 ## Local setup
@@ -101,6 +102,8 @@ src/proxy.ts             optimistic cookie check (Next 16's renamed middleware)
 src/components/home/     homepage behaviour (client components)
 src/components/auth/     signup, login, forgot/reset password, resend forms
 src/components/ui/       form fields, buttons, headers shared by new pages
+src/lib/menu/            menu queries and the pricing rules
+src/lib/cart/            cart store, persistence and server actions
 src/lib/auth/            sessions, password hashing, login limits, emailed links, validation
 src/lib/email/           mail transports (dev outbox / Resend) and templates
 src/lib/                 hours, menu data, money, Prisma client
@@ -143,6 +146,52 @@ live clock and the phase of the auto-advancing animations.
 
 The "Order now" buttons still point at DoorDash. They switch to our own
 checkout in phase 4.
+
+## The menu and the cart
+
+21 items, priced from the owner's list, with the rules from
+`menu prices/rules.txt` modelled as option groups:
+
+| Rule | How it is modelled |
+|------|--------------------|
+| Free sauce on platters and gyros, up to 3 | `sauce-choice`, min 0 max 3, all options 0¢ |
+| No free sauce on fries, rings and sides | those items simply do not carry the group |
+| Extra protein $3, fries $2, pita $2, no salad $2 | `platter-extras`, multi-select |
+| Spicy rice, free | `rice-style`, required, both options 0¢ |
+| Fries and a soda, $5 | `meal-deal` on gyros, sandwiches and cheesesteaks |
+| Wings 6/12/18/21 pc at $9.99/$17.99/$26.99/$31.99 | `wing-size`, required, priced as the **difference** from the 6 pc base |
+| Seven wing sauces, pick one | `wing-sauce`, required |
+| Falafel 4 pc / 8 pc, fries and rings regular / large | `falafel-size`, `side-size` |
+| Any sauce on the side, 75¢ | `extra-sauce`, on every item |
+| Instructions box | 200-character note per line |
+
+A size is an **option group, not a second item**, so each dish keeps one card,
+one photo and one price that moves as you choose.
+
+### Where the prices live
+
+`src/lib/menu-data.ts` is the source of truth, and the seed writes it into the
+database. Everything the customer sees is then read from the database, so when
+the manager area can edit prices (phase 7) nothing else has to change.
+
+### Pricing is computed in one place
+
+`src/lib/menu/pricing.ts` is pure: it takes an item, the chosen option ids and
+a quantity, and returns either a price or every rule that was broken. The same
+function runs while you tick boxes, in the cart, and — this is the point — on
+the server at checkout, against rows read fresh from the database. The
+browser's arithmetic is a preview; the server's is the price.
+
+### The cart
+
+- Slide-over panel, item count in the header, editable quantities and options.
+- **Logged out** it lives in `localStorage`; **signed in** it lives in the
+  database and follows you to another device.
+- Signing in **folds the guest cart into the stored one** rather than dropping
+  it — including when you log in mid-session, which is the case that is easy to
+  get wrong.
+- A line that stops pricing (sold out, an option withdrawn) is flagged in the
+  panel and refused by the server, rather than failing at checkout.
 
 ## Accounts and login
 
@@ -267,7 +316,7 @@ SEED_OWNER_EMAIL="you@example.com" SEED_OWNER_PHONE="+1XXXXXXXXXX" \
 ## Testing
 
 ```bash
-npm test          # pricing, tax, hours, menu data, password hashing, login + email limits
+npm test          # item pricing and option rules, tax, hours, menu data, passwords, limits
 npm run test:e2e  # homepage, plus sign-up/login/profile/lockout end to end
 ```
 

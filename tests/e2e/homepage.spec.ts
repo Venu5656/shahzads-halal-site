@@ -15,9 +15,10 @@ test("renders the ported homepage", async ({ page }) => {
   await expect(page).toHaveTitle(/Shahzad's Halal Food/);
   await expect(page.locator("h1")).toContainText("Stacked.");
 
-  // Menu grid, category tabs, sauces and the hours list are all script-built.
-  await expect(page.locator(".menu-grid .card")).toHaveCount(14);
-  await expect(page.locator("#tabs .tab")).toHaveCount(5);
+  // Menu grid, category tabs, sauces and the hours list are all script-built,
+  // and the grid is now the real menu read from the database.
+  await expect(page.locator(".menu-grid .card")).toHaveCount(21);
+  await expect(page.locator("#tabs .tab")).toHaveCount(7);
   await expect(page.locator("#sauceBtns .sauce")).toHaveCount(6);
   await expect(page.locator("#days li")).toHaveCount(7);
   await expect(page.locator("#dialSvg circle")).not.toHaveCount(0);
@@ -32,13 +33,13 @@ test("renders the ported homepage", async ({ page }) => {
 test("filters the menu by category", async ({ page }) => {
   await page.goto("/");
   // The grid is built by the client script; wait for it before filtering it.
-  await expect(page.locator(".menu-grid .card")).toHaveCount(14);
+  await expect(page.locator(".menu-grid .card")).toHaveCount(21);
 
   await page.getByRole("tab", { name: /^Gyros/ }).click();
-  await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(4);
+  await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(2);
 
   await page.getByRole("tab", { name: /^All/ }).click();
-  await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(14);
+  await expect(page.locator(".menu-grid .card:not(.gone)")).toHaveCount(21);
 });
 
 test("opens the mobile drawer", async ({ page, isMobile }) => {
