@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Shahzad's Halal Food — 1:47 AM</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/music/audio-data.js"></script>
+    <style>
+      /* Fonts, palette and treatments are the restaurant's own, lifted from
+         src/app/globals.css (itself a verbatim copy of the original site). */
+      @font-face {
+        font-family: "Big Shoulders Display";
+        font-weight: 800;
+        font-display: block;
+        src: url(assets/fonts/big-shoulders-display-latin-800-normal.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "Big Shoulders Display";
+        font-weight: 900;
+        font-display: block;
+        src: url(assets/fonts/big-shoulders-display-latin-900-normal.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "DM Sans";
+        font-weight: 400;
+        font-display: block;
+        src: url(assets/fonts/dm-sans-latin-400-normal.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "DM Sans";
+        font-weight: 500;
+        font-display: block;
+        src: url(assets/fonts/dm-sans-latin-500-normal.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "DM Sans";
+        font-weight: 700;
+        font-display: block;
+        src: url(assets/fonts/dm-sans-latin-700-normal.woff2) format("woff2");
+      }
+      @font-face {
+        font-family: "Fraunces";
+        font-style: italic;
+        font-weight: 700;
+        font-display: block;
+        src: url(assets/fonts/fraunces-latin-700-italic.woff2) format("woff2");
+      }
+
+      :root {
+        --bg: #0d0907;
+        --bg-2: #150f0b;
+        --card: #1b140f;
+        --line: rgba(246, 236, 220, 0.1);
+        --cream: #f6ecdc;
+        --muted: #b3a393;
+        --red: #e23a2f;
+        --red-2: #ff5a3c;
+        --gold: #f5b53d;
+        --herb: #8bbf5a;
+        --display: "Big Shoulders Display", sans-serif;
+        --serif: "Fraunces", serif;
+        --sans: "DM Sans", system-ui, sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--cream);
+        font-family: var(--sans);
+      }
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      /* ---------- persistent background layers ---------- */
+      .bg-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      #glow {
+        background: radial-gradient(
+          circle at 62% 50%,
+          rgba(226, 58, 47, 0.32),
+          rgba(245, 181, 61, 0.08) 45%,
+          transparent 70%
+        );
+        opacity: 0.42;
+      }
+      #grain {
+        z-index: 40;
+        opacity: 0.06;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      #embers {
+        z-index: 1;
+      }
+      .ember {
+        position: absolute;
+        bottom: -30px;
+        display: block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--red-2);
+        opacity: 0;
+      }
+      .ember.gold {
+        background: var(--gold);
+      }
+
+      /* ---------- scenes ---------- */
+      .clip {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+      }
+      .wrap {
+        position: absolute;
+        inset: 0;
+        padding: 0 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 21px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      .eyebrow i {
+        display: block;
+        width: 54px;
+        height: 3px;
+        background: currentColor;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        width: fit-content;
+        padding: 12px 22px;
+        border-radius: 999px;
+        background: rgba(139, 191, 90, 0.14);
+        color: var(--herb);
+        font-size: 21px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .status i {
+        display: block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      /* Scene 1 — the hour */
+      #s1 .wrap {
+        align-items: center;
+        text-align: center;
+      }
+      #s1-clock {
+        font-family: var(--display);
+        font-weight: 900;
+        font-size: 300px;
+        line-height: 0.86;
+        letter-spacing: -0.01em;
+        color: var(--cream);
+      }
+      #s1-clock small {
+        font-size: 0.34em;
+        margin-left: 0.08em;
+      }
+      #s1-line {
+        margin-top: 26px;
+        font-size: 38px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+
+      /* Scene 2 — the hero */
+      #s2 .wrap {
+        flex-direction: row;
+        align-items: center;
+        gap: 80px;
+      }
+      #s2-copy {
+        width: 900px;
+      }
+      #s2-head {
+        margin: 26px 0 30px;
+        font-family: var(--display);
+        font-weight: 900;
+        font-size: 150px;
+        line-height: 0.84;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+      }
+      .ln {
+        display: block;
+        overflow: hidden;
+        padding-bottom: 0.05em;
+      }
+      .ln > span {
+        display: block;
+      }
+      #s2-head em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 700;
+        font-size: 0.8em;
+        letter-spacing: -0.03em;
+        text-transform: none;
+        color: var(--red);
+      }
+      #s2-stage {
+        position: relative;
+        width: 620px;
+        height: 620px;
+        flex: none;
+      }
+      #s2-plate {
+        position: absolute;
+        inset: 14%;
+        display: block;
+        border-radius: 50%;
+        padding: 14px;
+        background: conic-gradient(
+          from 0deg,
+          var(--red),
+          var(--gold),
+          var(--red),
+          #5b1a14,
+          var(--red)
+        );
+        box-shadow:
+          0 50px 80px -30px rgba(0, 0, 0, 0.9),
+          0 0 90px -10px rgba(226, 58, 47, 0.5);
+      }
+      #s2-plate .inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 9px solid var(--bg);
+      }
+      #s2-plate img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #s2-orbit {
+        position: absolute;
+        inset: 2%;
+        display: block;
+      }
+      .sat {
+        position: absolute;
+        display: block;
+        width: 24%;
+        height: 24%;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 5px solid var(--bg);
+        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.9);
+      }
+      .sat img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .sat.a {
+        top: -6%;
+        left: 38%;
+      }
+      .sat.b {
+        top: 58%;
+        left: -6%;
+      }
+      .sat.c {
+        top: 58%;
+        right: -6%;
+      }
+
+      /* Scene 3 — the menu */
+      #s3 .wrap {
+        justify-content: center;
+        gap: 34px;
+      }
+      #s3-eyebrow {
+        margin-bottom: 4px;
+      }
+      #s3-tabs {
+        display: flex;
+        gap: 14px;
+      }
+      .tab {
+        display: block;
+        padding: 18px 34px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 27px;
+        font-weight: 700;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .tab sup {
+        font-size: 0.62em;
+        margin-left: 6px;
+        opacity: 0.7;
+      }
+      #s3-cards {
+        display: flex;
+        gap: 28px;
+      }
+      .card {
+        width: 522px;
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        overflow: hidden;
+        background: var(--card);
+        opacity: 0;
+      }
+      .card .ph {
+        position: relative;
+        height: 356px;
+        overflow: hidden;
+      }
+      .card .ph img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .card .tag {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        background: rgba(13, 9, 7, 0.82);
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--cream);
+      }
+      .card .body {
+        padding: 24px 26px 28px;
+      }
+      .card h3 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 48px;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+      .card p {
+        margin-top: 12px;
+        font-size: 23px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+      #s3-cursor {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 20;
+        display: block;
+        width: 34px;
+        height: 34px;
+        opacity: 0;
+      }
+      #s3-cursor svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.8));
+      }
+
+      /* Scene 4 — the sauces */
+      #s4 .wrap {
+        flex-direction: row;
+        align-items: center;
+        gap: 110px;
+      }
+      #s4-head {
+        font-family: var(--display);
+        font-weight: 900;
+        font-size: 126px;
+        line-height: 0.88;
+        text-transform: uppercase;
+        width: 720px;
+      }
+      #s4-head .l2 {
+        display: block;
+      }
+      #s4-head em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 700;
+        font-size: 0.86em;
+        text-transform: none;
+        color: var(--gold);
+      }
+      #s4-note {
+        margin-top: 26px;
+        font-size: 30px;
+        color: var(--muted);
+        max-width: 560px;
+      }
+      #s4-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        width: 760px;
+      }
+      .sauce {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 24px 28px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(246, 236, 220, 0.04);
+        font-size: 28px;
+        font-weight: 700;
+        opacity: 0;
+      }
+      .sauce i {
+        display: block;
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 50% 50% 50% 8px;
+        box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.18);
+      }
+
+      /* Scene 5 — hours and lockup */
+      #s5 .wrap {
+        flex-direction: row;
+        align-items: center;
+        gap: 90px;
+      }
+      #s5-dial {
+        position: relative;
+        width: 560px;
+        height: 560px;
+        flex: none;
+      }
+      #s5-dial svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      #s5-dial-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+      }
+      #s5-dial-time {
+        font-family: var(--display);
+        font-weight: 900;
+        font-size: 96px;
+        line-height: 0.9;
+      }
+      #s5-dial-time small {
+        font-size: 0.36em;
+        margin-left: 0.08em;
+      }
+      #s5-copy {
+        width: 800px;
+      }
+      #s5-l1 {
+        font-family: var(--display);
+        font-weight: 900;
+        font-size: 118px;
+        line-height: 0.9;
+        text-transform: uppercase;
+      }
+      #s5-l2 {
+        margin-top: 10px;
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 700;
+        font-size: 92px;
+        line-height: 1;
+        color: var(--gold);
+      }
+      #s5-lockup {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        opacity: 0;
+        z-index: 15;
+      }
+      #s5-lockup img {
+        width: 150px;
+      }
+      #s5-name {
+        font-family: var(--display);
+        font-weight: 900;
+        font-size: 136px;
+        line-height: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+      }
+      #s5-sub {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.34em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      #s5-addr {
+        margin-top: 12px;
+        font-size: 28px;
+        color: var(--muted);
+      }
+      #s5-cta {
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--cream);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="21.5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- persistent background: audio-reactive glow + drifting embers + film grain -->
+      <div id="glow" class="bg-layer"></div>
+      <div id="embers" class="bg-layer"></div>
+
+      <!-- Scene 1 — 1:47 AM -->
+      <section id="s1" class="clip" data-start="0" data-duration="3.5" data-track-index="0">
+        <div class="wrap">
+          <div id="s1-clock">1:47<small>AM</small></div>
+          <div id="s1-line">Everything else is closed.</div>
+        </div>
+      </section>
+
+      <!-- Scene 2 — the flat-top -->
+      <section id="s2" class="clip" data-start="3.5" data-duration="4.1" data-track-index="1">
+        <div class="wrap">
+          <div id="s2-copy">
+            <div class="eyebrow" id="s2-eyebrow"><i></i>Easton Ave · New Brunswick</div>
+            <h1 id="s2-head">
+              <span class="ln" data-layout-allow-overflow><span>Stacked.</span></span>
+              <span class="ln" data-layout-allow-overflow><span>Sauced.</span></span>
+              <span class="ln" data-layout-allow-overflow><span><em>100% Halal.</em></span></span>
+            </h1>
+            <div class="status" id="s2-status"><i></i>Open now</div>
+          </div>
+          <div id="s2-stage">
+            <div id="s2-orbit">
+              <div class="sat a"><img src="assets/img/falafel4.webp" alt="" /></div>
+              <div class="sat b"><img src="assets/img/chapli.webp" alt="" /></div>
+              <div class="sat c"><img src="assets/img/philly.webp" alt="" /></div>
+            </div>
+            <div id="s2-plate">
+              <div class="inner"><img src="assets/img/combo-rice.webp" alt="" /></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 3 — the menu, filtering -->
+      <section id="s3" class="clip" data-start="7.6" data-duration="4.9" data-track-index="2">
+        <div class="wrap">
+          <div class="eyebrow" id="s3-eyebrow"><i></i>14 items · every one halal</div>
+          <div id="s3-tabs">
+            <span class="tab">All<sup>14</sup></span>
+            <span class="tab">Platters<sup>4</sup></span>
+            <span class="tab" id="tab-gyros">Gyros<sup>4</sup></span>
+            <span class="tab">Cheesesteaks<sup>2</sup></span>
+            <span class="tab">Burgers &amp; Sides<sup>4</sup></span>
+          </div>
+          <div id="s3-cards">
+            <article class="card" id="s3-card1">
+              <div class="ph">
+                <span class="tag">Halal</span>
+                <img src="assets/img/combo-gyro.webp" alt="" />
+              </div>
+              <div class="body">
+                <h3>Combo Gyro</h3>
+                <p>Chicken and lamb in warm pita with salad and any of Shahzad's sauces.</p>
+              </div>
+            </article>
+            <article class="card" id="s3-card2">
+              <div class="ph">
+                <span class="tag">Halal</span>
+                <img src="assets/img/lamb-gyro.webp" alt="" />
+              </div>
+              <div class="body">
+                <h3>Lamb Gyro</h3>
+                <p>Lamb pieces with salad in pita — white, hot, tahini, BBQ, buffalo or green.</p>
+              </div>
+            </article>
+            <article class="card" id="s3-card3">
+              <div class="ph">
+                <span class="tag">Halal</span>
+                <img src="assets/img/falafel-wrap.webp" alt="" />
+              </div>
+              <div class="body">
+                <h3>Falafel Gyro</h3>
+                <p>Crispy falafel, lettuce, tomato, onion and pickles on grilled pita.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div id="s3-cursor">
+          <svg viewBox="0 0 24 24" fill="#f6ecdc" stroke="#0d0907" stroke-width="1.4">
+            <path d="M5 2l14 10-6 1.2 3.2 6.6-2.6 1.3-3.2-6.6L6 18z" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- Scene 4 — six sauces -->
+      <section id="s4" class="clip" data-start="12.5" data-duration="4" data-track-index="3">
+        <div class="wrap">
+          <div>
+            <h2 id="s4-head">Six sauces.<span class="l2"><em>Zero rules.</em></span></h2>
+            <p id="s4-note">Every platter and gyro comes with your pick.</p>
+          </div>
+          <div id="s4-grid">
+            <div class="sauce"><i style="background: #f3eee2"></i>White Sauce</div>
+            <div class="sauce"><i style="background: #d8321f"></i>Hot Sauce</div>
+            <div class="sauce"><i style="background: #7eae47"></i>Green Sauce</div>
+            <div class="sauce"><i style="background: #d8b07a"></i>Tahini</div>
+            <div class="sauce"><i style="background: #6e2716"></i>BBQ</div>
+            <div class="sauce"><i style="background: #e8762a"></i>Buffalo</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 5 — open till 3 AM + lockup -->
+      <section id="s5" class="clip" data-start="16.5" data-duration="5" data-track-index="4">
+        <div class="wrap" id="s5-hours">
+          <div id="s5-dial">
+            <svg viewBox="0 0 400 400" aria-hidden="true">
+              <defs>
+                <linearGradient id="dial-grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#f5b53d" />
+                  <stop offset="1" stop-color="#e23a2f" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx="200"
+                cy="200"
+                r="170"
+                fill="none"
+                stroke="rgba(246,236,220,.08)"
+                stroke-width="18"
+              />
+              <g id="s5-ticks"></g>
+              <path
+                id="s5-arc"
+                d="M285 347.2 A170 170 0 1 1 320.2 79.8"
+                fill="none"
+                stroke="url(#dial-grad)"
+                stroke-width="18"
+                stroke-linecap="round"
+              />
+              <circle id="s5-dot-halo" cx="276.6" cy="48.2" r="15" fill="#8bbf5a" opacity="0.25" />
+              <circle
+                id="s5-dot"
+                cx="276.6"
+                cy="48.2"
+                r="9"
+                fill="#f6ecdc"
+                stroke="#0d0907"
+                stroke-width="3"
+              />
+            </svg>
+            <div id="s5-dial-center">
+              <div id="s5-dial-time">1:47<small>AM</small></div>
+              <div class="status"><i></i>Open now</div>
+            </div>
+          </div>
+          <div id="s5-copy">
+            <div id="s5-l1">Open till 3 AM.</div>
+            <div id="s5-l2">Every night.</div>
+          </div>
+        </div>
+
+        <div id="s5-lockup">
+          <img src="assets/img/logo.png" alt="" />
+          <div id="s5-name">Shahzad's</div>
+          <div id="s5-sub">Halal Food</div>
+          <div id="s5-addr">152 Easton Ave · New Brunswick, NJ</div>
+          <div id="s5-cta">Order ahead. Pick up. Skip the line.</div>
+        </div>
+      </section>
+
+      <div id="grain" class="bg-layer"></div>
+
+      <!-- audio: music bed on track 10, SFX from 11 up -->
+      <audio
+        id="bgm"
+        data-start="0"
+        data-duration="21.5"
+        data-track-index="10"
+        data-volume="0.32"
+        data-fade-in="0.6"
+        data-fade-out="1.2"
+        src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"
+      ></audio>
+      <audio
+        id="sfx-clock"
+        data-start="0.2"
+        data-duration="0.19"
+        data-track-index="11"
+        data-volume="0.55"
+        src="assets/sfx/impact/impactSoft_medium_001.ogg"
+      ></audio>
+      <audio
+        id="sfx-line"
+        data-start="4.28"
+        data-duration="0.11"
+        data-track-index="12"
+        data-volume="0.45"
+        src="assets/sfx/interface/drop_001.ogg"
+      ></audio>
+      <audio
+        id="sfx-click"
+        data-start="8.02"
+        data-duration="0.1"
+        data-track-index="13"
+        data-volume="0.6"
+        src="assets/sfx/interface/click_001.ogg"
+      ></audio>
+      <audio
+        id="sfx-card1"
+        data-start="9.02"
+        data-duration="0.27"
+        data-track-index="14"
+        data-volume="0.5"
+        src="assets/sfx/impact/impactWood_light_001.ogg"
+      ></audio>
+      <audio
+        id="sfx-card2"
+        data-start="10.02"
+        data-duration="0.27"
+        data-track-index="15"
+        data-volume="0.5"
+        src="assets/sfx/impact/impactWood_light_002.ogg"
+      ></audio>
+      <audio
+        id="sfx-card3"
+        data-start="11.02"
+        data-duration="0.27"
+        data-track-index="16"
+        data-volume="0.5"
+        src="assets/sfx/impact/impactWood_light_003.ogg"
+      ></audio>
+      <audio
+        id="sfx-sauce"
+        data-start="13.01"
+        data-duration="0.19"
+        data-track-index="17"
+        data-volume="0.4"
+        src="assets/sfx/interface/drop_002.ogg"
+      ></audio>
+      <audio
+        id="sfx-bell"
+        data-start="20"
+        data-duration="1.48"
+        data-track-index="18"
+        data-volume="0.6"
+        src="assets/sfx/impact/impactBell_heavy_000.ogg"
+      ></audio>
+    </div>
+
+    <script>
+      // ---------------------------------------------------------------- setup
+      // Deterministic pseudo-random: index-derived, never Math.random().
+      const rnd = (i, salt) => {
+        const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+        return x - Math.floor(x);
+      };
+
+      // Embers, the homepage's canvas field rebuilt as DOM so it can be
+      // seeked frame-accurately.
+      const emberLayer = document.getElementById("embers");
+      const EMBERS = 16;
+      for (let i = 0; i < EMBERS; i++) {
+        const e = document.createElement("span");
+        e.className = "ember" + (rnd(i, 3) < 0.3 ? " gold" : "");
+        e.style.left = (4 + rnd(i, 1) * 92).toFixed(2) + "%";
+        const size = (4 + rnd(i, 2) * 7).toFixed(1);
+        e.style.width = size + "px";
+        e.style.height = size + "px";
+        emberLayer.appendChild(e);
+      }
+
+      // 24 tick marks around the hours dial, same geometry as the live site.
+      const ticks = document.getElementById("s5-ticks");
+      const C = 200;
+      const R = 170;
+      const pt = (hour, r) => {
+        const a = (hour / 24) * Math.PI * 2 - Math.PI / 2;
+        return [C + r * Math.cos(a), C + r * Math.sin(a)];
+      };
+      let tickMarkup = "";
+      for (let i = 0; i < 24; i++) {
+        const [x1, y1] = pt(i, R + 22);
+        const [x2, y2] = pt(i, R + (i % 6 ? 28 : 34));
+        tickMarkup +=
+          '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) +
+          '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) +
+          '" stroke="rgba(246,236,220,' + (i % 6 ? 0.2 : 0.5) +
+          ')" stroke-width="2.5" />';
+      }
+      ["12a", "6a", "12p", "6p"].forEach((label, k) => {
+        const [x, y] = pt(k * 6, R - 30);
+        tickMarkup +=
+          '<text x="' + x.toFixed(1) + '" y="' + (y + 6).toFixed(1) +
+          '" text-anchor="middle" fill="rgba(246,236,220,.55)" font-size="16" ' +
+          'font-weight="700" font-family="DM Sans">' + label + "</text>";
+      });
+      ticks.innerHTML = tickMarkup;
+
+      // ------------------------------------------------------------- timeline
+      const tl = gsap.timeline({ paused: true });
+      const EASE = "power3.out";
+
+      /* ---- persistent embers (finite repeats, deterministic offsets) ---- */
+      gsap.utils.toArray(".ember").forEach((el, i) => {
+        const cycle = 6.5 + rnd(i, 5) * 4;
+        const startAt = rnd(i, 7) * cycle;
+        const reps = Math.max(0, Math.floor((21.5 - startAt) / cycle) - 1);
+        tl.fromTo(
+          el,
+          { y: 0, x: 0, opacity: 0 },
+          {
+            y: -(1120 + rnd(i, 8) * 160),
+            x: (rnd(i, 9) - 0.5) * 120,
+            opacity: 0.85,
+            duration: cycle,
+            ease: "none",
+            repeat: reps,
+            keyframes: undefined,
+          },
+          startAt,
+        );
+        tl.to(el, { opacity: 0, duration: cycle * 0.45, ease: "none" }, startAt + cycle * 0.55);
+      });
+
+      /* ---- Scene 1 — 1:47 AM (0 → 3.5) ---- */
+      tl.fromTo("#s1-clock", { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: EASE }, 0.25);
+      tl.fromTo("#s1-line", { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: EASE }, 1.35);
+      tl.to("#s1-clock, #s1-line", { opacity: 0, duration: 0.3, ease: "power2.in" }, 3.2);
+
+      /* ---- Scene 2 — the flat-top (3.5 → 7.6) ---- */
+      tl.fromTo("#s2-eyebrow", { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: EASE }, 3.6);
+      // The site's own headline rise, one line at a time, each read before the next.
+      tl.fromTo("#s2-head .ln:nth-child(1) > span", { yPercent: 108 }, { yPercent: 0, duration: 0.55, ease: EASE }, 3.7);
+      tl.fromTo("#s2-head .ln:nth-child(2) > span", { yPercent: 108 }, { yPercent: 0, duration: 0.55, ease: EASE }, 4.0);
+      tl.fromTo("#s2-head .ln:nth-child(3) > span", { yPercent: 108 }, { yPercent: 0, duration: 0.55, ease: EASE }, 4.3);
+      tl.fromTo("#s2-status", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: EASE }, 4.9);
+      tl.fromTo("#s2-stage", { scale: 0.92, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: EASE }, 3.6);
+      tl.fromTo("#s2-plate", { rotation: -6 }, { rotation: 6, duration: 4.1, ease: "none" }, 3.5);
+      tl.fromTo("#s2-orbit", { rotation: 0 }, { rotation: 26, duration: 4.1, ease: "none" }, 3.5);
+      tl.to("#s2-copy, #s2-stage", { opacity: 0, duration: 0.3, ease: "power2.in" }, 7.3);
+
+      /* ---- Scene 3 — the menu, filtering (7.6 → 12.5) ---- */
+      tl.fromTo("#s3-eyebrow", { x: -26, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: EASE }, 7.65);
+      tl.fromTo("#s3-tabs", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: EASE }, 7.7);
+      // Simulated tap: the cursor travels to the Gyros tab and clicks on the beat.
+      tl.fromTo("#s3-cursor", { x: 1180, y: 700, opacity: 0 }, { opacity: 1, duration: 0.2 }, 7.75);
+      tl.to("#s3-cursor", { x: 596, y: 286, duration: 0.55, ease: "power2.inOut" }, 7.75);
+      tl.to("#s3-cursor", { scale: 0.82, duration: 0.08, yoyo: true, repeat: 1 }, 8.02); // beat-locked: 8.02s
+      tl.to(
+        "#tab-gyros",
+        {
+          backgroundColor: "#f6ecdc",
+          borderColor: "#f6ecdc",
+          color: "#1b140f",
+          duration: 0.18,
+          ease: "power2.out",
+        },
+        8.06,
+      );
+      tl.to("#s3-cursor", { opacity: 0, duration: 0.3 }, 8.5);
+      // beat-grid: card 1 at 9.02s, card 2 at 10.02s, card 3 at 11.02s (every other
+      // beat at 120 BPM, so each dish name holds ~1s before the next arrives).
+      [
+        ["#s3-card1", 9.02],
+        ["#s3-card2", 10.02],
+        ["#s3-card3", 11.02],
+      ].forEach(([sel, at]) => {
+        tl.fromTo(sel, { y: 56, opacity: 0, scale: 0.97 }, { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: EASE }, at);
+      });
+      tl.to("#s3-eyebrow, #s3-tabs, #s3-cards", { opacity: 0, duration: 0.3, ease: "power2.in" }, 12.2);
+
+      /* ---- Scene 4 — six sauces (12.5 → 16.5) ---- */
+      tl.fromTo("#s4-head", { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: EASE }, 12.6);
+      tl.fromTo("#s4-note", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 12.95);
+      // beat-grid: swatches on consecutive beats 13.01 → 15.52; they accumulate and
+      // the full set holds on screen until the scene cuts.
+      gsap.utils.toArray("#s4-grid .sauce").forEach((el, i) => {
+        tl.fromTo(
+          el,
+          { y: 22, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, ease: EASE },
+          13.01 + i * 0.5,
+        );
+      });
+      tl.to("#s4-head, #s4-note, #s4-grid", { opacity: 0, duration: 0.3, ease: "power2.in" }, 16.2);
+
+      /* ---- Scene 5 — open till 3 AM, then the lockup (16.5 → 21.5) ---- */
+      tl.fromTo("#s5-dial", { scale: 0.94, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: EASE }, 16.55);
+      tl.fromTo("#s5-arc", { strokeDasharray: 757, strokeDashoffset: 757 }, { strokeDashoffset: 0, duration: 1.25, ease: "power2.inOut" }, 16.7);
+      tl.fromTo("#s5-dot, #s5-dot-halo", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 17.9);
+      tl.fromTo("#s5-dot-halo", { scale: 0.8, transformOrigin: "276.6px 48.2px" }, { scale: 1.5, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1 }, 18.0);
+      // beat-locked: 17.02s — the track's first full-strength hit in this window.
+      tl.fromTo("#s5-l1", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: EASE }, 17.02);
+      // beat-locked: 18.52s
+      tl.fromTo("#s5-l2", { y: 32, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: EASE }, 18.52);
+      tl.to("#s5-hours", { opacity: 0, duration: 0.35, ease: "power2.in" }, 19.75);
+      // beat-locked: 20.02s — the lockup lands on the strongest hit of the outro.
+      tl.fromTo("#s5-lockup", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 20.02);
+      tl.fromTo("#s5-lockup img", { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.6)" }, 20.02);
+      tl.fromTo("#s5-name", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: EASE }, 20.1);
+      tl.fromTo("#s5-sub", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 20.3);
+      tl.fromTo("#s5-addr", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 20.45);
+      tl.fromTo("#s5-cta", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: EASE }, 20.6);
+
+      /* ---- audio-reactive: the ember glow and the plate's halo breathe ----
+         Per-frame sampling of pre-extracted RMS/bass data. No waveform or
+         visualizer graphics — it only modulates warmth that is already there. */
+      const AD = window.AUDIO_DATA;
+      if (AD && AD.frames && AD.frames.length) {
+        const glow = document.getElementById("glow");
+        const plate = document.getElementById("s2-plate");
+        for (let f = 0; f < AD.frames.length; f++) {
+          const frame = AD.frames[f];
+          tl.call(
+            (function (fr) {
+              return function () {
+                const bass = fr.b;
+                const rms = fr.r;
+                glow.style.opacity = (0.3 + bass * 0.3).toFixed(3);
+                glow.style.transform = "scale(" + (1 + bass * 0.05).toFixed(4) + ")";
+                plate.style.boxShadow =
+                  "0 50px 80px -30px rgba(0,0,0,.9), 0 0 " +
+                  (70 + rms * 90).toFixed(0) +
+                  "px -10px rgba(226,58,47," +
+                  (0.42 + rms * 0.3).toFixed(3) +
+                  ")";
+              };
+            })(frame),
+            [],
+            f / AD.fps,
+          );
+        }
+      }
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

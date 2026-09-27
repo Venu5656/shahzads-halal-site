@@ -14,8 +14,11 @@ sizes - 6pc - 9.99, 12 pc - 17.99, 18pc - 26.99, 21pc - 31.99
 extra sauces 
 all sauces on side +0.75
 
-continue wth 6.65 tax for now 
+continue wth 6.625 tax for now 
 
 sauce choice is free for pkatter and gyros only limit to 3
 no free sauces for onion rings and freis and sides 
 include instructions box for the customer 
+
+drinks - water 1.99, soda(coke, diet coke, sprite, gingerale)1.99, snapple 1.99
+
