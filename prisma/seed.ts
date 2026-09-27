@@ -1,16 +1,14 @@
 /**
- * Seeds the menu that was hard-coded in the original index.html.
+ * Seeds the real menu: categories, option groups, and 21 priced items.
  *
  * Idempotent: every write is an upsert keyed on a stable slug, so running it
- * again after `prisma migrate dev` never duplicates rows and never clobbers a
- * price the owner has since set in the manager area.
- *
- * Prices are intentionally NOT seeded — basePriceCents stays NULL until the
- * owner supplies the real menu prices (see OPEN-QUESTIONS.md).
+ * again never duplicates rows. Prices and availability ARE overwritten from
+ * src/lib/menu-data.ts, which is the source of truth for them — once the
+ * manager area can edit prices (phase 7), that changes.
  */
 
 import { PrismaClient, type ItemTag } from "@prisma/client";
-import { CATEGORIES, MENU_ITEMS, SAUCES } from "../src/lib/menu-data";
+import { CATEGORIES, MENU_ITEMS, OPTION_GROUPS, RETIRED_SLUGS } from "../src/lib/menu-data";
 import { hashPassword } from "../src/lib/auth/password";
 import { normalizePhone } from "../src/lib/auth/phone";
 import { passwordProblem } from "../src/lib/auth/login-policy";
@@ -43,33 +41,52 @@ async function main() {
     categoryIds.set(name, category.id);
   }
 
-  // --- the sauce choice group ---------------------------------------------
-  // Free, pick up to two — the homepage already advertises the half-and-half.
-  const sauceGroup = await prisma.optionGroup.upsert({
-    where: { slug: "sauce-choice" },
-    update: { name: "Sauce choice", minSelect: 0, maxSelect: 2 },
-    create: {
-      name: "Sauce choice",
-      slug: "sauce-choice",
-      minSelect: 0,
-      maxSelect: 2,
-      sortOrder: 0,
-    },
-  });
-
-  for (const [index, sauce] of SAUCES.entries()) {
-    await prisma.option.upsert({
-      where: {
-        optionGroupId_slug: { optionGroupId: sauceGroup.id, slug: sauce.slug },
+  // --- option groups -------------------------------------------------------
+  const groupIds = new Map<string, string>();
+  for (const [index, group] of OPTION_GROUPS.entries()) {
+    const row = await prisma.optionGroup.upsert({
+      where: { slug: group.slug },
+      update: {
+        name: group.name,
+        minSelect: group.minSelect,
+        maxSelect: group.maxSelect,
+        sortOrder: index,
+        isActive: true,
       },
-      update: { name: sauce.name, sortOrder: index },
       create: {
-        optionGroupId: sauceGroup.id,
-        name: sauce.name,
-        slug: sauce.slug,
-        priceCents: 0,
+        slug: group.slug,
+        name: group.name,
+        minSelect: group.minSelect,
+        maxSelect: group.maxSelect,
         sortOrder: index,
       },
+    });
+    groupIds.set(group.slug, row.id);
+
+    for (const [optionIndex, option] of group.options.entries()) {
+      await prisma.option.upsert({
+        where: { optionGroupId_slug: { optionGroupId: row.id, slug: option.slug } },
+        update: {
+          name: option.name,
+          priceCents: option.priceCents,
+          sortOrder: optionIndex,
+          isAvailable: true,
+        },
+        create: {
+          optionGroupId: row.id,
+          slug: option.slug,
+          name: option.name,
+          priceCents: option.priceCents,
+          sortOrder: optionIndex,
+        },
+      });
+    }
+
+    // An option pulled from the list stops being orderable rather than
+    // disappearing, so any past order that referenced it still reads correctly.
+    await prisma.option.updateMany({
+      where: { optionGroupId: row.id, slug: { notIn: group.options.map((o) => o.slug) } },
+      data: { isAvailable: false },
     });
   }
 
@@ -79,56 +96,69 @@ async function main() {
     if (!categoryId) throw new Error(`Unknown category: ${item.category}`);
 
     // Everything Shahzad's sells is halal; "Veggie" is the only other tag the
-    // original menu carried. Star labels are merchandising, not dietary tags.
+    // menu carries. Star labels are merchandising, not dietary tags.
     const tags: ItemTag[] = ["HALAL"];
     if (item.tags.some((t) => t.kind === "veg")) tags.push("VEGGIE");
     const badge = item.tags.find((t) => t.kind === "star")?.label ?? null;
 
+    const fields = {
+      name: item.name,
+      description: item.description,
+      imagePath: item.imagePath,
+      basePriceCents: item.basePriceCents,
+      categoryId,
+      sortOrder: index,
+      tags,
+      badge,
+      isActive: true,
+    };
+
     const menuItem = await prisma.menuItem.upsert({
       where: { slug: item.slug },
-      update: {
-        name: item.name,
-        description: item.description,
-        imagePath: item.imagePath,
-        categoryId,
-        sortOrder: index,
-        tags,
-        badge,
-        // basePriceCents deliberately left alone on re-seed.
-      },
-      create: {
-        name: item.name,
-        slug: item.slug,
-        description: item.description,
-        imagePath: item.imagePath,
-        categoryId,
-        sortOrder: index,
-        tags,
-        badge,
-        basePriceCents: null,
-      },
+      update: fields,
+      create: { slug: item.slug, ...fields },
+      select: { id: true },
     });
 
-    // Platters and gyros come with a sauce choice; sides and burgers do not.
-    // ASSUMPTION — confirm with the owner (OPEN-QUESTIONS.md).
-    const takesSauce = item.category === "Platters" || item.category === "Gyros";
-    if (takesSauce) {
+    for (const [groupIndex, groupSlug] of item.optionGroups.entries()) {
+      const optionGroupId = groupIds.get(groupSlug);
+      if (!optionGroupId) throw new Error(`Unknown option group: ${groupSlug}`);
       await prisma.menuItemOptionGroup.upsert({
-        where: {
-          menuItemId_optionGroupId: {
-            menuItemId: menuItem.id,
-            optionGroupId: sauceGroup.id,
-          },
-        },
-        update: {},
-        create: {
-          menuItemId: menuItem.id,
-          optionGroupId: sauceGroup.id,
-          sortOrder: 0,
-        },
+        where: { menuItemId_optionGroupId: { menuItemId: menuItem.id, optionGroupId } },
+        update: { sortOrder: groupIndex },
+        create: { menuItemId: menuItem.id, optionGroupId, sortOrder: groupIndex },
       });
     }
+
+    // Detach any group this item no longer carries.
+    const keep = item.optionGroups
+      .map((slug) => groupIds.get(slug))
+      .filter((id): id is string => Boolean(id));
+    await prisma.menuItemOptionGroup.deleteMany({
+      where: { menuItemId: menuItem.id, optionGroupId: { notIn: keep } },
+    });
   }
+
+  // --- items no longer on the price list -----------------------------------
+  // Hidden, not deleted: order history that points at them has to keep reading
+  // correctly, and the kitchen may still sell some of them.
+  const retired = await prisma.menuItem.updateMany({
+    where: { slug: { in: [...RETIRED_SLUGS] }, isActive: true },
+    data: { isActive: false },
+  });
+  if (retired.count) console.log(`Retired ${retired.count} item(s) not on the price list.`);
+
+  // A category with nothing live in it is hidden too, so the menu never shows
+  // an empty tab.
+  const liveCategoryIds = [...categoryIds.values()];
+  await prisma.category.updateMany({
+    where: { id: { notIn: liveCategoryIds } },
+    data: { isActive: false },
+  });
+  await prisma.category.updateMany({
+    where: { id: { in: liveCategoryIds } },
+    data: { isActive: true },
+  });
 
   // --- owner account (optional) -------------------------------------------
   // SEED_OWNER_EMAIL=... SEED_OWNER_PHONE=+1XXXXXXXXXX SEED_OWNER_PASSWORD='...' npm run db:seed
@@ -184,14 +214,17 @@ async function main() {
   }
 
   const counts = {
-    categories: await prisma.category.count(),
-    items: await prisma.menuItem.count(),
-    sauces: await prisma.option.count({ where: { optionGroupId: sauceGroup.id } }),
-    pricedItems: await prisma.menuItem.count({ where: { basePriceCents: { not: null } } }),
+    categories: await prisma.category.count({ where: { isActive: true } }),
+    items: await prisma.menuItem.count({ where: { isActive: true } }),
+    optionGroups: await prisma.optionGroup.count(),
+    options: await prisma.option.count(),
+    unpriced: await prisma.menuItem.count({
+      where: { isActive: true, basePriceCents: null },
+    }),
   };
   console.log("Seed complete:", counts);
-  if (counts.pricedItems === 0) {
-    console.log("NOTE: no item has a price yet, so nothing is orderable. See OPEN-QUESTIONS.md.");
+  if (counts.unpriced > 0) {
+    console.log(`NOTE: ${counts.unpriced} live item(s) still have no price and cannot be ordered.`);
   }
 }
 
