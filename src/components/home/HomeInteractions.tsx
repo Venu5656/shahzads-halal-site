@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { Sauce, SeedMenuItem } from "@/lib/menu-data";
+import type { Sauce } from "@/lib/menu-data";
 import {
   DAY_NAMES,
   HOURS,
@@ -22,10 +22,20 @@ import {
  * timer, animation frame and observer has to be torn down.
  */
 
+/** What the homepage grid needs about an item. Comes from the database. */
+export type HomeMenuItem = {
+  slug: string;
+  name: string;
+  category: string;
+  imagePath: string;
+  description: string;
+  badge: string | null;
+  veggie: boolean;
+};
+
 type Props = {
-  items: SeedMenuItem[];
+  items: HomeMenuItem[];
   sauces: Sauce[];
-  orderUrl: string;
 };
 
 const escapeHtml = (value: string) =>
@@ -40,7 +50,7 @@ const prefersReducedMotion = () =>
 
 const finePointer = () => window.matchMedia("(pointer:fine)").matches;
 
-export default function HomeInteractions({ items, sauces, orderUrl }: Props) {
+export default function HomeInteractions({ items, sauces }: Props) {
   /* ---------------------------------------------------- nav, drawer, mobile bar */
   useEffect(() => {
     const nav = document.getElementById("nav");
@@ -270,12 +280,13 @@ export default function HomeInteractions({ items, sauces, orderUrl }: Props) {
     grid.innerHTML = items
       .map(
         (i) => `<article class="card" data-c="${escapeHtml(i.category)}">
-  <div class="ph"><div class="tags">${i.tags
-    .map((t) => `<span class="tag ${t.kind}">${escapeHtml(t.label)}</span>`)
-    .join("")}<span class="tag">Halal</span></div>
+  <div class="ph"><div class="tags">${[
+    i.badge ? `<span class="tag star">${escapeHtml(i.badge)}</span>` : "",
+    i.veggie ? `<span class="tag veg">Veggie</span>` : "",
+  ].join("")}<span class="tag">Halal</span></div>
   <img src="${escapeHtml(i.imagePath)}" alt="${escapeHtml(i.name)}"></div>
   <div class="body"><h3>${escapeHtml(i.name)}</h3><p>${escapeHtml(i.description)}</p>
-  <div class="foot"><span>${escapeHtml(i.category)}</span><a class="add" href="${escapeHtml(orderUrl)}" target="_blank" rel="noopener" aria-label="Order ${escapeHtml(i.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></a></div></div>
+  <div class="foot"><span>${escapeHtml(i.category)}</span><a class="add" href="/menu/${escapeHtml(i.slug)}" aria-label="Order ${escapeHtml(i.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></a></div></div>
 </article>`,
       )
       .join("");
@@ -363,7 +374,7 @@ export default function HomeInteractions({ items, sauces, orderUrl }: Props) {
       tabs.innerHTML = "";
       grid.innerHTML = "";
     };
-  }, [items, orderUrl]);
+  }, [items]);
 
   /* ---------------------------------------------------------- sauce picker */
   useEffect(() => {

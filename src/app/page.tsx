@@ -1,7 +1,10 @@
+import Link from "next/link";
+import { CartButton } from "@/components/cart/CartButton";
 import { DrawerAuth, NavAuth } from "@/components/home/AuthNav";
 import HomeInteractions from "@/components/home/HomeInteractions";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { MENU_ITEMS, SAUCES } from "@/lib/menu-data";
+import { SAUCES } from "@/lib/menu-data";
+import { getMenu } from "@/lib/menu/queries";
 
 /**
  * The marketing homepage, ported 1:1 from the original static index.html
@@ -30,7 +33,20 @@ const ArrowIcon = () => (
 );
 
 export default async function HomePage() {
-  const user = await getCurrentUser();
+  const [user, menu] = await Promise.all([getCurrentUser(), getMenu()]);
+
+  // The teaser grid is the real menu, drawn with the original card markup.
+  const items = menu.flatMap((category) =>
+    category.items.map((item) => ({
+      slug: item.slug,
+      name: item.name,
+      category: category.name,
+      imagePath: item.imagePath,
+      description: item.description,
+      badge: item.badge,
+      veggie: item.tags.includes("VEGGIE"),
+    })),
+  );
 
   return (
     <>
@@ -45,7 +61,7 @@ export default async function HomePage() {
           </a>
           <nav className="links" aria-label="Primary">
             <a href="#signature">Signature</a>
-            <a href="#menu">Menu</a>
+            <Link href="/menu">Menu</Link>
             <a href="#sauces">Sauces</a>
             <a href="#hours">Hours</a>
             <a href="#visit">Visit</a>
@@ -56,9 +72,10 @@ export default async function HomePage() {
               <span>Open now</span>
             </span>
             <NavAuth user={user} />
-            <a className="btn btn-red" href={ORDER_URL} target="_blank" rel="noopener">
+            <CartButton className="!px-3.5 !py-2 !text-[14px]" />
+            <Link className="btn btn-red" href="/menu">
               Order now
-            </a>
+            </Link>
             <button className="burger" id="burger" aria-label="Open menu">
               <span></span>
               <span></span>
@@ -69,7 +86,7 @@ export default async function HomePage() {
       </header>
 
       <div className="drawer" id="drawer">
-        <a href="#menu">Menu</a>
+        <Link href="/menu">Menu</Link>
         <a href="#sauces">Sauces</a>
         <a href="#hours">Hours</a>
         <a href="#visit">Visit</a>
@@ -499,12 +516,12 @@ export default async function HomePage() {
         <a className="btn btn-ghost" href="tel:+18482021430">
           Call
         </a>
-        <a className="btn btn-red" href={ORDER_URL} target="_blank" rel="noopener">
+        <Link className="btn btn-red" href="/menu">
           Order now
-        </a>
+        </Link>
       </div>
 
-      <HomeInteractions items={MENU_ITEMS} sauces={SAUCES} orderUrl={ORDER_URL} />
+      <HomeInteractions items={items} sauces={SAUCES} />
     </>
   );
 }
