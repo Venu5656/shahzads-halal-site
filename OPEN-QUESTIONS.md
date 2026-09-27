@@ -9,8 +9,8 @@ real customer until the items marked **BLOCKER** are answered.
 | # | Question | Where the placeholder lives | Needed by |
 |---|----------|-----------------------------|-----------|
 | 1 | ~~Menu prices~~ — **answered.** 21 items priced from the owner's photo list and `menu prices/rules.txt`. | `src/lib/menu-data.ts` | Done |
-| 2 | **NJ sales tax rate — 6.625% or 6.65%?** rules.txt says "continue with 6.65 tax". New Jersey's statutory rate is **6.625%**, so I have kept 6.625% rather than over-collecting by a quarter of a basis point. On a $20 order the difference is half a cent, but you remit what you charge, so confirm which is right. Is prepared food taxed at 6.625%? Are menu prices tax-inclusive or is tax added at checkout? Is New Brunswick in an Urban Enterprise Zone (which would halve the rate)? | `StoreSettings.taxRatePpm` defaults to `66_250` (6.625%); `NJ_SALES_TAX_PPM` in `src/lib/money.ts`. Confirm with the restaurant's accountant — I am not qualified to decide this. | Phase 4 |
-| 3 | **Who is legally taking the payments.** The Stripe account holder must be the restaurant's business entity, with its own EIN and bank account — not me and not you personally. | No code yet. | Phase 4 |
+| 2 | ~~NJ sales tax rate~~ — **answered**: 6.625%, New Jersey's statutory rate. | `StoreSettings.taxRatePpm` = 66_250 | Done |
+| 3 | ~~Who is legally taking the payments~~ — **answered**: the business owner is the Stripe account holder. The account must still be opened in the business entity's name with its EIN and bank details. | Phase 4 | Done |
 | 4 | **Stripe account** — created, business details verified, bank account attached. Also: is PayPal enabled on it? (I will verify whether Stripe's PayPal payment method is available for US accounts before writing any PayPal code.) | `.env.example` → `STRIPE_*` | Phase 4 |
 | 5 | **Twilio account + A2P 10DLC registration**, if you want order-ready texts or a verified phone number later. Approval takes days to weeks. Not needed for accounts any more — email verification replaced it. | `.env.example` → `TWILIO_*` | Phase 4-6 |
 | 6 | **Printer decision** (see phase 6 options) and whether there is a PC or spare tablet in the store. | No code yet. | Phase 6 |
@@ -46,14 +46,16 @@ real customer until the items marked **BLOCKER** are answered.
 
 | # | Question | Why it matters |
 |---|----------|----------------|
-| A | **Drink prices.** The rules add "fries and soda +$5.00" to gyros and sandwiches, but there is no standalone drink on the price list. | There is no Drinks category yet. Nobody can order just a soda. |
-| B | **Two items from the old homepage are still not on the price list**: Combo Gyro and plain French Fries. Hidden, not deleted. (Falafel Gyro at $10.99 and Beef Chapli Kabab Rice at $13.99 are back.) | Send prices and they return the same way. I have assumed **Mix Platter** replaces the old "Combo Over Rice". |
-| H | **No official photo for Falafel Gyro or Beef Chapli Kabab Rice.** They are using the old site's picture of the same dish, which is noticeably lower quality than the rest. | Two more shots in the style of the others and they match. |
-| C | **"No salad +$2.00"** — charging to *remove* salad reads oddly, so I have labelled it "No salad, extra rice". Is that what it means? | It is on every platter. |
-| D | **Does "add fries and soda +$5.00" apply to the cheesesteaks too?** rules.txt lists it under GYRO and sandwiches. I have applied it to gyros, burgers, the chicken sandwich **and** both cheesesteaks. | Four items either gain or lose the option. |
-| E | **Size names.** Masala fries, waffle fries and onion rings each have two prices, which I have called **Regular** and **Large**. Falafel is 4 pc / 8 pc. | Just the words on the buttons. |
-| F | **Extra sauce on the side (75¢)** is offered on every item, including platters that already come with three free. Right? | Could be restricted to sides if that is not intended. |
-| G | **Badges.** I kept the old ones and moved them to the nearest new item: Signature → Mix Platter, Popular → Chicken Over Rice and Chicken Gyro, Must-try → Philly Cheesesteak. | Purely merchandising. |
+| A | **What does a Combo Gyro cost?** It is back on the menu as you asked, but no price came with it. Until one does it shows as **"Ask in store"** and cannot be added to a cart — I will not invent a price for something a customer pays. Chicken and lamb gyros are both $9.99 and the falafel is $10.99, if that helps. | It is the only unorderable item on the menu. |
+| B | **Studio photos for Combo Gyro, Falafel Gyro and Beef Chapli Kabab Rice.** All three use the old site's pictures for now, at your instruction, and they look noticeably softer beside the rest. | Three more shots in the same style. |
+| C | **Snapple flavours.** Sold as one $1.99 item; if the fridge has a fixed set, it can ask which one the way the soda does. | Small. |
+| D | **Dip and drink photography.** Both sections use simple tiles I drew in the brand colours, not photographs. | They look deliberate, but a real shot is better. |
+
+Everything else on the price list is answered and live: 6.625% tax, drinks at
+$1.99, "no salad" free, fries-and-soda on the cheesesteaks too, sauce on the
+side for platters and gyros with a separate Dips section for everything else,
+Mix Platter as the old combo, plain fries as the masala fries, and 20 minutes
+pickup lead time counted from confirmation.
 
 ## Smaller decisions I have made provisionally
 
@@ -80,8 +82,10 @@ These have a working default. Tell me if any is wrong and I will change it.
 6. ~~Cheeseburger~~ — **answered**: $6.99 for the burger, with "add fries and a
    soda" as a $5.00 option, so the old "comes with fries & a soda" copy was
    wrong and has been rewritten.
-7. **Pickup lead time.** How many minutes after ordering is the earliest ASAP
-   pickup — 15? 20? Needed for the checkout time picker in phase 3/4.
+7. ~~Pickup lead time~~ — **answered**: 20 minutes, counted from the moment a
+   manager **confirms** the order, not from when the payment clears. Checkout
+   will quote "about 20 minutes from confirmation" rather than a fixed clock
+   time. `PICKUP_LEAD_MINUTES` in `src/lib/hours.ts`.
 8. **Order cut-off.** Should online ordering stop before the 3 AM close (say, at
    2:45 AM) so the kitchen can finish?
 9. **How long people stay logged in.** Currently 30 days, extending each time

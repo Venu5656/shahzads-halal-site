@@ -223,7 +223,7 @@ function ItemCard({
             className="rounded-full bg-brand px-5 py-2.5 text-[15px] font-bold text-white transition-[transform,background-color] duration-300 hover:scale-[1.03] disabled:cursor-not-allowed disabled:bg-cream/10 disabled:text-muted"
           >
             <span className="absolute inset-0" aria-hidden="true" />
-            {soldOut ? "Sold out" : "Add"}
+            {soldOut ? "Sold out" : from === null ? "Ask in store" : "Add"}
             <span className="sr-only"> {item.name} from {categoryName}</span>
           </button>
         </div>

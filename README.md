@@ -149,7 +149,7 @@ checkout in phase 4.
 
 ## The menu and the cart
 
-23 items, priced from the owner's list, with the rules from
+33 items, priced from the owner's list, with the rules from
 `menu prices/rules.txt` modelled as option groups:
 
 | Rule | How it is modelled |
@@ -162,11 +162,19 @@ checkout in phase 4.
 | Wings 6/12/18/21 pc at $9.99/$17.99/$26.99/$31.99 | `wing-size`, required, priced as the **difference** from the 6 pc base |
 | Seven wing sauces, pick one | `wing-sauce`, required |
 | Falafel 4 pc / 8 pc, fries and rings regular / large | `falafel-size`, `side-size` |
-| Any sauce on the side, 75¢ | `extra-sauce`, on every item |
+| Any sauce on the side, 75¢ | `extra-sauce`, on platters and gyros only |
+| A dip with anything else | Its own **Dips** section — six house sauces at 75¢, orderable on their own |
+| Drinks $1.99 | **Drinks** section; a soda asks which of the four |
+| No salad | Free — removing something never costs anything |
 | Instructions box | 200-character note per line |
+| Pickup in 20 minutes | `PICKUP_LEAD_MINUTES`, counted from **confirmation**, not payment |
 
 A size is an **option group, not a second item**, so each dish keeps one card,
 one photo and one price that moves as you choose.
+
+One item — the Combo Gyro — has no price yet. The menu shows it as "Ask in
+store" and refuses to add it to a cart, rather than guessing a number a
+customer would be charged.
 
 ### The homepage is a taste, not a copy
 

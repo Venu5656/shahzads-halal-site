@@ -21,8 +21,12 @@ export type SeedMenuItem = {
   /** Path under /public. */
   imagePath: string;
   description: string;
-  /** Base price in cents. The cheapest configuration of the item. */
-  basePriceCents: number;
+  /**
+   * Base price in cents — the cheapest configuration of the item. Null means
+   * the owner has not priced it yet, which shows on the menu as "Ask in store"
+   * and cannot be added to a cart.
+   */
+  basePriceCents: number | null;
   tags: MenuTag[];
   /** Option group slugs, in the order they should appear on the item. */
   optionGroups: string[];
@@ -35,6 +39,8 @@ export const CATEGORIES = [
   "Burgers & Sandwiches",
   "Wings",
   "Sides",
+  "Dips",
+  "Drinks",
 ] as const;
 
 export type CategoryName = (typeof CATEGORIES)[number];
@@ -170,7 +176,7 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
       { slug: "extra-protein", name: "Extra protein", priceCents: 300 },
       { slug: "add-fries", name: "Add fries", priceCents: 200 },
       { slug: "add-pita", name: "Add pita", priceCents: 200 },
-      { slug: "no-salad", name: "No salad, extra rice", priceCents: 200 },
+      { slug: "no-salad", name: "No salad", priceCents: 0 },
     ],
   },
   {
@@ -221,6 +227,18 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
     ],
   },
   {
+    slug: "soda-flavour",
+    name: "Which one",
+    minSelect: 1,
+    maxSelect: 1,
+    options: [
+      { slug: "coke", name: "Coke", priceCents: 0 },
+      { slug: "diet-coke", name: "Diet Coke", priceCents: 0 },
+      { slug: "sprite", name: "Sprite", priceCents: 0 },
+      { slug: "ginger-ale", name: "Ginger Ale", priceCents: 0 },
+    ],
+  },
+  {
     slug: "extra-sauce",
     name: "Extra sauce on the side",
     hint: "75¢ each.",
@@ -232,10 +250,13 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
 
 // ------------------------------------------------------------------ items
 
+// Sauce on the side is an option only where a sauce is part of the dish —
+// platters and gyros. Everywhere else a dip is its own item from the Dips
+// section, so it can be ordered on its own or alongside anything.
 const PLATTER_GROUPS = ["rice-style", "sauce-choice", "platter-extras", "extra-sauce"];
 const GYRO_GROUPS = ["sauce-choice", "meal-deal", "extra-sauce"];
-const SANDWICH_GROUPS = ["meal-deal", "extra-sauce"];
-const SIDE_GROUPS = ["extra-sauce"];
+const SANDWICH_GROUPS = ["meal-deal"];
+const SIDE_GROUPS: string[] = [];
 
 export const MENU_ITEMS: SeedMenuItem[] = [
   // ---------------------------------------------------------- platters
@@ -343,6 +364,21 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: GYRO_GROUPS,
   },
 
+  {
+    slug: "combo-gyro",
+    name: "Combo Gyro",
+    category: "Gyros",
+    // The old site's photo, until the studio set covers it.
+    imagePath: "/img/combo-gyro.webp",
+    description:
+      "Chicken and lamb in warm pita with salad and any of Shahzad's sauces.",
+    // PLACEHOLDER: no price supplied. An unpriced item shows on the menu as
+    // "Ask in store" and cannot be added to a cart — see OPEN-QUESTIONS.md.
+    basePriceCents: null,
+    tags: [{ kind: "star", label: "Popular" }],
+    optionGroups: GYRO_GROUPS,
+  },
+
   // ------------------------------------------------------ cheesesteaks
   {
     slug: "philly-cheesesteak",
@@ -419,7 +455,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
       "Fried to order and tossed in the sauce you pick. Six, twelve, eighteen or twenty-one.",
     basePriceCents: 999,
     tags: [],
-    optionGroups: ["wing-size", "wing-sauce", "extra-sauce"],
+    optionGroups: ["wing-size", "wing-sauce"],
   },
 
   // ------------------------------------------------------------- sides
@@ -461,7 +497,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     description: "Crispy chickpea patties seasoned with herbs and spices.",
     basePriceCents: 599,
     tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: ["falafel-size", "extra-sauce"],
+    optionGroups: ["falafel-size"],
   },
   {
     slug: "masala-fries",
@@ -471,7 +507,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     description: "Golden fries tossed in house masala seasoning.",
     basePriceCents: 399,
     tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: ["side-size", "extra-sauce"],
+    optionGroups: ["side-size"],
   },
   {
     slug: "waffle-fries",
@@ -481,7 +517,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     description: "Thick-cut waffle fries, crisp at the edges.",
     basePriceCents: 499,
     tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: ["side-size", "extra-sauce"],
+    optionGroups: ["side-size"],
   },
   {
     slug: "onion-rings",
@@ -491,9 +527,60 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     description: "Crispy battered rings with your choice of dipping sauce.",
     basePriceCents: 499,
     tags: [{ kind: "veg", label: "Veggie" }],
-    optionGroups: ["side-size", "extra-sauce"],
+    optionGroups: ["side-size"],
   },
 ];
+
+// ------------------------------------------------------------ dips & drinks
+
+/** 75¢ a pot, orderable on their own or alongside anything. */
+const DIPS: SeedMenuItem[] = SAUCES.map((sauce) => ({
+  slug: `dip-${sauce.slug}`,
+  name: `${sauce.name} Dip`,
+  category: "Dips" as const,
+  imagePath: `/img/menu/extras/dip-${sauce.slug}.svg`,
+  description: sauce.description,
+  basePriceCents: 75,
+  tags: sauce.slug === "tahini" || sauce.slug === "green-sauce"
+    ? [{ kind: "veg" as const, label: "Veggie" }]
+    : [],
+  optionGroups: [],
+}));
+
+const DRINKS: SeedMenuItem[] = [
+  {
+    slug: "water",
+    name: "Water",
+    category: "Drinks",
+    imagePath: "/img/menu/extras/drink-water.svg",
+    description: "Bottled water, cold.",
+    basePriceCents: 199,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+  {
+    slug: "soda",
+    name: "Soda",
+    category: "Drinks",
+    imagePath: "/img/menu/extras/drink-soda.svg",
+    description: "Coke, Diet Coke, Sprite or Ginger Ale.",
+    basePriceCents: 199,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: ["soda-flavour"],
+  },
+  {
+    slug: "snapple",
+    name: "Snapple",
+    category: "Drinks",
+    imagePath: "/img/menu/extras/drink-snapple.svg",
+    description: "Whatever flavour the fridge is holding.",
+    basePriceCents: 199,
+    tags: [{ kind: "veg", label: "Veggie" }],
+    optionGroups: [],
+  },
+];
+
+MENU_ITEMS.push(...DIPS, ...DRINKS);
 
 /**
  * Items the old homepage advertised that are still not on the owner's price
@@ -508,7 +595,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
  */
 export const RETIRED_SLUGS = [
   "combo-over-rice",
-  "combo-gyro",
+  // Plain fries are the same thing as the masala fries on the price list.
   "french-fries",
   "kofta-kebab-over-rice",
   "4-pc-falafel",

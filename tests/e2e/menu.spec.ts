@@ -86,17 +86,18 @@ test("lists the whole menu, filters by category and searches", async ({ page }) 
   await page.goto("/menu");
 
   const cards = page.locator("article");
-  await expect(cards).toHaveCount(23);
+  await expect(cards).toHaveCount(33);
 
   await page.getByRole("tab", { name: /^Gyros/ }).click();
-  await expect(cards).toHaveCount(3);
+  await expect(cards).toHaveCount(4);
 
   await page.getByRole("tab", { name: /^All/ }).click();
-  await expect(cards).toHaveCount(23);
+  await expect(cards).toHaveCount(33);
 
   await page.getByPlaceholder("Search").fill("falafel");
-  // Falafel Over Rice, the Falafel Gyro and the falafel side.
-  await expect(cards).toHaveCount(3);
+  // The three falafel dishes, plus the two dips whose descriptions recommend
+  // themselves for falafel — searching the description is the point.
+  await expect(cards).toHaveCount(5);
 
   await page.getByPlaceholder("Search").fill("zzzz");
   await expect(page.getByText(/Nothing matches/)).toBeVisible();
@@ -111,6 +112,68 @@ test("shows the real prices, and marks the ones that vary", async ({ page }) => 
 
   const platter = page.locator("article").filter({ hasText: "Mix Platter" });
   await expect(platter).toContainText("$13.99");
+});
+
+test("sells dips and drinks as their own items", async ({ page }) => {
+  await page.goto("/menu");
+
+  await page.getByRole("tab", { name: /^Dips/ }).click();
+  await expect(page.locator("article")).toHaveCount(6);
+  await expect(
+    page.locator("article").filter({ has: page.getByRole("heading", { name: "White Sauce Dip" }) }),
+  ).toContainText("$0.75");
+
+  await page.getByRole("tab", { name: /^Drinks/ }).click();
+  await expect(page.locator("article")).toHaveCount(3);
+  await expect(
+    page.locator("article").filter({ has: page.getByRole("heading", { name: "Water" }) }),
+  ).toContainText("$1.99");
+});
+
+test("adds a dip on its own, without buying anything else", async ({ page }) => {
+  await page.goto("/menu");
+  await page.getByRole("tab", { name: /^Dips/ }).click();
+  await page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Hot Sauce Dip" }) })
+    .getByRole("button")
+    .click();
+  await page.getByRole("button", { name: /^Add to cart/ }).click();
+
+  const panel = page.getByRole("dialog", { name: "Your cart" });
+  await expect(panel).toContainText("Hot Sauce Dip");
+  await expect(panel).toContainText("$0.75");
+});
+
+test("a soda has to say which one", async ({ page }) => {
+  await openItem(page, "Soda");
+  await page.getByText("Sprite", { exact: true }).click();
+  await page.getByRole("button", { name: /^Add to cart/ }).click();
+  await expect(page.getByRole("dialog", { name: "Your cart" })).toContainText("Sprite");
+});
+
+test("shows an unpriced item honestly instead of pretending", async ({ page }) => {
+  await page.goto("/menu");
+  const card = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Combo Gyro", exact: true }) });
+  await expect(card).toContainText("Ask in store");
+  await expect(card.getByRole("button")).toBeDisabled();
+});
+
+test("leaving the salad off a platter is free", async ({ page }) => {
+  await openItem(page, "Mix Platter");
+  await page.getByText("No salad", { exact: true }).click();
+  // Still 13.99 — removing something never costs anything.
+  await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$13.99");
+});
+
+test("offers sauce on the side where a sauce belongs, and not elsewhere", async ({ page }) => {
+  await openItem(page, "Lamb Gyro");
+  await expect(page.getByText("Extra sauce on the side")).toBeVisible();
+
+  await openItem(page, "Waffle Fries");
+  await expect(page.getByText("Extra sauce on the side")).toHaveCount(0);
 });
 
 // ----------------------------------------------------------- the cart

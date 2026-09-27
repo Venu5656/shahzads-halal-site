@@ -30,6 +30,17 @@ export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 
 export const STORE_TIME_ZONE = "America/New_York";
 
+/**
+ * How long the kitchen needs before an order can be collected.
+ *
+ * It counts from the moment a manager **confirms** the order, not from when
+ * the payment clears: the card can settle while the ticket is still sitting
+ * unacknowledged, and promising a pickup time from that instant would have
+ * people arriving before anyone has started cooking. Checkout quotes "about 20
+ * minutes from confirmation" and the real clock starts on the confirm button.
+ */
+export const PICKUP_LEAD_MINUTES = 20;
+
 export type WallClock = { d: number; h: number; m: number; s: number };
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

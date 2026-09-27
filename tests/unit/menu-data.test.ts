@@ -14,8 +14,8 @@ import {
 const publicDir = join(process.cwd(), "public");
 
 describe("menu data", () => {
-  it("carries the 23 items on the owner's price list", () => {
-    expect(MENU_ITEMS).toHaveLength(23);
+  it("carries the 33 items on the owner's price list", () => {
+    expect(MENU_ITEMS).toHaveLength(33);
   });
 
   it("has unique slugs", () => {
@@ -35,11 +35,17 @@ describe("menu data", () => {
     }
   });
 
-  it("prices every item in whole cents", () => {
+  it("prices every item in whole cents, or leaves it honestly unpriced", () => {
     for (const item of MENU_ITEMS) {
+      if (item.basePriceCents === null) continue;
       expect(Number.isInteger(item.basePriceCents)).toBe(true);
       expect(item.basePriceCents).toBeGreaterThan(0);
     }
+  });
+
+  it("only leaves the combo gyro unpriced, because nobody has priced it", () => {
+    const unpriced = MENU_ITEMS.filter((item) => item.basePriceCents === null);
+    expect(unpriced.map((item) => item.slug)).toEqual(["combo-gyro"]);
   });
 
   it("matches the price list the owner sent", () => {
@@ -68,6 +74,11 @@ describe("menu data", () => {
       "onion-rings": 499,
       "falafel-gyro": 1099,
       "beef-chapli-kabab-rice": 1399,
+      water: 199,
+      soda: 199,
+      snapple: 199,
+      "dip-white-sauce": 75,
+      "dip-buffalo": 75,
     });
   });
 
@@ -76,6 +87,29 @@ describe("menu data", () => {
     for (const item of MENU_ITEMS) {
       for (const slug of item.optionGroups) expect(known).toContain(slug);
     }
+  });
+
+  it("offers sauce on the side on platters and gyros only — elsewhere it is a dip", () => {
+    for (const item of MENU_ITEMS) {
+      const onTheSide = item.optionGroups.includes("extra-sauce");
+      const expected = item.category === "Platters" || item.category === "Gyros";
+      expect(onTheSide).toBe(expected);
+    }
+  });
+
+  it("sells every house sauce as a dip you can order on its own", () => {
+    const dips = MENU_ITEMS.filter((item) => item.category === "Dips");
+    expect(dips).toHaveLength(SAUCES.length);
+    for (const dip of dips) {
+      expect(dip.basePriceCents).toBe(75);
+      expect(dip.optionGroups).toEqual([]);
+    }
+  });
+
+  it("makes a soda ask which one, and leaves the other drinks alone", () => {
+    const soda = MENU_ITEMS.find((item) => item.slug === "soda")!;
+    expect(soda.optionGroups).toEqual(["soda-flavour"]);
+    expect(MENU_ITEMS.find((item) => item.slug === "water")!.optionGroups).toEqual([]);
   });
 
   it("gives free sauces to platters and gyros only", () => {
@@ -132,6 +166,12 @@ describe("option groups", () => {
     const group = OPTION_GROUPS.find((g) => g.slug === "wing-sauce")!;
     expect(group.options).toHaveLength(WING_SAUCES.length);
     expect(group.minSelect).toBe(1);
+  });
+
+  it("does not charge to leave the salad off a platter", () => {
+    const extras = OPTION_GROUPS.find((group) => group.slug === "platter-extras")!;
+    const noSalad = extras.options.find((option) => option.slug === "no-salad")!;
+    expect(noSalad.priceCents).toBe(0);
   });
 
   it("charges 75c for a sauce on the side", () => {
