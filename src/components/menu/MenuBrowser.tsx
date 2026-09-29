@@ -171,14 +171,14 @@ function ItemCard({
         soldOut ? "opacity-60" : "hover:-translate-y-1 hover:border-gold/35 hover:shadow-[0_30px_60px_-30px_#000]",
       ].join(" ")}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#f4f1ea]">
+      <div className="relative aspect-[4/3] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.imagePath}
           alt=""
           loading="lazy"
           className={[
-            "size-full object-cover transition-transform duration-700",
+            "size-full object-contain p-3 transition-transform duration-700",
             soldOut ? "grayscale" : "group-hover:scale-105",
           ].join(" ")}
         />

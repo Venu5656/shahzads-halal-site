@@ -339,18 +339,21 @@ footer p{color:var(--muted);font-size:14px}
 /* ---------------------------------------------------------------------------
  * The owner's product photography.
  *
- * The original photos were dark and full-bleed, so the signature image carried
- * a dark gradient over its lower third and the cards sat on the card colour.
- * The official shoot is lit on white, which that gradient turns into a grey
- * smear — so it goes, and the photo areas get a warm off-white behind them so
- * a transparent edge or a letterboxed crop never shows as a hard white box.
+ * The dishes are cutouts on transparency now, so they sit straight on the dark
+ * card and the food is the only thing with an edge. That means: no tile colour
+ * behind them, `contain` rather than `cover` so nothing is cropped off, and no
+ * dark gradient over the signature image, which was drawn for a photo that
+ * filled its frame.
  *
  * Unlayered, so it wins over the legacy layer without editing it.
  * ------------------------------------------------------------------------- */
 .sig-img::after { content: none; }
-.sig-img img,
-.card .ph img { background: #f4f1ea; }
-.card .ph { background: #f4f1ea; }
+.sig-img img { object-fit: contain; }
+.card .ph img { object-fit: contain; padding: 6px; }
+/* A cutout has no edges of its own to zoom into, and the plate photo used to
+   rotate — on a floating dish that reads as the food tumbling. */
+.plate img,
+.sat img { object-fit: contain; transform: none; animation: none; }
 
 /* ---------------------------------------------------------------------------
  * Preflight compatibility.

@@ -52,7 +52,7 @@ and section names exactly as they read. 53 dishes across the 8 sections.
 |---|----------|----------------|
 | A | **"No Salad +$2" is printed on the board**, but you asked for it to be free. The site charges nothing. Which is right? | It is on all nine platters. |
 | B | **The board prices the Chicken & Lamb gyro at $9.99**, while you earlier said the combo gyro was $13.99. The site uses the board's $9.99. | A $4 difference on a popular item. |
-| C | **Studio photos for twelve dishes.** Chapli Kabab Mix, Mix Chapli, 2 Pc Fish Pita, Fries, Curly Fries, Salad, Pita Bread, 6 Pc Chicken Tenders, and the four desserts all show a branded tile rather than a photo. | They look deliberate, not broken — but a photo sells food. |
+| C | **Cutouts for thirteen dishes.** Chapli Kabab Mix, 2 Pc Fish Pita, Mix Chapli, Masala Fries, Curly Fries, Salad, Pita Bread, 6 Pc Chicken Tenders, Cheese Cake, Chocolate Cake, Red Velvet Cake and Gulab Jamun show a branded tile rather than a photo. Everything else now uses the cutouts from `menu prices/cutout/`. | They look deliberate, not broken — but a photo sells food. |
 | D | **Snapple flavours.** Sold as one $2.99 item; if the fridge has a fixed set, it can ask which one the way the soda does. | Small. |
 | E | **Sales tax on the new lines.** Desserts, Snapple and the sodas are all taxed at 6.625%; only bottled water is exempt. Worth confirming with the accountant now that there are cakes on the menu. | Wrong tax is a real liability. |
 

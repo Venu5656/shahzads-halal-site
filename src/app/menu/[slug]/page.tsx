@@ -41,9 +41,9 @@ export default async function MenuItemPage({ params }: { params: Promise<{ slug:
     <>
       <SiteHeader />
       <main className="pb-24">
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#f4f1ea] sm:aspect-[21/9]">
+      <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[21/9]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={item.imagePath} alt="" className="size-full object-cover" />
+        <img src={item.imagePath} alt="" className="size-full object-contain p-6" />
         <Link
           href="/menu"
           aria-label="Back to the menu"

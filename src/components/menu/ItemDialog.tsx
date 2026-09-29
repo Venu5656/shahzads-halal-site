@@ -40,9 +40,9 @@ export function ItemDialog({
     >
       {item ? (
         <div className="max-h-[min(88dvh,900px)] overflow-y-auto">
-          <div className="relative aspect-[16/9] overflow-hidden bg-[#f4f1ea]">
+          <div className="relative aspect-[16/9] overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.imagePath} alt="" className="size-full object-cover" />
+            <img src={item.imagePath} alt="" className="size-full object-contain p-4" />
             <button
               type="button"
               onClick={onClose}

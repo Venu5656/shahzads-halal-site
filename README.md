@@ -179,8 +179,23 @@ Where the board names a dish only by its protein — the GYROS section lists
 "Chicken", "Lamb", "Beef Chapli" — the card carries its section above the name,
 so the All view is not a guessing game.
 
-Twelve dishes have no studio photo yet and show a branded tile instead of
-borrowing a picture of something else.
+### The photography
+
+Every dish that has one uses a **cutout on transparency**, sitting straight on
+the dark card with no tile behind it, so the food is the only thing on screen
+with an edge. Source cutouts live in `menu prices/cutout/`; the build copies
+them to `public/img/menu/cutout/` as WebP with alpha, trimmed to the dish and
+re-centred on one square canvas so the cards line up however tightly a given
+photo was cut. That conversion takes the set from 43 MB to 3.5 MB.
+
+Because the images are cutouts, the photo areas use `object-fit: contain` with
+a little padding rather than `cover` — there is no background to crop into, and
+cropping would just clip the dish.
+
+Thirteen dishes have no cutout yet and show a branded tile instead of borrowing
+a picture of something else: Chapli Kabab Mix, 2 Pc Fish Pita, Mix Chapli,
+Masala Fries, Curly Fries, Salad, Pita Bread, 6 Pc Chicken Tenders, the four
+cakes, and Gulab Jamun. Beverages and Extra Sauces use drawn tiles by design.
 
 ### The homepage is a taste, not a copy
 

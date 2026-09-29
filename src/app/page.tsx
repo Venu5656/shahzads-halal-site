@@ -173,20 +173,20 @@ export default async function HomePage() {
                 <div className="plate">
                   <div className="inner">
                     <img
-                      src="/img/menu/mix-platter.jpg"
+                      src="/img/menu/cutout/mix-platter.webp"
                       alt="Mix platter — chicken and lamb over rice with fries and salad"
                     />
                   </div>
                 </div>
                 <div className="orbit" aria-hidden="true">
                   <div className="sat">
-                    <img src="/img/menu/falafel.jpg" alt="" />
+                    <img src="/img/menu/cutout/falafel.webp" alt="" />
                   </div>
                   <div className="sat">
-                    <img src="/img/menu/lamb-gyro.jpg" alt="" />
+                    <img src="/img/menu/cutout/lamb-gyro.webp" alt="" />
                   </div>
                   <div className="sat">
-                    <img src="/img/menu/philly-cheesesteak.jpg" alt="" />
+                    <img src="/img/menu/cutout/philly-cheesesteak.webp" alt="" />
                   </div>
                 </div>
                 <div className="chip c1">
@@ -245,7 +245,7 @@ export default async function HomePage() {
           <div className="wrap sig">
             <div className="sig-img reveal" id="sigImg">
               <img
-                src="/img/menu/mix-platter.jpg"
+                src="/img/menu/cutout/mix-platter.webp"
                 alt="Mix platter — chicken and lamb over rice with fries and salad"
               />
               {/* Pin positions follow the official photo: lamb right, chicken

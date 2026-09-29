@@ -114,7 +114,7 @@ function CartRow({ line }: { line: CartLineView }) {
     <li className="flex gap-4 py-5">
       <div className="size-[86px] shrink-0 overflow-hidden rounded-2xl bg-cream/5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={line.item.imagePath} alt="" className="size-full object-cover" />
+        <img src={line.item.imagePath} alt="" className="size-full object-contain p-1" />
       </div>
 
       <div className="min-w-0 flex-1">
