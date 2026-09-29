@@ -4,10 +4,20 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCents } from "@/lib/money";
 import { hasPriceRange, isSoldOut, startingPriceCents } from "@/lib/menu/pricing";
+import { cutoutShadow } from "@/lib/menu/images";
 import { ItemForm, type ItemFormItem } from "./ItemForm";
 import { ItemDialog } from "./ItemDialog";
 
 export type BrowserCategory = { id: string; name: string; slug: string; items: ItemFormItem[] };
+
+/**
+ * Sides, sweets, drinks and sauces are things you add to an order, not things
+ * you come in for. They get a compact row instead of a full card: a $1.99 pita
+ * has no business taking the same space as a $13.99 platter, and the flat, wide
+ * cutouts these items use only fill about half of a tall photo box — so in a
+ * full card they read as stranded rather than appetising.
+ */
+const ADD_ON_CATEGORIES = new Set(["sides", "desserts-and-sweets", "beverages", "extra-sauces"]);
 
 /**
  * The menu: filter by category, search, and open an item to configure it.
@@ -40,6 +50,17 @@ export function MenuBrowser({ categories }: { categories: BrowserCategory[] }) {
       );
     });
   }, [allItems, activeCategory, query]);
+
+  // Mains keep their place in menu order; the add-ons fall to the bottom of
+  // whatever is on screen, which is where you decide on them anyway.
+  const [mains, addOns] = useMemo(() => {
+    const mains: typeof results = [];
+    const addOns: typeof results = [];
+    for (const row of results) {
+      (ADD_ON_CATEGORIES.has(row.category.slug) ? addOns : mains).push(row);
+    }
+    return [mains, addOns];
+  }, [results]);
 
   const openOnDesktop = (item: ItemFormItem) => {
     // Coarse pointers get the full page; fine pointers get the dialog.
@@ -99,17 +120,43 @@ export function MenuBrowser({ categories }: { categories: BrowserCategory[] }) {
           Nothing matches “{query}”. Try “gyro”, “rice” or “fries”.
         </p>
       ) : (
-        <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map(({ item, category }) => (
-            <li key={item.id}>
-              <ItemCard
-                item={item}
-                categoryName={category.name}
-                onOpen={() => openOnDesktop(item)}
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-14">
+          {mains.length ? (
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {mains.map(({ item, category }) => (
+                <li key={item.id}>
+                  <ItemCard
+                    item={item}
+                    categoryName={category.name}
+                    onOpen={() => openOnDesktop(item)}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {addOns.length ? (
+            <section>
+              {/* Only worth a heading when there is something above it. */}
+              {mains.length ? (
+                <h2 className="mb-5 font-display text-[26px] leading-none font-black uppercase">
+                  Add to your order
+                </h2>
+              ) : null}
+              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {addOns.map(({ item, category }) => (
+                  <li key={item.id}>
+                    <AddOnRow
+                      item={item}
+                      categoryName={category.name}
+                      onOpen={() => openOnDesktop(item)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
       )}
 
       <ItemDialog item={openItem} onClose={() => setOpenItem(null)}>
@@ -151,6 +198,20 @@ function Tab({
   );
 }
 
+/** What the price reads as before any options are picked. */
+function Price({ item }: { item: ItemFormItem }) {
+  const from = startingPriceCents(item);
+  if (from === null) return <span className="text-muted">Ask in store</span>;
+  return (
+    <>
+      {hasPriceRange(item) ? (
+        <span className="text-[13px] font-medium text-muted">from </span>
+      ) : null}
+      {formatCents(from)}
+    </>
+  );
+}
+
 function ItemCard({
   item,
   categoryName,
@@ -162,7 +223,6 @@ function ItemCard({
 }) {
   const soldOut = isSoldOut(item);
   const from = startingPriceCents(item);
-  const ranged = hasPriceRange(item);
 
   return (
     <article
@@ -171,14 +231,17 @@ function ItemCard({
         soldOut ? "opacity-60" : "hover:-translate-y-1 hover:border-gold/35 hover:shadow-[0_30px_60px_-30px_#000]",
       ].join(" ")}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      {/* No clipping here — the article already rounds and clips, and the food's
+          shadow needs room to fall on the card. */}
+      <div className="relative aspect-[4/3]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.imagePath}
           alt=""
           loading="lazy"
           className={[
-            "size-full object-contain p-3 transition-transform duration-700",
+            "size-full object-contain p-4 transition-transform duration-700",
+            cutoutShadow(item.imagePath, "md"),
             soldOut ? "grayscale" : "group-hover:scale-105",
           ].join(" ")}
         />
@@ -211,14 +274,7 @@ function ItemCard({
 
         <div className="flex items-center justify-between gap-3">
           <span className="text-[18px] font-bold">
-            {from === null ? (
-              <span className="text-muted">Ask in store</span>
-            ) : (
-              <>
-                {ranged ? <span className="text-[13px] font-medium text-muted">from </span> : null}
-                {formatCents(from)}
-              </>
-            )}
+            <Price item={item} />
           </span>
 
           <button
@@ -232,6 +288,71 @@ function ItemCard({
             <span className="sr-only"> {item.name} from {categoryName}</span>
           </button>
         </div>
+      </div>
+    </article>
+  );
+}
+
+/**
+ * A side, a sweet, a drink or a sauce: thumbnail, name, price, add. Same click
+ * target and same dialog as a full card — only the footprint is smaller.
+ */
+function AddOnRow({
+  item,
+  categoryName,
+  onOpen,
+}: {
+  item: ItemFormItem;
+  categoryName: string;
+  onOpen: () => void;
+}) {
+  const soldOut = isSoldOut(item);
+  const from = startingPriceCents(item);
+
+  return (
+    <article
+      className={[
+        "group relative flex h-full items-center gap-4 rounded-2xl border border-line bg-card p-3 transition-[border-color,background-color] duration-300",
+        soldOut ? "opacity-60" : "hover:border-gold/35 hover:bg-cream/[0.03]",
+      ].join(" ")}
+    >
+      <div className="grid size-[76px] shrink-0 place-items-center rounded-xl bg-cream/[0.04]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.imagePath}
+          alt=""
+          loading="lazy"
+          className={[
+            "size-full object-contain p-1.5 transition-transform duration-500",
+            cutoutShadow(item.imagePath, "sm"),
+            soldOut ? "grayscale" : "group-hover:scale-[1.07]",
+          ].join(" ")}
+        />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display text-[21px] leading-none font-extrabold uppercase">
+          {item.name}
+        </h3>
+        <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-snug text-muted">
+          {item.description}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 flex-col items-end gap-2 pl-1">
+        <span className="text-[16px] font-bold whitespace-nowrap">
+          <Price item={item} />
+        </span>
+        <button
+          type="button"
+          onClick={onOpen}
+          disabled={soldOut || from === null}
+          className="rounded-full border border-line-strong px-4 py-1.5 text-[14px] font-bold text-cream transition-colors duration-300 hover:border-brand hover:bg-brand hover:text-white disabled:cursor-not-allowed disabled:border-line disabled:bg-transparent disabled:text-muted"
+        >
+          <span className="absolute inset-0" aria-hidden="true" />
+          {soldOut ? "Sold out" : from === null ? "Ask" : "Add"}
+          <span className="sr-only"> {item.name} from {categoryName}</span>
+        </button>
       </div>
     </article>
   );

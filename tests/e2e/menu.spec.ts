@@ -223,6 +223,56 @@ test("offers sauce on the side where a sauce belongs, and not elsewhere", async 
   await expect(page.getByText("Extra sauce on the side")).toHaveCount(0);
 });
 
+test("shows sides and drinks as add-ons under the mains, not as full cards", async ({ page }) => {
+  await page.goto("/menu");
+
+  const mainCard = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Lamb & Chicken Mix", exact: true }) });
+  const addOnRow = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Waffle Fries", exact: true }) });
+
+  // A main gets a full photo box; an add-on gets a thumbnail. Measured rather
+  // than asserted on class names, because the sizes are the point.
+  const mainPhoto = await mainCard.locator("img").boundingBox();
+  const addOnPhoto = await addOnRow.locator("img").boundingBox();
+  expect(mainPhoto!.height).toBeGreaterThan(150);
+  expect(addOnPhoto!.height).toBeLessThan(100);
+
+  // And the add-ons sit below everything you actually came in for.
+  await expect(page.getByRole("heading", { name: "Add to your order" })).toBeVisible();
+  const mainBox = await mainCard.boundingBox();
+  const addOnBox = await addOnRow.boundingBox();
+  expect(addOnBox!.y).toBeGreaterThan(mainBox!.y);
+
+  // A row is a good deal shorter than a card — that is the whole point.
+  expect(addOnBox!.height).toBeLessThan(mainBox!.height / 2);
+
+  // Filtering to a single add-on section drops the heading, since there is
+  // nothing left for the add-ons to sit under.
+  await page.getByRole("tab", { name: /^Sides/ }).click();
+  await expect(page.getByRole("heading", { name: "Add to your order" })).toHaveCount(0);
+  await expect(
+    page.locator("article").filter({ has: page.getByRole("heading", { name: "Fries", exact: true }) }),
+  ).toBeVisible();
+});
+
+test("adds a side straight from its row", async ({ page }) => {
+  await page.goto("/menu");
+  await page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Onion Rings", exact: true }) })
+    .getByRole("button")
+    .click();
+  await page.getByRole("button", { name: /^Add to cart/ }).click();
+
+  const panel = page.getByRole("dialog", { name: "Your cart" });
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText("Onion Rings");
+  await expect(panel).toContainText("$4.99");
+});
+
 // ----------------------------------------------------------- the cart
 
 test("adds an item with options and prices it the way the menu says", async ({ page }) => {

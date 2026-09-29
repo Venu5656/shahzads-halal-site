@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { formatCents } from "@/lib/money";
 import { MAX_QUANTITY } from "@/lib/menu/pricing";
+import { cutoutShadow } from "@/lib/menu/images";
 import { useCart, type CartLineView } from "./CartProvider";
 
 /**
@@ -114,7 +115,11 @@ function CartRow({ line }: { line: CartLineView }) {
     <li className="flex gap-4 py-5">
       <div className="size-[86px] shrink-0 overflow-hidden rounded-2xl bg-cream/5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={line.item.imagePath} alt="" className="size-full object-contain p-1" />
+        <img
+          src={line.item.imagePath}
+          alt=""
+          className={`size-full object-contain p-1 ${cutoutShadow(line.item.imagePath, "sm")}`}
+        />
       </div>
 
       <div className="min-w-0 flex-1">

@@ -5,6 +5,7 @@ import { ItemForm } from "@/components/menu/ItemForm";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { formatCents } from "@/lib/money";
 import { isSoldOut, startingPriceCents } from "@/lib/menu/pricing";
+import { cutoutShadow } from "@/lib/menu/images";
 import { getMenuItem, getMenuItems } from "@/lib/menu/queries";
 
 /** Pre-render every item; the menu is small and changes rarely. */
@@ -43,7 +44,11 @@ export default async function MenuItemPage({ params }: { params: Promise<{ slug:
       <main className="pb-24">
       <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[21/9]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={item.imagePath} alt="" className="size-full object-contain p-6" />
+        <img
+          src={item.imagePath}
+          alt=""
+          className={`size-full object-contain p-6 ${cutoutShadow(item.imagePath, "lg")}`}
+        />
         <Link
           href="/menu"
           aria-label="Back to the menu"

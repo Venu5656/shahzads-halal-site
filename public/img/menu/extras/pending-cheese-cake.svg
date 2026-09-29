@@ -1,10 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
-  <rect width="600" height="400" fill="#f4f1ea"/>
-  <circle cx="300" cy="178" r="86" fill="#ffffff" stroke="#ded6c6" stroke-width="3"/>
-  <text x="300" y="204" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-size="62" font-weight="700" fill="#1b140f" opacity="0.82">CC</text>
-  <text x="300" y="306" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-size="26" font-weight="700" fill="#1b140f" opacity="0.72">Cheese Cake</text>
-  <text x="300" y="336" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-size="16" fill="#1b140f" opacity="0.45">Photo coming soon</text>
+  <rect x="8" y="8" width="584" height="384" rx="30" fill="none"
+        stroke="#4a3a2e" stroke-width="3" stroke-dasharray="16 13"/>
+  <text x="300" y="214" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="104" font-weight="700" fill="#f5b53d" opacity="0.5">CC</text>
+  <text x="300" y="286" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="24" font-weight="600" fill="#b3a393" opacity="0.75">Photo coming soon</text>
 </svg>

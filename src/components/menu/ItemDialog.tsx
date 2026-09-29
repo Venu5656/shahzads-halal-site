@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { formatCents } from "@/lib/money";
 import { startingPriceCents, type PricedItem } from "@/lib/menu/pricing";
+import { cutoutShadow } from "@/lib/menu/images";
 
 /**
  * The desktop item modal. A real <dialog>, so focus, Escape and the inertness
@@ -42,7 +43,11 @@ export function ItemDialog({
         <div className="max-h-[min(88dvh,900px)] overflow-y-auto">
           <div className="relative aspect-[16/9] overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.imagePath} alt="" className="size-full object-contain p-4" />
+            <img
+              src={item.imagePath}
+              alt=""
+              className={`size-full object-contain p-4 ${cutoutShadow(item.imagePath, "md")}`}
+            />
             <button
               type="button"
               onClick={onClose}
