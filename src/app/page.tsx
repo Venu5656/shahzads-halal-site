@@ -248,23 +248,24 @@ export default async function HomePage() {
                 src="/img/menu/cutout/mix-platter.webp"
                 alt="Mix platter — chicken and lamb over rice with fries and salad"
               />
-              {/* Pin positions follow the official photo: lamb right, chicken
-                  centre, chickpeas and rice left of it, salad furthest left. */}
-              <button className="pin" style={{ left: "70%", top: "55%" }} data-l="0" aria-label="Lamb">
+              {/* Measured off the cutout itself, which is square and contained,
+                  so these are the picture's own coordinates: lamb right of
+                  centre, chicken left of it, fries top-right, salad top-left. */}
+              <button className="pin" style={{ left: "73%", top: "54%" }} data-l="0" aria-label="Lamb">
                 1
               </button>
-              <button className="pin" style={{ left: "49%", top: "62%" }} data-l="1" aria-label="Chicken">
+              <button className="pin" style={{ left: "37%", top: "59%" }} data-l="1" aria-label="Chicken">
                 2
               </button>
               <button
                 className="pin"
-                style={{ left: "38%", top: "46%" }}
+                style={{ left: "71%", top: "26%" }}
                 data-l="2"
-                aria-label="Chickpeas and black beans"
+                aria-label="French fries"
               >
                 3
               </button>
-              <button className="pin" style={{ left: "30%", top: "58%" }} data-l="3" aria-label="Salad">
+              <button className="pin" style={{ left: "28%", top: "33%" }} data-l="3" aria-label="Salad">
                 4
               </button>
             </div>
@@ -288,8 +289,8 @@ export default async function HomePage() {
                 </li>
                 <li data-l="2">
                   <span>03</span>
-                  <b>Brown basmati &amp; beans</b>
-                  <small>Fluffy brown rice with chickpeas and black beans.</small>
+                  <b>French fries</b>
+                  <small>Crisp and seasoned, piled straight on top.</small>
                 </li>
                 <li data-l="3">
                   <span>04</span>

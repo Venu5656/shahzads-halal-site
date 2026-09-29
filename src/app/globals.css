@@ -355,6 +355,46 @@ footer p{color:var(--muted);font-size:14px}
 .plate img,
 .sat img { object-fit: contain; transform: none; animation: none; }
 
+/* The circular plate frame — a conic ring, a dark inner border and a circular
+   clip — existed to give a rectangular photo an edge. A cutout of a bowl
+   already has one, so the frame only added a ring and a gap around the dish.
+   The dish now floats, lit by its own shadow, and grows to fill the space the
+   chrome was using. */
+.plate {
+  inset: 6%;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.plate .inner {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+.plate img {
+  filter: drop-shadow(0 34px 46px rgb(0 0 0 / 0.75)) drop-shadow(0 0 70px rgb(226 58 47 / 0.22));
+}
+.sat {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+}
+.sat img {
+  filter: drop-shadow(0 16px 26px rgb(0 0 0 / 0.7));
+}
+/* Without their discs the satellites are wider than they look, and the old
+   -6% offsets pushed the right-hand one off the edge of the page. */
+.sat { width: 22%; }
+.sat:nth-child(2) { left: 0; }
+.sat:nth-child(3) { right: 0; }
+
+/* The signature photo is square, so a 1.3 box letterboxed it and shrank the
+   dish. Square box, square image, and the callout pins map straight onto the
+   picture's own coordinates. */
+.sig-img img { aspect-ratio: 1; }
+
 /* ---------------------------------------------------------------------------
  * Preflight compatibility.
  *
