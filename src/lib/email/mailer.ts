@@ -15,6 +15,11 @@ import { join } from "node:path";
  * Set EMAIL_TRANSPORT to force one. Nothing here ever logs a full token: the
  * outbox file is gitignored and local-only, and the console line carries the
  * link because that is the point of the development transport.
+ *
+ * Do not expect that console line in the terminal, though. Next 16 captures
+ * server-side console output into .next/dev/logs/next-development.log as JSON
+ * instead of printing it to the dev server's stdout, so `npm run mail` reads
+ * the outbox file directly — see scripts/mail.mjs.
  */
 
 export type Mail = {
