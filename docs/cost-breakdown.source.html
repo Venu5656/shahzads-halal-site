@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cost breakdown</title>
+<style>
+  @font-face { font-family: "Big Shoulders"; src: url("../public/fonts/big-shoulders-display-latin-900-normal.woff2") format("woff2"); font-weight: 900; }
+  @font-face { font-family: "Big Shoulders"; src: url("../public/fonts/big-shoulders-display-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+  @font-face { font-family: "DM Sans"; src: url("../public/fonts/dm-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+  @font-face { font-family: "DM Sans"; src: url("../public/fonts/dm-sans-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+  @font-face { font-family: "DM Sans"; src: url("../public/fonts/dm-sans-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Fraunces"; src: url("../public/fonts/fraunces-latin-700-italic.woff2") format("woff2"); font-weight: 700; font-style: italic; }
+
+  :root {
+    --ink: #17110d;
+    --body: #3a3029;
+    --muted: #6d6054;
+    --rule: #ddd4c7;
+    --rule-soft: #ece5d9;
+    --gold: #a7761a;
+    --brand: #c0342a;
+    --wash: #faf6ef;
+  }
+
+  * { box-sizing: border-box; }
+  @page { size: letter; margin: 15mm 14mm 16mm; }
+
+  body {
+    margin: 0;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 9.6pt;
+    line-height: 1.5;
+    color: var(--body);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3 { font-family: "Big Shoulders", system-ui, sans-serif; color: var(--ink); margin: 0; }
+  h1 { font-size: 30pt; font-weight: 900; text-transform: uppercase; line-height: 0.92; letter-spacing: -0.005em; }
+  h2 { font-size: 14.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.012em; margin: 20pt 0 7pt; }
+  h3 { font-size: 10.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold); margin: 13pt 0 4pt; }
+  em.s { font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 700; text-transform: none; color: var(--gold); font-size: 0.86em; }
+  p { margin: 0 0 7pt; }
+  a { color: var(--gold); }
+
+  /* ---------------------------------------------------------- masthead */
+  .masthead { border-bottom: 2.5pt solid var(--ink); padding-bottom: 9pt; margin-bottom: 13pt; display: flex; align-items: flex-end; justify-content: space-between; gap: 20pt; }
+  .eyebrow { font-size: 7.4pt; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: var(--gold); margin-bottom: 5pt; }
+  .meta { text-align: right; font-size: 8pt; color: var(--muted); line-height: 1.6; white-space: nowrap; }
+  .meta b { color: var(--ink); font-weight: 700; }
+
+  /* ---------------------------------------------------------- headline */
+  .headline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1pt solid var(--rule); border-radius: 5pt; overflow: hidden; margin-bottom: 7pt; }
+  .headline div { padding: 9pt 11pt; border-right: 1pt solid var(--rule); background: var(--wash); }
+  .headline div:last-child { border-right: 0; }
+  .headline .k { font-size: 7.3pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 3pt; }
+  .headline .v { font-family: "Big Shoulders", sans-serif; font-size: 21pt; font-weight: 900; color: var(--ink); line-height: 1; }
+  .headline .n { font-size: 7.8pt; color: var(--muted); margin-top: 3pt; line-height: 1.35; }
+
+  /* ---------------------------------------------------------- tables */
+  table { width: 100%; border-collapse: collapse; margin: 3pt 0 0; }
+  th { font-size: 7.3pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0 7pt 3.5pt 0; border-bottom: 1pt solid var(--rule); }
+  td { padding: 5pt 7pt 5pt 0; border-bottom: 0.6pt solid var(--rule-soft); vertical-align: top; font-size: 9.2pt; }
+  td:last-child, th:last-child { padding-right: 0; text-align: right; white-space: nowrap; }
+  .feat { font-weight: 700; color: var(--ink); }
+  .num { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); }
+  tr.sum td { border-bottom: 1.4pt solid var(--ink); border-top: 1pt solid var(--rule); font-weight: 700; color: var(--ink); padding-top: 5pt; }
+  tr.sum td:first-child { font-family: "Big Shoulders", sans-serif; font-size: 11.5pt; font-weight: 900; text-transform: uppercase; }
+
+  .pill { display: inline-block; font-size: 7pt; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 1.6pt 5pt; border-radius: 20pt; white-space: nowrap; }
+  .done { background: #e4ede2; color: #3d6134; }
+  .part { background: #fbeed4; color: #8a6414; }
+  .todo { background: #eee9e2; color: #6d6054; }
+
+  /* ---------------------------------------------------------- callout */
+  .callout { border-left: 2.5pt solid var(--brand); background: var(--wash); padding: 9pt 12pt; margin: 11pt 0; border-radius: 0 4pt 4pt 0; }
+  .callout .t { font-family: "Big Shoulders", sans-serif; font-size: 12pt; font-weight: 900; text-transform: uppercase; color: var(--ink); margin-bottom: 3pt; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .note { font-size: 8.3pt; color: var(--muted); margin-top: 5pt; line-height: 1.45; }
+  ul { margin: 0 0 7pt; padding-left: 13pt; }
+  li { margin-bottom: 3pt; }
+  .total-row td { background: #17110d; color: #fff; font-weight: 700; border-bottom: 0; }
+  .total-row td:first-child { font-family: "Big Shoulders", sans-serif; font-size: 12pt; font-weight: 900; text-transform: uppercase; }
+  .total-row td { padding: 6pt 7pt; }
+  .total-row td:first-child { padding-left: 8pt; }
+  .total-row td:last-child { padding-right: 8pt; }
+  .page-break { page-break-before: always; }
+  /* A table may break between rows; a row, a callout or the summary strip may not. */
+  tr, .callout, .headline { page-break-inside: avoid; }
+  h2, h3 { page-break-after: avoid; }
+  .foot { margin-top: 14pt; padding-top: 7pt; border-top: 1pt solid var(--rule); font-size: 7.8pt; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div>
+    <div class="eyebrow">Shahzad&rsquo;s Halal Food &middot; 152 Easton Ave</div>
+    <h1>What the ordering<br>site <em class="s">costs.</em></h1>
+  </div>
+  <div class="meta">
+    <b>Build</b> &nbsp;$5,000 fixed<br>
+    <b>Prepared</b> &nbsp;5 October 2026<br>
+    <b>Status</b> &nbsp;Half delivered
+  </div>
+</div>
+
+<div class="headline">
+  <div>
+    <div class="k">To build, all in</div>
+    <div class="v">$5,000</div>
+    <div class="n">Fixed price. Every feature below, customer side and manager side.</div>
+  </div>
+  <div>
+    <div class="k">Already delivered</div>
+    <div class="v">$2,500</div>
+    <div class="n">Half the build is working today and covered by 370 automated tests.</div>
+  </div>
+  <div>
+    <div class="k">To run, per month</div>
+    <div class="v">~$2,730</div>
+    <div class="n">At 3,000 orders a month &mdash; and 97&#37; of it is card processing, not software.</div>
+  </div>
+</div>
+
+<p class="note">Every figure below is in US dollars. Third-party prices were checked against each
+company&rsquo;s published pricing page on 5 October 2026 and are quoted at the plan the store would
+actually need; they can change without notice. Figures that depend on how busy the shop gets are
+labelled as assumptions &mdash; correct them and the totals move with them.</p>
+
+<h2>What the build buys</h2>
+
+<h3>Foundations &mdash; shared by everything</h3>
+<table>
+  <tr>
+    <td style="width:30%" class="feat">Groundwork</td>
+    <td style="width:47%">The database, the site skeleton, the automated test suite and the release checks that stop a broken change reaching customers.</td>
+    <td style="width:13%"><span class="pill done">Delivered</span></td>
+    <td class="num">$600</td>
+  </tr>
+</table>
+
+<h3>What the customer sees</h3>
+<table>
+  <tr>
+    <td style="width:30%" class="feat">Homepage</td>
+    <td style="width:47%">The existing design rebuilt so it loads fast, works on a phone and can be edited.</td>
+    <td style="width:13%"><span class="pill done">Delivered</span></td>
+    <td class="num">$300</td>
+  </tr>
+  <tr>
+    <td class="feat">Accounts</td>
+    <td>Sign-up, log in, email confirmation, forgotten-password reset, and &ldquo;log out everywhere&rdquo;. Protected against someone guessing passwords in bulk.</td>
+    <td><span class="pill done">Delivered</span></td>
+    <td class="num">$400</td>
+  </tr>
+  <tr>
+    <td class="feat">The menu</td>
+    <td>All 53 dishes across your 8 printed sections, with sauces, sizes, meal deals and extras priced exactly as the board prices them. Search and section filters.</td>
+    <td><span class="pill done">Delivered</span></td>
+    <td class="num">$500</td>
+  </tr>
+  <tr>
+    <td class="feat">Cart</td>
+    <td>Survives closing the browser, and follows the customer from their phone to their laptop once they are signed in.</td>
+    <td><span class="pill done">Delivered</span></td>
+    <td class="num">$300</td>
+  </tr>
+  <tr>
+    <td class="feat">Checkout</td>
+    <td>Re-prices the whole order on our server before asking for money, so a tampered-with price is refused. Applies 6.625&#37; NJ tax, exempts bottled water, and refuses orders when you are closed, near closing, or paused.</td>
+    <td><span class="pill done">Delivered</span></td>
+    <td class="num">$400</td>
+  </tr>
+  <tr>
+    <td class="feat">Paying</td>
+    <td>Card, Apple&nbsp;Pay and Google&nbsp;Pay. The order is only created once the bank confirms the money, so a dropped connection cannot produce a paid order with no ticket &mdash; or a ticket with no money.</td>
+    <td><span class="pill part">Part done</span></td>
+    <td class="num">$500</td>
+  </tr>
+  <tr class="sum"><td>Customer side</td><td></td><td></td><td class="num">$2,400</td></tr>
+</table>
+
+<h3>What you and your staff see</h3>
+<table>
+  <tr>
+    <td style="width:30%" class="feat">Manager area</td>
+    <td style="width:47%">A private area only staff accounts can open, with owner and manager roles. Staff are invited, never self-registered.</td>
+    <td style="width:13%"><span class="pill part">Part done</span></td>
+    <td class="num">$150</td>
+  </tr>
+  <tr>
+    <td class="feat">Live order board</td>
+    <td>New orders appear without refreshing. Move a ticket from paid, to cooking, to ready, to collected. Built so two staff on two screens cannot knock each other&rsquo;s changes out.</td>
+    <td><span class="pill todo">To build</span></td>
+    <td class="num">$450</td>
+  </tr>
+  <tr>
+    <td class="feat">Refunds</td>
+    <td>Refund a whole order or a single item from the order screen, without logging into Stripe separately.</td>
+    <td><span class="pill todo">To build</span></td>
+    <td class="num">$200</td>
+  </tr>
+  <tr>
+    <td class="feat">Kitchen printing</td>
+    <td>Tickets print in the kitchen automatically, with a queue that holds them if the printer is off or jammed, and a reprint button.</td>
+    <td><span class="pill todo">To build</span></td>
+    <td class="num">$300</td>
+  </tr>
+  <tr>
+    <td class="feat">Menu controls</td>
+    <td>Change a price, mark something sold out for the night, or pause online ordering when the kitchen is slammed &mdash; yourself, without calling anyone.</td>
+    <td><span class="pill todo">To build</span></td>
+    <td class="num">$300</td>
+  </tr>
+  <tr>
+    <td class="feat">Sales dashboard</td>
+    <td>What sold, what it took, and the busy hours &mdash; by day, week and month.</td>
+    <td><span class="pill todo">To build</span></td>
+    <td class="num">$100</td>
+  </tr>
+  <tr class="sum"><td>Manager side</td><td></td><td></td><td class="num">$1,500</td></tr>
+</table>
+
+<h3>Getting it live</h3>
+<table>
+  <tr>
+    <td style="width:30%" class="feat">Launch</td>
+    <td style="width:47%">Security review, a staging copy to test changes on before customers see them, error alerts, a load check, and the deployment itself.</td>
+    <td style="width:13%"><span class="pill todo">To build</span></td>
+    <td class="num">$500</td>
+  </tr>
+  <tr class="total-row"><td>Total to build</td><td></td><td></td><td>$5,000</td></tr>
+</table>
+
+<p class="note">Of that, <b>$2,500 is already delivered and working</b>, <b>$650 is part done</b>, and
+<b>$1,850 remains</b>. The part-done work is blocked on things only you can provide &mdash; see the
+last section.</p>
+
+<div class="page-break"></div>
+
+<div class="masthead">
+  <div>
+    <div class="eyebrow">Part two</div>
+    <h1>What it costs <em class="s">to run.</em></h1>
+  </div>
+  <div class="meta">
+    <b>Fixed costs</b> &nbsp;$21&ndash;$86&#8239;/mo<br>
+    <b>Card fees</b> &nbsp;2.9&#37; + 30&cent;<br>
+    <b>Checked</b> &nbsp;5 Oct 2026
+  </div>
+</div>
+
+<h2>Monthly cost at three sizes</h2>
+
+<p>The only cost that grows with the shop is card processing. Everything else is close to flat.
+Find the row that looks like your month.</p>
+
+<table>
+  <tr>
+    <th style="width:36%">Per month</th>
+    <th style="width:21%">Quiet &middot; 300 orders</th>
+    <th style="width:21%">Busy &middot; 1,500 orders</th>
+    <th style="width:22%">At scale &middot; 3,000 orders</th>
+  </tr>
+  <tr>
+    <td class="feat">Card processing &mdash; Stripe</td>
+    <td class="num">$264</td><td class="num">$1,320</td><td class="num">$2,640</td>
+  </tr>
+  <tr>
+    <td class="feat">Hosting &mdash; Vercel Pro</td>
+    <td class="num">$20</td><td class="num">$20</td><td class="num">$20</td>
+  </tr>
+  <tr>
+    <td class="feat">Database &mdash; Neon</td>
+    <td class="num">$0</td><td class="num">$0</td><td class="num">$19</td>
+  </tr>
+  <tr>
+    <td class="feat">Email &mdash; Resend</td>
+    <td class="num">$0</td><td class="num">$20</td><td class="num">$20</td>
+  </tr>
+  <tr>
+    <td class="feat">Error alerts &mdash; Sentry</td>
+    <td class="num">$0</td><td class="num">$0</td><td class="num">$26</td>
+  </tr>
+  <tr>
+    <td class="feat">Domain name</td>
+    <td class="num">$1</td><td class="num">$1</td><td class="num">$1</td>
+  </tr>
+  <tr class="sum">
+    <td>Everything but card fees</td>
+    <td class="num">$21</td><td class="num">$41</td><td class="num">$86</td>
+  </tr>
+  <tr class="total-row">
+    <td>Total per month</td>
+    <td>$285</td><td>$1,361</td><td>$2,726</td>
+  </tr>
+</table>
+
+<p class="note">Order counts are illustrative sizes, not a forecast. Card fees assume an average
+order of <b>$20</b> &mdash; roughly a platter, a drink and tax. If your real average is different,
+scale the card line directly: it is <b>2.9&#37; of the order plus 30&cent;</b>, every time.</p>
+
+<div class="callout">
+  <div class="t">The software is the cheap part</div>
+  <p>At 3,000 orders a month the whole technology bill is about <b>$2,726</b> &mdash; and
+  <b>$2,640 of that is the card fee</b>, which only exists because money came in. The software
+  that runs the site, the database, the receipts and the alerts costs <b>$86 a month</b>, about
+  <b>3&#37;</b> of the bill. Doubling your orders roughly doubles the card fee and barely moves
+  anything else.</p>
+  <p>Put another way: on a $20 order you pay <b>88&cent;</b> to take the money &mdash; 58&cent;
+  on the percentage, 30&cent; flat. That is <b>4.4&#37;</b> of the order. On a $40 order it is
+  $1.46, or 3.7&#37;: the flat 30&cent; hurts small orders most, so anything that raises the
+  average basket pays for itself twice.</p>
+  <p>Worth doing: ask whoever processes your in-store cards what they charge. You are already
+  paying a rate like this on counter sales, and comparing the two tells you whether online
+  ordering is adding a cost or just moving where it lands.</p>
+</div>
+
+<h2>Optional, only if you want it</h2>
+<table>
+  <tr>
+    <td style="width:30%" class="feat">&ldquo;Your order is ready&rdquo; texts</td>
+    <td style="width:47%">About 1.2&cent; a message, so roughly <b>$36 a month</b> at 3,000 orders. Needs a US carrier registration first, which takes days to weeks and has its own fees Twilio does not publish openly. Email receipts are already included at no extra cost.</td>
+    <td class="num">~$36&#8239;/mo</td>
+  </tr>
+  <tr>
+    <td class="feat">Keeping it running</td>
+    <td>Dependency updates, security patches, and someone to call when something breaks at 1am. <b>Not included in the $5,000</b>, and worth agreeing before launch rather than after.</td>
+    <td class="num">To agree</td>
+  </tr>
+</table>
+
+<h2>One-off costs you pay directly</h2>
+<ul>
+  <li><b>Domain name</b> &mdash; about $15 a year, bought in your name so you own it.</li>
+  <li><b>Stripe account</b> &mdash; free to open. No setup fee, no monthly fee, no closure fee. Needs the business name, EIN and bank details.</li>
+  <li><b>Kitchen printer</b> &mdash; only if the shop does not already have one that can be reached over the network. Cost depends on which option you pick; we will price it once you have decided.</li>
+  <li><b>Disputes</b> &mdash; $15 each if a customer charges back, win or lose. Rare on pickup orders, but not zero.</li>
+</ul>
+
+<h2>What this price does not include</h2>
+<ul>
+  <li><b>A lawyer reading the terms and privacy pages.</b> Drafts are written and live, and they honestly describe what the software does with customer data &mdash; but they are marked as drafts and are not binding until someone qualified signs them off.</li>
+  <li><b>Photography for 12 dishes.</b> They currently show a branded tile rather than a photo. It looks deliberate rather than broken, but a photo sells food.</li>
+  <li><b>Ongoing support after launch</b>, as above.</li>
+</ul>
+
+<h2>What is holding up the rest</h2>
+<p>The remaining $1,850 is not waiting on time &mdash; it is waiting on four things only you can
+provide:</p>
+<ul>
+  <li><b>A Stripe account</b> with the developer added as a team member. The test keys alone unblock all the payment work; the business entity, EIN and bank account are only needed before the first real charge.</li>
+  <li><b>A domain name</b>, and control of its DNS. Apple&nbsp;Pay will not work without one, and receipts sent from a borrowed domain land in spam.</li>
+  <li><b>A printer decision</b>, and whether there is a spare PC or tablet in the shop.</li>
+  <li><b>Two price questions.</b> The board prices the Chicken &amp; Lamb gyro at $9.99 while you said $13.99, and the board charges $2 to leave the salad off a platter while you said it should be free. The site currently follows the board on the first and you on the second. Both are a phone call to settle.</li>
+</ul>
+
+<div class="foot">
+  Third-party pricing checked 5 October 2026 against stripe.com/us/pricing, vercel.com/pricing,
+  resend.com/pricing, neon.com/pricing, sentry.io/pricing and twilio.com. Published prices change
+  without notice; the plan tiers quoted are the ones this store would actually need, not the
+  cheapest advertised. Vercel&rsquo;s free Hobby plan is not licensed for commercial use, so the
+  Pro plan is costed from day one. Order volumes and the $20 average order are illustrative
+  assumptions for sizing, not forecasts of this business.
+</div>
+
+</body>
+</html>
