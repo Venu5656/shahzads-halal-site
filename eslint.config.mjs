@@ -11,6 +11,9 @@ const eslintConfig = [
       "legacy/**",
       "playwright-report/**",
       "test-results/**",
+      // Vendored agent skills: third-party code we read, never ship.
+      ".agents/**",
+      "agent-skills/**",
     ],
   },
   {

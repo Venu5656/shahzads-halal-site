@@ -20,3 +20,8 @@ tsconfig.tsbuildinfo
 
 # local image previews, not part of the app
 preview/
+
+# Vercel's agent-skills, cloned whole. It carries its own .git, so committing it
+# would leave a gitlink nobody can check out. The taste skill under .agents/ is
+# plain files and is committed, pinned by skills-lock.json.
+agent-skills/
