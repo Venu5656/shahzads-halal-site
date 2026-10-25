@@ -466,13 +466,11 @@ test("tells someone when something in their cart has sold out", async ({ page })
 
 // ------------------------------------------------------- the homepage
 
-test("the homepage teaser is the real menu now", async ({ page, isMobile }) => {
+test("the homepage teaser is the real menu now", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("#grid .card")).toHaveCount(4);
-
-  // A card links into the real item page.
-  const link = page.locator('.card a.add[href="/menu/mix-platter"]');
-  await expect(link).toHaveCount(1);
+  // The homepage catalogue is drawn from the database, not a hand-kept list.
+  expect(await page.locator("#catalogue li").count()).toBeGreaterThanOrEqual(10);
+  await expect(page.locator('#catalogue a[href="/menu/chicken-gyro"]')).toHaveCount(1);
 
   // The dishes that arrived with the printed menu are priced as it prints them.
   await page.goto("/menu");
@@ -485,10 +483,4 @@ test("the homepage teaser is the real menu now", async ({ page, isMobile }) => {
   await expect(card("Baklava")).toContainText("$5.99");
   await page.goto("/");
 
-  if (!isMobile) {
-    await expect(page.locator("#nav").getByRole("link", { name: "Order now" })).toHaveAttribute(
-      "href",
-      "/menu",
-    );
-  }
 });

@@ -37,6 +37,25 @@
   --color-brand-2: #ff5a3c;
   --color-gold: #f5b53d;
   --color-herb: #8bbf5a;
+  /* The specimen catalogue's fields. Each dish sits alone on one of these,
+   * rotating in a steady order, so the page reads as a set rather than a grid
+   * of cards. Taken from the brand, not from the dealt palette: a white ground
+   * would fight a kitchen whose whole point is that it is open at 3am. */
+  /* Five steps and no more. The inspector counted eighteen sizes on the first
+   * pass, which is what happens when every block picks its own number. */
+  --text-display: clamp(44px, 7vw, 78px);
+  --text-head: clamp(32px, 4.4vw, 58px);
+  --text-lead: 18px;
+  --text-body: 16px;
+  --text-small: 13px;
+  /* The brand red fails white text at 4.3:1. Three points darker clears 4.5
+   * and is indistinguishable beside the original. Buttons only; the brand red
+   * itself is untouched. */
+  --color-brand-ink: #dc372d;
+  --color-field-1: #1b140f;
+  --color-field-2: #e23a2f;
+  --color-field-3: #f5b53d;
+  --color-field-4: #241a13;
   --font-display: "Big Shoulders Display", Impact, sans-serif;
   --font-serif: "Fraunces", Georgia, serif;
   --font-sans: "DM Sans", system-ui, sans-serif;
@@ -348,6 +367,38 @@ footer p{color:var(--muted);font-size:14px}
  * Unlayered, so it wins over the legacy layer without editing it.
  * ------------------------------------------------------------------------- */
 .sig-img::after { content: none; }
+/* The legacy sheet ends with body{overflow-x:hidden}. That makes the body a
+ * scroll container, and a scroll container between the viewport and a sticky
+ * element is the one thing position:sticky cannot survive — the pinned hero
+ * simply scrolls away. `clip` contains the same horizontal overflow without
+ * creating a container, and the legacy sheet already asks for it one line
+ * earlier, so this only undoes the override. */
+body { overflow-x: clip; }
+
+/* The entrance layer. Visible by default so the server's HTML is readable on
+ * its own; <Reveal> adds .reveal-armed from the client and takes it off when
+ * the part comes near. Anyone who asks for less motion never gets the armed
+ * state at all, and the rule below is belt and braces. */
+.reveal {
+  transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+              transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reveal-armed { opacity: 0; transform: translateY(22px); }
+
+/* The header now carries Sign up at every width, which leaves the logo lockup
+ * and the cart fighting for the same pixels on a narrow phone. Shrink the
+ * lockup below 480px rather than drop the one control a new customer needs. */
+@media (max-width: 479px) {
+  .brand { gap: 8px; }
+  .brand img { width: 34px; }
+  .brand b { font-size: 19px; }
+  .brand small { font-size: 8.5px; letter-spacing: 0.2em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none; }
+  .reveal-armed { opacity: 1; transform: none; }
+}
+
 .sig-img img { object-fit: contain; }
 .card .ph img { object-fit: contain; padding: 6px; }
 /* A cutout has no edges of its own to zoom into, and the plate photo used to

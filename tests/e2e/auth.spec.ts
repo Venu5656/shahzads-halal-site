@@ -523,33 +523,19 @@ test("never redirects off-site after login", async ({ page }) => {
   await wipe(acc);
 });
 
-test("the homepage offers log in and sign up, then shows the account", async ({
-  page,
-  isMobile,
-}) => {
+test("the homepage offers log in and sign up, then shows the account", async ({ page }) => {
   const acc = accountFor(21);
   await wipe(acc);
 
   await page.goto("/");
-  if (isMobile) {
-    await page.getByLabel("Open menu").click();
-    await expect(page.locator("#drawer").getByRole("link", { name: "Log in" })).toBeVisible();
-    await expect(page.locator("#drawer").getByRole("link", { name: "Sign up" })).toBeVisible();
-  } else {
-    const nav = page.locator("#nav");
-    await expect(nav.getByRole("link", { name: "Log in" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Sign up" })).toBeVisible();
-  }
+  const header = page.getByRole("banner");
+  await expect(header.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(header.getByRole("link", { name: "Sign up" })).toBeVisible();
 
   await registerAndLogIn(page, "Yusuf Ali", acc);
   await page.goto("/");
-  if (isMobile) {
-    await page.getByLabel("Open menu").click();
-    await expect(page.locator("#drawer").getByRole("link", { name: "My account" })).toBeVisible();
-  } else {
-    await expect(page.locator("#nav").getByRole("link", { name: /Yusuf/ })).toBeVisible();
-    await expect(page.locator("#nav").getByRole("link", { name: "Log in" })).toHaveCount(0);
-  }
+  await expect(header.getByRole("link", { name: /Yusuf/ })).toBeVisible();
+  await expect(header.getByRole("link", { name: "Log in" })).toHaveCount(0);
 
   await wipe(acc);
 });

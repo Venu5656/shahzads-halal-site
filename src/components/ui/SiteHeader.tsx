@@ -32,7 +32,7 @@ export async function SiteHeader({ children }: { children?: React.ReactNode }) {
               <Link
                 href="/account"
                 aria-label={`Your account (${first})`}
-                className="hidden items-center gap-2 rounded-full border border-line py-1.5 pr-4 pl-1.5 text-[15px] font-bold whitespace-nowrap transition-colors hover:border-line-strong sm:flex"
+                className="flex items-center gap-2 rounded-full border border-line py-1.5 pr-1.5 pl-1.5 text-[15px] font-bold whitespace-nowrap transition-colors hover:border-line-strong sm:pr-4"
               >
                 <span
                   aria-hidden="true"
@@ -40,7 +40,7 @@ export async function SiteHeader({ children }: { children?: React.ReactNode }) {
                 >
                   {first?.charAt(0)}
                 </span>
-                <span className="max-w-[110px] truncate">{first}</span>
+                <span className="hidden max-w-[110px] truncate sm:inline">{first}</span>
               </Link>
               <form action={logout}>
                 <button
@@ -59,7 +59,7 @@ export async function SiteHeader({ children }: { children?: React.ReactNode }) {
               >
                 Log in
               </Link>
-              <Link href="/signup" className="btn btn-ghost hidden whitespace-nowrap sm:inline-flex">
+              <Link href="/signup" className="btn btn-ghost !px-4 !py-2.5 !text-[14px] whitespace-nowrap sm:!px-6 sm:!py-3.5 sm:!text-[15px]">
                 Sign up
               </Link>
             </>
