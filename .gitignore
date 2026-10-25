@@ -25,3 +25,6 @@ preview/
 # would leave a gitlink nobody can check out. The taste skill under .agents/ is
 # plain files and is committed, pinned by skills-lock.json.
 agent-skills/
+
+# taste-skill working files (direction sheet, screenshots)
+.taste-skill/
