@@ -323,6 +323,9 @@ model Order {
   printedAt      DateTime?
   /// Set when a manager has silenced the new-order alarm for this order.
   acknowledgedAt DateTime?
+  /// Stamped once the receipt has gone out, so a retried webhook cannot send
+  /// a second one.
+  receiptSentAt  DateTime?
 
   items OrderItem[]
 

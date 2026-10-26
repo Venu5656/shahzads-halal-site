@@ -8,6 +8,8 @@ import { SiteHeader } from "@/components/ui/SiteHeader";
 import { logoutEverywhere } from "@/lib/auth/actions";
 import { STAFF_ROLES, requireUser } from "@/lib/auth/dal";
 import { formatPhone } from "@/lib/auth/phone";
+import { getOrdersForUser } from "@/lib/orders/queries";
+import { formatCents } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Your account · Shahzad's Halal Food" };
 
@@ -39,6 +41,7 @@ function Panel({
 
 export default async function AccountPage() {
   const user = await requireUser("/account");
+  const orders = await getOrdersForUser(user.id);
   const firstName = user.name.split(" ")[0];
   const isStaff = STAFF_ROLES.includes(user.role);
 
@@ -79,10 +82,42 @@ export default async function AccountPage() {
 
           <div className="flex flex-col gap-5">
             <Panel title="Your orders" id="orders">
-              <p className="text-muted">
-                Online ordering opens soon. Once it does, your past orders — and a one-tap
-                reorder — will live right here.
-              </p>
+              {orders.length === 0 ? (
+                <p className="text-muted">
+                  Nothing here yet. Your orders will appear as you place them, with the
+                  number to give at the counter.
+                </p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {orders.map((order) => (
+                    <li key={order.id} className="first:pt-0 last:pb-0 py-4">
+                      <Link
+                        href={`/orders/${order.orderNumber}`}
+                        className="group flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
+                      >
+                        <span className="font-display text-[22px] leading-none font-extrabold uppercase group-hover:text-gold">
+                          {order.orderNumber}
+                        </span>
+                        <span className="text-[16px] font-bold tabular-nums">
+                          {formatCents(order.totalCents)}
+                        </span>
+                        <span className="w-full text-[14px] text-muted">
+                          <span className={order.isActive ? "text-gold" : undefined}>
+                            {order.statusLabel}
+                          </span>
+                          {" · "}
+                          {order.placedAt.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          {" · "}
+                          {order.lines.length} {order.lines.length === 1 ? "item" : "items"}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Panel>
 
             {isStaff ? (

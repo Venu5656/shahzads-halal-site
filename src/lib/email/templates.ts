@@ -130,3 +130,101 @@ export function passwordResetEmail(options: {
     }),
   };
 }
+
+/**
+ * The receipt.
+ *
+ * Unlike the other two this is not a "click here" email — it is the record of
+ * a transaction, so the numbers have to stand on their own in the text part,
+ * readable without loading anything. The link is a convenience for watching
+ * the order's progress, not the point of the message.
+ */
+export function receiptEmail(options: {
+  to: string;
+  name: string;
+  orderNumber: string;
+  url: string;
+  lines: { name: string; quantity: number; lineTotalCents: number; options: string[] }[];
+  subtotalCents: number;
+  taxCents: number;
+  tipCents: number;
+  totalCents: number;
+  pickupMinutes: number;
+}): Mail {
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+  const textLines = options.lines.flatMap((line) => {
+    const head = `  ${line.quantity} × ${line.name}`.padEnd(38) + money(line.lineTotalCents);
+    return line.options.length ? [head, `      ${line.options.join(", ")}`] : [head];
+  });
+
+  const htmlRows = options.lines
+    .map(
+      (line) => `
+      <tr>
+        <td style="padding:8px 0;font-size:15px;color:${BRAND.cream};vertical-align:top">
+          ${escapeHtml(`${line.quantity} × ${line.name}`)}
+          ${
+            line.options.length
+              ? `<div style="font-size:13px;color:${BRAND.muted};padding-top:3px">${escapeHtml(line.options.join(", "))}</div>`
+              : ""
+          }
+        </td>
+        <td style="padding:8px 0;font-size:15px;color:${BRAND.cream};text-align:right;white-space:nowrap;vertical-align:top">${money(line.lineTotalCents)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const total = (label: string, cents: number, strong = false) => `
+      <tr>
+        <td style="padding:${strong ? "12px 0 0" : "4px 0"};font-size:${strong ? "17px" : "14px"};color:${strong ? BRAND.cream : BRAND.muted};${strong ? "font-weight:700;border-top:1px solid " + BRAND.line : ""}">${escapeHtml(label)}</td>
+        <td style="padding:${strong ? "12px 0 0" : "4px 0"};font-size:${strong ? "17px" : "14px"};color:${strong ? BRAND.cream : BRAND.muted};text-align:right;${strong ? "font-weight:700;border-top:1px solid " + BRAND.line : ""}">${money(cents)}</td>
+      </tr>`;
+
+  return {
+    to: options.to,
+    tag: "receipt",
+    subject: `Order ${options.orderNumber} — Shahzad's Halal Food`,
+    text: [
+      `Thanks ${options.name}. We have your order.`,
+      "",
+      `Order ${options.orderNumber}`,
+      `Ready for pickup in about ${options.pickupMinutes} minutes.`,
+      "",
+      ...textLines,
+      "",
+      `  Subtotal`.padEnd(38) + money(options.subtotalCents),
+      `  Sales tax`.padEnd(38) + money(options.taxCents),
+      ...(options.tipCents ? [`  Tip`.padEnd(38) + money(options.tipCents)] : []),
+      `  Total`.padEnd(38) + money(options.totalCents),
+      "",
+      "Collect at 152 Easton Ave, New Brunswick. Pickup only.",
+      "Follow your order here:",
+      options.url,
+      "",
+      "Shahzad's Halal Food",
+      "152 Easton Ave, New Brunswick, NJ 08901 · (848) 202-1430",
+    ].join("\n"),
+    html: `<!doctype html>
+<html lang="en">
+<body style="margin:0;padding:32px 16px;background:${BRAND.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <div style="max-width:520px;margin:0 auto;background:${BRAND.card};border:1px solid ${BRAND.line};border-radius:18px;padding:36px 32px">
+    <div style="font-size:13px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:${BRAND.gold};margin-bottom:22px">Shahzad's Halal Food</div>
+    <h1 style="margin:0 0 8px;font-size:26px;line-height:1.25;color:${BRAND.cream}">Order ${escapeHtml(options.orderNumber)}</h1>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:${BRAND.muted}">Thanks ${escapeHtml(options.name)} — the kitchen has it. Ready in about ${options.pickupMinutes} minutes.</p>
+    <table style="width:100%;border-collapse:collapse">${htmlRows}
+      ${total("Subtotal", options.subtotalCents)}
+      ${total("Sales tax", options.taxCents)}
+      ${options.tipCents ? total("Tip", options.tipCents) : ""}
+      ${total("Total", options.totalCents, true)}
+    </table>
+    <p style="margin:28px 0">
+      <a href="${options.url}" style="display:inline-block;padding:15px 28px;border-radius:999px;background:${BRAND.red};color:#ffffff;font-weight:700;font-size:16px;text-decoration:none">Follow your order</a>
+    </p>
+    <p style="margin:0;padding-top:20px;border-top:1px solid ${BRAND.line};font-size:13px;line-height:1.6;color:${BRAND.muted}">Pickup only — collect at the counter and give your name. Keep this email; the order number is on it.</p>
+    <p style="margin:16px 0 0;font-size:12px;line-height:1.6;color:${BRAND.muted}">152 Easton Ave, New Brunswick, NJ 08901 · (848) 202-1430</p>
+  </div>
+</body>
+</html>`,
+  };
+}

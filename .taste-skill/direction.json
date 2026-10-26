@@ -1,0 +1,524 @@
+{
+ "version": 1,
+ "at": "2026-10-25T01:44:13.739Z",
+ "seed": 1280191946,
+ "redraws": 0,
+ "input": {
+  "brief": "Shahzad's Halal Food, a halal grill at 152 Easton Ave in New Brunswick that feeds Rutgers students until 3 AM six nights a week — platters over rice, gyros and cheesesteaks off the flat-top, pickup only, ordered ahead online",
+  "sector": "restaurant",
+  "tone": null,
+  "have": [
+   "product-photo"
+  ],
+  "keep": [
+   "palette",
+   "type"
+  ],
+  "avoid": [],
+  "sections": [
+   "showcase",
+   "list",
+   "how-it-works",
+   "about",
+   "contact",
+   "footer"
+  ],
+  "direction": "specimen-catalogue"
+ },
+ "imagery": "own",
+ "allow": [],
+ "direction": {
+  "id": "specimen-catalogue",
+  "name": "The specimen catalogue",
+  "sectors": [
+   "ecommerce",
+   "physical-product",
+   "restaurant",
+   "fashion",
+   "culture",
+   "education",
+   "health",
+   "other"
+  ],
+  "tones": [
+   "playful",
+   "warm",
+   "editorial"
+  ],
+  "needs": [
+   "product-photo"
+  ],
+  "idea": "Present what is on offer the way a field guide presents birds: each item alone on a flat colour, same scale, same angle, named plainly. A bakery's pastries become specimens and the specimens become the menu. A furniture maker's chairs each get their own colour tile. The format flatters ordinary objects because it treats each as worth looking at, and it replaces both the feature grid and the product-card grid with something that has a point of view.",
+  "composition": "Hero: a left-aligned statement of what this is (5–7vw, upper-left) beside or above a tight cluster of four to seven specimen tiles of different sizes arranged as a loose mosaic that runs off the right edge. Each tile is a flat colour square or 4:5 rectangle with one photograph centred on it, no border, 8–12px gaps. The main section is the catalogue itself: a grid of tiles in which each item has its name and one fact set beneath the tile in the text face, aligned left to the tile edge. Tile colours rotate through three or four fields from the palette. One tile in every six or seven is double size. Supporting sections (about, how to order) are plain text on the ground colour, kept short.",
+  "typography": "Friendly and plain. Item names at 18–22px in medium weight, facts beneath in the soft ink. One big statement in the hero; no other display type.",
+  "typeClasses": [
+   "grotesk-tight",
+   "serif-text",
+   "slab",
+   "rounded-friendly"
+  ],
+  "colour": "The tiles are the colour: three or four flat fields from the palette, repeated in a steady rotation. Ground stays neutral.",
+  "paletteTags": [
+   "pastel-fields",
+   "flat-loud",
+   "light-neutral"
+  ],
+  "imagery": "Photographs of single items on plain backgrounds, all cropped to sit at the same apparent size within their tile. On light tiles, `mix-blend-mode: multiply` removes white studio backgrounds. If the subject's own item photographs are missing, use the dealt set and say so.",
+  "sectionTags": [
+   "object-led",
+   "colour-field",
+   "photo-led"
+  ],
+  "motion": "drag-row",
+  "richness": "Rhythm of colour tiles and the pleasure of comparing like with like.",
+  "pitfalls": "It needs at least six items that can be shown as objects; with three it is a feature row. Keep labels outside the tiles. No shadows under the objects, no hover lift.",
+  "seenIn": [
+   "aww-noho",
+   "opl-madie",
+   "opl-humanoid-index",
+   "opl-smallbits",
+   "aww-butter"
+  ],
+  "allow": []
+ },
+ "hero": {
+  "id": "anchored-text-specimen-half",
+  "name": "Anchored text, specimen half",
+  "archetype": "split",
+  "directions": [
+   "split-stage",
+   "specimen-catalogue",
+   "hero-object"
+  ],
+  "needs": [
+   "product-photo"
+  ],
+  "blueprint": "The viewport is split exactly in half by two flat tones that meet at a clean vertical edge: the ground on the left, a palette colour on the right. Left half: the wordmark sits top-left on a 40px margin; the next two thirds of the height are empty; everything else is anchored bottom-left and ends 40px above the bottom edge: a headline on one or two lines at clamp(28px, 2.6vw, 40px), medium weight; one sentence at 18px in the soft ink, max 38ch; the single action as a solid rectangle. Right half: position: sticky; top: 0; height: 100svh. In its centre sits a square tile in a second palette colour, 450px wide (31vw) with a 24px radius, holding one cut-out item at 70% of the tile, object-fit: contain, mix-blend-mode: multiply on light fills. Under the tile's left corner the item's name and one fact sit at 15px. As the left column scrolls through the catalogue, the tile's item and colour swap to match the entry in view. One text link sits top-right on the colour field.",
+  "mobile": "The colour half comes first as a block 52svh tall holding the square tile at 62vw, centred, and stays sticky while the text slides over its lower edge. The text block follows on the ground: the headline at 7vw on two lines, the sentence at 16px, the action full width. The wordmark and one link sit on the top row over the colour.",
+  "headline": "A modest 3-6 word line at 28-40px, at most 40 characters; the object, not the type, carries the screen.",
+  "motion": "pinned-story",
+  "seenIn": [
+   "opl-dabbit"
+  ]
+ },
+ "type": null,
+ "palette": null,
+ "photos": {
+  "set": "interior-and-table",
+  "title": "Interior and table",
+  "note": "rooms, windows, chairs, cups, food and tabletops",
+  "treatment": null,
+  "others": [
+   "city-night",
+   "coast",
+   "sky-and-space",
+   "people"
+  ],
+  "photos": [
+   {
+    "id": 625,
+    "alt": "Wooden dining table with white moulded chairs beside large windows",
+    "tone": "light",
+    "colours": [
+     "white",
+     "warm wood",
+     "cream"
+    ],
+    "mono": false,
+    "calm": "left",
+    "quality": 5,
+    "ratio": 1.5,
+    "by": "Breather",
+    "page": "https://unsplash.com/photos/DEdM9Vs6s8w"
+   },
+   {
+    "id": 326,
+    "alt": "Hand holding a white bowl with yellow slices on a pale surface",
+    "tone": "light",
+    "colours": [
+     "cream",
+     "pale yellow",
+     "warm beige"
+    ],
+    "mono": false,
+    "calm": "left",
+    "quality": 5,
+    "ratio": 1.51,
+    "by": "Dominik Martin",
+    "page": "https://unsplash.com/photos/JYFmYif4n70"
+   },
+   {
+    "id": 1068,
+    "alt": "Small plant in a vase on a white table against a blue wall",
+    "tone": "mid",
+    "colours": [
+     "bright blue",
+     "white",
+     "green"
+    ],
+    "mono": false,
+    "calm": "top",
+    "quality": 5,
+    "ratio": 1.74,
+    "by": "Padurariu Alexandru",
+    "page": "https://unsplash.com/photos/iNmouRApXYM"
+   },
+   {
+    "id": 312,
+    "alt": "Honey dipper dripping into a white ceramic bowl of dark honey",
+    "tone": "light",
+    "colours": [
+     "white",
+     "amber brown"
+    ],
+    "mono": false,
+    "calm": "left",
+    "quality": 4,
+    "ratio": 1.5,
+    "by": "Sonja Langford",
+    "page": "https://unsplash.com/photos/RQHzRELE2Ss"
+   },
+   {
+    "id": 102,
+    "alt": "Raspberries on a white ledge with warm golden blurred background",
+    "tone": "light",
+    "colours": [
+     "golden yellow",
+     "raspberry red",
+     "white"
+    ],
+    "mono": false,
+    "calm": "top",
+    "quality": 4,
+    "ratio": 1.33,
+    "by": "Ben Moore",
+    "page": "https://unsplash.com/photos/pJILiyPdrXI"
+   },
+   {
+    "id": 999,
+    "alt": "Bowls, nuts and a pastry arranged on a dark wooden table from above",
+    "tone": "dark",
+    "colours": [
+     "charcoal",
+     "dark brown",
+     "cream"
+    ],
+    "mono": false,
+    "calm": "none",
+    "quality": 4,
+    "ratio": 1.5,
+    "by": "Annie Spratt",
+    "page": "https://unsplash.com/photos/R3LcfTvcGWY"
+   },
+   {
+    "id": 834,
+    "alt": "Three framed prints on a pale wall above a dark tufted bench",
+    "tone": "mid",
+    "colours": [
+     "cream",
+     "charcoal",
+     "pale blue"
+    ],
+    "mono": false,
+    "calm": "centre",
+    "quality": 4,
+    "ratio": 0.67,
+    "by": "The Anchor",
+    "page": "https://unsplash.com/photos/6hgsktgpfIE"
+   },
+   {
+    "id": 1080,
+    "alt": "Fresh red strawberries packed tightly, filling the frame",
+    "tone": "mid",
+    "colours": [
+     "strawberry red",
+     "green",
+     "pink"
+    ],
+    "mono": false,
+    "calm": "none",
+    "quality": 4,
+    "ratio": 1.5,
+    "by": "veeterzy",
+    "page": "https://unsplash.com/photos/OJJIaFZOeX4"
+   }
+  ]
+ },
+ "motion": {
+  "id": "pinned-story",
+  "name": "Pinned story",
+  "description": "One element holds its place with `position: sticky` (a title, a frame, a product fragment) while the items that belong to it scroll past or swap inside it. The page's ordinary scrolling does the work; nothing is hijacked. Hold it for about one screen per step and three screens at most, two held stages per page at most, with a line of text on every held screen. Recipe: 'Pinned story' in references/motion.md."
+ },
+ "sections": [
+  {
+   "id": "showcase-object-on-a-disc",
+   "role": "showcase",
+   "name": "Object on a disc",
+   "shape": "index",
+   "tags": [
+    "object-led",
+    "colour-field"
+   ],
+   "directions": [
+    "one-motif",
+    "specimen-catalogue",
+    "hero-object",
+    "colour-chapters"
+   ],
+   "needs": [],
+   "blueprint": "One section about a viewport tall on a plain ground. A flat filled disc 64vh across, in one palette colour, sits with its centre at 58% of the width; swap the disc for the subject's own shape if it has one. A cut-out object photograph stands in front of it, centred on it, about 78% of the disc's height and breaking the disc's outline at the top. Bottom-left, starting on the margin and ending level with the disc's lower edge: a vertical list of four to six item names at clamp(28px, 2.9vw, 44px), leading 1.15. The selected name is in full ink and the rest at 25%; choosing a name swaps the object (300ms crossfade) and the disc's colour. The heading, two to four words at the same size as the names but in the soft ink, is the first line of that list. One fact about the selected item sits at the disc's right edge at 17px.",
+   "mobile": "The disc comes first, 86vw across and centred, with the object in front. The names follow as a single sideways-scrolling line at 26px with 24px gaps, the selected one in full ink. The fact sits under the names at 16px.",
+   "seenIn": [
+    "aww-cominvi",
+    "opl-tara"
+   ]
+  },
+  {
+   "id": "list-object-rides-the-schedule",
+   "role": "list",
+   "name": "Object riding down the schedule",
+   "shape": "table",
+   "tags": [
+    "object-led",
+    "type-led",
+    "dense"
+   ],
+   "directions": [
+    "hero-object",
+    "borrowed-category",
+    "loud-flat-poster",
+    "dark-room",
+    "specimen-catalogue"
+   ],
+   "needs": [
+    "product-photo"
+   ],
+   "blueprint": "A schedule of dated events (races, concerts, tastings, departures) with the subject's own object travelling down it. On a dark flat ground, on the page's own margins, the heading is one centred line of condensed capitals at clamp(40px, 3.6vw, 56px), split into its two words with a gap between them, and in the gap stands a cut-out photograph of the object seen from above or in profile, about 320px wide (22% of the width) and up to 64% of the viewport tall. Below come full-width rows 84px tall, each a two-part grid: the event's name at 26px in condensed capitals on the left with a one-line note at 16px in the soft ink under it, and the date and place right-aligned at 16px on the note's baseline. Rows alternate between the ground and a tone one step lighter instead of rules. As the page scrolls, the object leaves the heading and moves down the centre line over the rows (`position: sticky` in a centred column that spans the list, `pointer-events: none`), where it covers only the empty middle of each row and marks how far the reader has come. The row for the next event takes the accent colour across its whole band, with its name and date in the accent's ink. About ten rows fit on one screen; the list ends 120px under the last row.",
+   "mobile": "Rows stack at full width on 20px margins: the name at 22px on up to two lines, the note at 16px, the date under the note. The object shrinks to 40% of the width and stays in the heading; it does not travel, because on a phone it would cover the rows. The accent band stays on the next event.",
+   "seenIn": [
+    "aww-nick-ho"
+   ]
+  },
+  {
+   "id": "how-it-works-tiles-that-grow",
+   "role": "how-it-works",
+   "name": "Tiles that grow",
+   "shape": "grid",
+   "tags": [
+    "object-led",
+    "colour-field"
+   ],
+   "directions": [
+    "specimen-catalogue",
+    "hero-object",
+    "colour-chapters",
+    "one-motif",
+    "dense-tiles"
+   ],
+   "needs": [],
+   "blueprint": "Order is carried by size. Three flat colour tiles stand in one row, bottom-aligned (align-items: end) with 10px gaps, each larger than the one before: columns 1–3 at 30vh tall, columns 4–7 at 44vh, columns 8–12 at 60vh. Each tile holds one photograph of the subject at that stage (raw, in progress, finished), centred and scaled so the object grows from tile to tile; on light tiles mix-blend-mode: multiply removes a white studio background. One palette colour per tile. Text sits under the tiles, outside them, aligned to each tile's left edge: a stage name at 20px medium whose wording carries the order ('Picked', 'Pressed', 'Poured') and two lines at 16px in the soft ink. The heading, two to four words at 40–52px, occupies the empty ground above the two smaller tiles, top-aligned with the tallest tile. A fourth stage is possible with spans of 2, 3, 3 and 4 columns.",
+   "mobile": "Tiles stack in order and grow in height instead: 34vw, 46vw and 62vw tall, each at full width. The name and text sit under each tile at 18px and 16px. The heading comes first at 30px. 28px between stages.",
+   "seenIn": [
+    "aww-aspen-search",
+    "aww-noho"
+   ]
+  },
+  {
+   "id": "about-team-colour-tiles",
+   "role": "about",
+   "name": "Team on colour tiles",
+   "shape": "grid",
+   "tags": [
+    "photo-led",
+    "colour-field",
+    "dense"
+   ],
+   "directions": [
+    "specimen-catalogue",
+    "contact-sheet",
+    "colour-chapters",
+    "dense-tiles",
+    "loud-flat-poster"
+   ],
+   "needs": [],
+   "blueprint": "A one-line heading of two or three words at 28–36px sits top-left; nothing sits to its right. 40px below, a grid of portrait tiles: six columns with 12px gaps across the full content width for 12 or more people, four columns for 4–8. Every tile is a 4:5 photograph treated identically so mixed-quality headshots look like one set: `filter: grayscale(1) contrast(1.15)` with `mix-blend-mode: multiply` over a flat tint, the tints rotating through four palette colours in a fixed order. Square corners or one small radius. Under each tile, left-aligned to its edge with 10px of space: the name at 15px in full ink and the role at 13px in the soft ink, up to two lines. Rows are 36px apart. A leftover tile in the last row stays at the left; it is not centred. No hover lift and no social icons.",
+   "mobile": "Two columns with 8px gaps; tiles stay 4:5 with names at 14px beneath. For more than ten people, switch to three columns and show the name only. The heading sits above at 24px. Tints keep their rotation, so the grid reads as a checkerboard of colours.",
+   "seenIn": [
+    "opl-compile",
+    "opl-select26",
+    "opl-alterg-resources"
+   ]
+  },
+  {
+   "id": "contact-photo-strip-three-cell-bar",
+   "role": "contact",
+   "name": "Photo strip, three-cell bar",
+   "shape": "strip",
+   "tags": [
+    "colour-field",
+    "photo-led",
+    "dense"
+   ],
+   "directions": [
+    "colour-chapters",
+    "loud-flat-poster",
+    "dense-tiles",
+    "specimen-catalogue",
+    "contact-sheet"
+   ],
+   "needs": [],
+   "blueprint": "A saturated flat field about 80svh tall. Across the top, 48px from the section edge, a strip of small photographs runs off both sides: all 150px tall at differing widths (3:4, 1:1, 3:2 in turn), 8px gaps, ten or more, drifting slowly as a marquee. A heading of two to four words at clamp(36px, 4vw, 60px) sits 72px below the strip at the left margin. 40px below the heading, the newsletter or booking form is one bar spanning the content width, 96px tall, divided into three equal cells with 8px gaps. Each cell is a filled block in a tone one step from the field with one radius: the first two are inputs (name, email) with placeholder text centred at 18px, the third is the submit action in the inverse colours with its word centred. Focus changes a cell's fill to the lightest tone. Small print at 13px sits under the first and third cells.",
+   "mobile": "The strip is 110px tall and scrolls by touch. The heading follows at 9vw. The three cells stack as full-width filled blocks 60px tall with 8px gaps, the submit block last. Small print sits beneath the stack, left-aligned.",
+   "seenIn": [
+    "aww-paul-kalkbrenner"
+   ]
+  },
+  {
+   "id": "footer-row-of-tiles",
+   "role": "footer",
+   "name": "A footer of tiles",
+   "shape": "grid",
+   "tags": [
+    "dense",
+    "colour-field"
+   ],
+   "directions": [
+    "dense-tiles",
+    "colour-chapters",
+    "product-performs",
+    "contact-sheet",
+    "specimen-catalogue"
+   ],
+   "needs": [],
+   "blueprint": "The footer is the last two rows of a board: filled tiles with 8px gaps and 8–12px outer margins, every cell used. Upper row, each tile 220px tall: a statement tile in columns 1–4 with one sentence at 24px top-left and the legal text at 12px bottom-left; a navigation tile in columns 5–7 with a plain list at 16px; a tile in columns 8–9 giving the city and local time as text; an email tile in columns 10–12 with the address at 20px as a link, bottom-left. Lower row, 320px tall: a tile in the ink colour spanning columns 1–8 with the wordmark set large (about 9vw) and centred, and a tile in the accent colour in columns 9–12 with a two-to-four-word invitation top-left at 28px and an arrow, drawn as inline SVG with 4px strokes, in its bottom-right corner; the whole accent tile is a link.",
+   "mobile": "Two columns of tiles with 6px gaps: the wordmark tile full width first at 160px tall, the accent tile full width next, then navigation and email side by side, then time and statement. Every tile keeps 20px padding and top-left text.",
+   "seenIn": [
+    "aww-aspen-search",
+    "aww-oimachi"
+   ]
+  }
+ ],
+ "references": [
+  {
+   "id": "opl-humanoid-index",
+   "name": "Humanoid Index",
+   "url": "https://humanoid-index.com/",
+   "source": "One Page Love",
+   "kind": "other",
+   "score": 7.2,
+   "idea": "A catalogue of humanoid robots as a single-screen instrument: spin a wheel of names and one specimen appears on a plain card, ready to compare.",
+   "mood": [
+    "clinical",
+    "quiet",
+    "utilitarian",
+    "curious"
+   ],
+   "archetype": "product-object-centre",
+   "hero": "A white, app-like screen with no headline. Top centre: a small segmented pill control with three categories and grey counts. Dead centre: a pale-grey rounded card about 400 by 455px holding one cut-out robot; above its top-left, a tiny maker logo with name, year and company at 13px; below it, a pill toolbar of four line icons. To its right, a paler empty card with a plus button labelled 'Compare'. Left of the card, a vertical wheel of robot names: the selected one black at 20px, the rest shrinking, fading and tilting along an arc. At the far left, mid-height: a logo glyph, a grid toggle and two credit lines.",
+   "type": "Geist Sans Regular only, between 12 and 20px with -0.04em tracking. Hierarchy comes from grey value and opacity rather than size or weight; the selected name at 20px is the largest text on the page. No display type at all.",
+   "colour": "#ffffff #f9f9f9 #1c1c1c #9b9b9b #f1b80e — White page, off-white cards, black and grey text. All colour arrives through the robots themselves, such as one yellow model.",
+   "imagery": "Cut-out product shots and renders of robots, full figure, centred with even padding on identical off-white rounded cards, held at one scale and stance so models compare like specimens. A grey two-blob skeleton shows while loading.",
+   "layout": "One fixed viewport with no sections: centred card, compare slot to its right, name wheel to its left, controls parked at top centre and far left. Roughly 60% of the screen is empty white. Scrolling changes the selection, not the position.",
+   "sections": [
+    {
+     "role": "work",
+     "description": "The index is a wheel picker rather than a grid: about nine names are stacked vertically to the left of the card, right-aligned on a shallow arc. The active name is full black at 20px; neighbours step down in size, fade to light grey and tilt progressively, as if on a drum. Scrolling rotates the drum and swaps the card image, and the line above the card updates with the maker's logo, year and company."
+    },
+    {
+     "role": "other",
+     "description": "On mobile the layout becomes a horizontal card carousel: a white rounded card nearly the full viewport tall holds the robot, the next card peeks about 30px at the right, and a bottom sheet with a drag handle carries a maker icon, the model name at about 28px with the year in grey beside it, the company beneath and a position counter right-aligned."
+    }
+   ],
+   "steal": [
+    "Replace a thumbnail grid with a vertical wheel of names whose items shrink, fade and tilt away from the selection.",
+    "Hold every catalogue item at the same scale and stance on an identical off-white card so differences read instantly.",
+    "Keep all text between 12 and 20px and build hierarchy from grey values, leaving the object as the only large thing on screen."
+   ]
+  },
+  {
+   "id": "aww-butter",
+   "name": "Butter",
+   "url": "https://www.butter.video/",
+   "source": "Awwwards Site of the Day",
+   "kind": "saas",
+   "score": 7.6,
+   "idea": "A video editor presented as a bunch of collectable objects: 3D keychain charms in the hero and squircle effect tiles that behave like app icons everywhere else.",
+   "mood": [
+    "playful",
+    "glossy",
+    "confident",
+    "minimal",
+    "tactile"
+   ],
+   "archetype": "other: hanging-object-above-centred-statement",
+   "hero": "Soft grey vertical gradient, darker at the top, fading to near-white. Two floating light-grey rounded capsules form the nav: the left holds the script logo, five links and a kebab; the right holds Login and a black button. A 3D bunch of keychain charms (orange carabiner, black letter keycap, chrome ring, magenta disc, steel key, green script tag) hangs from the top edge at centre, overlapping the nav and stopping just above the headline. The headline is one centred line at 7.5vw in regular-weight grotesk spanning 75% of the width, with a 24px sub-line and a black rounded-rectangle button beneath. The bottom 35% is empty.",
+   "type": "DieGrotesk regular at 107px for the one-line headline, near-zero tracking, mixed case; the same face at 24px and 16px below, so a 4.5x then 1.5x step. ABC Diatype for tiny labels inside product panels. The logo is brush-script lettering used as an image.",
+   "colour": "#e8e8e8 #f5f5f5 #1e1e1e #0a0909 #ff3fd8 #19e319 — Grey-to-white ground with black type and black product panels. Saturated colour (magenta, green, orange, holographic pastels) appears only on 3D objects, effect tiles and the footer wordmark.",
+   "imagery": "Live 3D charms with chrome and plastic materials; black editor UI panels with 24px radius; many small squircle video tiles showing halftone, glitch and type-poster effects; a full-width extruded script wordmark.",
+   "layout": "96px side margins for the nav capsules, a centred content column and very large vertical gaps between blocks. Light grey throughout, with black product panels sliding in from below; ends on a full-bleed wordmark.",
+   "sections": [
+    {
+     "role": "intro",
+     "description": "A single row of seven client logos in black spans the full width, then a long gap, then a centred three-line statement at about 32px, roughly 580px wide, with five small squircle thumbnails (app-icon sized, each a different texture or brand tile) set inline between words like emoji. Words resolve from blurred pale grey to sharp black with scroll, so the last line is still soft and tinted."
+    },
+    {
+     "role": "showcase",
+     "description": "A black rounded panel about 690px wide slides up from below: a timeline with timecode, ruler ticks and a track of squircle clips, each clip a vivid texture (halftone horse, glitch stripes, red type poster). One clip is lifted out of the track, enlarged and rotated a few degrees, overlapping the panel's top edge. A second black panel shows a labelled library grid of the same tiles."
+    },
+    {
+     "role": "footer",
+     "description": "Text link columns sit at the top; below them the script wordmark is blown up to the full width and cropped by the bottom edge, drawn in solid black with a thick extruded underside in a holographic pink, blue and cyan gradient and a registered mark at its top right."
+    }
+   ],
+   "steal": [
+    "Hang a cluster of 3D branded charms from the top edge so it overlaps the nav and points down at a one-line headline.",
+    "Set small squircle thumbnails inline between the words of a statement and resolve the words from blurred to sharp on scroll.",
+    "End on the script wordmark at full width with a holographic extruded underside, cropped by the bottom edge."
+   ],
+   "media": "A 3D keyring about 380x340 hangs from the top edge over the centred headline, about 15% of the fold. After that video is the main medium, 45 muted looping product recordings and client clips in 32px-radius frames: 641px splits alternating sides, a dark app window that pans in from the right in a pinned section, stacked videos swapped by a tab list, and a rail of 9:16 clips bleeding off both edges; no video in the hero.",
+   "motion": "About 2-2.5s of empty grey before the nav, keyring and headline arrive, the headline split into characters that fade and rise. Lenis; one 1800px pinned section slides the statement off left while the app window grows to nearly full width; word spans rise over 0.8s cubic-bezier(0,0,0,1) on 100 elements, four cards stagger in at 0.2-0.5s delays, and the ground steps from #fafafa to #ededed over 1s."
+  },
+  {
+   "id": "opl-le-petit-bleu",
+   "name": "Le Petit Bleu",
+   "url": "https://www.lepetitbleucafe.com/",
+   "source": "One Page Love",
+   "kind": "restaurant",
+   "score": 7.8,
+   "idea": "The cafe's teal-and-white stripes become the whole system: one teal ink on cream, everything boxed in thin double outlines like printed menu cards, beside a permanently visible photo of the room.",
+   "mood": [
+    "cheerful",
+    "charming",
+    "retro",
+    "tidy",
+    "sunny"
+   ],
+   "archetype": "split-text-media",
+   "hero": "Viewport split 50/50 with 12px gaps. Left: a cream panel with a thin pale-teal outline and rounded corners. Inside, a second outlined box is the nav bar: two-line hamburger left, teal brush-script logo about 300px wide centred, a caps order link right. Below, a two-line light serif headline at about 3.5vw, centred, in teal, then two centred stacks, each a bold caps label, a serif line and a solid teal button wrapped in a second thin outline. Right: a full-height rounded photo of a striped booth, with an outlined hours bar across its top, three slide dots bottom-left and a white address card bottom-right.",
+   "type": "Self Modern, a light bookish serif, for headline and 15px body; Matter SQ bold caps for labels and buttons; Archive Mono Pro typewriter caps for menu rows; a brush-script logo. Section titles are tall condensed serif caps sized so four to seven letters fill the column.",
+   "colour": "#fcfbf7 #13a7b2 #058599 #cfe5e7 #e9b81f — Cream paper and a single teal used for every word, rule, outline and button; no black anywhere. Yellow, floral reds and marble enter only through the interior photographs.",
+   "imagery": "Bright, saturated interior and food photographs; the right-hand panel is a full-height slideshow with rounded corners. Small food shots sit in a horizontal strip, and a fine line drawing of the shopfront with one teal awning fills a card.",
+   "layout": "The left half scrolls as a stack of outlined cream cards (full-width or two-up) with 12px gaps while the right half stays fixed. Card contents are centred. A sticky nav card rides over the stack. On mobile the photo becomes the hero card's background.",
+   "sections": [
+    {
+     "role": "list",
+     "description": "A card containing only the section word in tall condensed serif caps, teal, sized so its four letters fill the column edge to edge. Below it, a stack of full-width outlined rows about 36px high, each with a category name in typewriter mono caps at left and a thin plus sign at right, separated by 6px gaps. Above the title: a ticker row of tiny caps and a strip of four small food photos with rounded corners."
+    },
+    {
+     "role": "about",
+     "description": "The same giant condensed title treatment, then centred serif paragraphs in teal with underlined links in a narrow measure of about 280px. Further down, a landscape photo of the two proprietors with a centred two-line caption in tiny sans, followed by more centred paragraphs. All of it lives in the left half while the right photo panel has advanced to a shelf-wall image."
+    },
+    {
+     "role": "gallery",
+     "description": "A header row with a tiny bold caps label at left and a script follow-us link with arrow at right, then three portrait images (about 3:5) with 12px rounded corners in a row, the third cropped by the column edge to imply a carousel. Directly below, the next giant section title begins and is cropped by the viewport."
+    }
+   ],
+   "steal": [
+    "Print everything in one brand ink on cream, including body text, rules and buttons, and let photographs supply the other colours.",
+    "Wrap buttons and panels in a second thin outline offset by a few pixels to get a printed-ticket feel.",
+    "Keep a tall photo panel fixed on one half and scroll a stack of cards on the other, swapping the photo as sections change."
+   ]
+  }
+ ],
+ "scenes": []
+}
