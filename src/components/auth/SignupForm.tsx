@@ -70,6 +70,9 @@ export function SignupForm({ next }: { next: string }) {
           </Link>
           .
         </Checkbox>
+        <Checkbox name="confirmAge" error={state?.fieldErrors?.confirmAge}>
+          I&apos;m 18 or older.
+        </Checkbox>
         <Checkbox name="marketingOptIn">
           Email me the occasional deal. Unticked by default — you can change this any time.
         </Checkbox>

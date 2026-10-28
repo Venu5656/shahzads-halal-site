@@ -20,6 +20,32 @@ real customer until the items marked **BLOCKER** are answered.
 | 9 | **Privacy policy and terms pages — a lawyer's review.** Drafts are now live at `/legal/terms` and `/legal/privacy`, describing what the software actually does with personal data. They are marked as drafts on the page and are not binding text. Sign-up requires ticking a box that links to both. Twilio will also ask to see them if you ever register for SMS. | `src/app/legal/` | Before launch |
 | 10 | **Owner's email and phone number** for the first `OWNER` account. | `prisma/seed.ts` reads `SEED_OWNER_EMAIL` and `SEED_OWNER_PHONE`; nothing is created without them. | Phase 2 |
 
+## Compliance — what is done, and what still needs a lawyer
+
+Done in code, because each was a real gap and cheap to close:
+
+| | |
+|---|---|
+| **Minimum age** | Sign-up now requires confirming 18 or older, as its own tick rather than bundled with the terms. An account exists to pay for food, and a minor cannot form that contract. |
+| **Unsubscribe** | `marketingOptIn` had been collecting consent since phase 2 with **no way to withdraw it from an email**. There is now a signed, no-login opt-out link, a one-click endpoint mail clients can drive, and a marketing template that cannot be built without the footer. |
+| **Postal address** | Already present in every template; now also in the marketing footer and on the unsubscribe page. |
+| **Third-party on first paint** | The Google map no longer loads until someone clicks it, so no visitor's IP reaches Google for a map they never looked at. The address and directions work without it. |
+
+Checked and **not** applicable to this site, despite being commonly listed:
+
+- **No analytics or session replay of any kind** is installed, so the California wiretapping suits aimed at session recording do not apply.
+- **Fonts are self-hosted** and a test enforces it, so the German Google Fonts rulings do not apply.
+- **No subscriptions** — every order is a one-off, so auto-renewal disclosure law does not apply.
+- **No user uploads** — there is no avatar or image upload anywhere, so a DMCA agent registration buys nothing yet. It would be needed the day uploads are added.
+
+Still needs a lawyer, and code cannot settle it:
+
+| # | Question |
+|---|----------|
+| L1 | **The terms and privacy drafts have never been reviewed.** They describe what the software does accurately, but they are not binding text and are still marked as drafts. |
+| L2 | **Account deletion.** Orders deliberately do not cascade from a user, so closing an account is currently blocked by its own order history. Financial records usually must be kept; a deletion request needs a defined policy, not a cascade. |
+| L3 | **Whether anything here needs to hold up for a customer outside the US.** Everything above assumes a New Brunswick pickup counter serving local customers. |
+
 ## Decisions I made in phase 2
 
 1. **Phone number + password**, at your instruction to drop SMS codes. Accounts

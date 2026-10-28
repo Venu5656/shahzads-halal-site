@@ -228,3 +228,78 @@ export function receiptEmail(options: {
 </html>`,
   };
 }
+
+/**
+ * A marketing email.
+ *
+ * Separate from the three transactional templates because the rules are
+ * different, and because the difference is easy to forget at the moment
+ * somebody wants to send an offer. A receipt is sent whether or not anyone
+ * opted in; an offer may only go to someone who did, and must carry a way out
+ * and a real postal address.
+ *
+ * This is the only way to build one. It takes a `userId` rather than letting
+ * the caller pass a footer, so an offer without an unsubscribe link cannot be
+ * assembled by accident — there is no argument that would produce one.
+ */
+export function marketingEmail(options: {
+  to: string;
+  userId: string;
+  name: string;
+  subject: string;
+  heading: string;
+  body: string[];
+  buttonLabel: string;
+  url: string;
+  unsubscribeUrl: string;
+}): Mail {
+  const paragraphs = options.body
+    .map(
+      (line) =>
+        `<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${BRAND.cream}">${escapeHtml(line)}</p>`,
+    )
+    .join("");
+
+  return {
+    to: options.to,
+    tag: "marketing",
+    subject: options.subject,
+    headers: {
+      "List-Unsubscribe": `<${options.unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    text: [
+      `Hi ${options.name},`,
+      "",
+      ...options.body,
+      "",
+      options.url,
+      "",
+      "—",
+      "You're getting this because you asked for offers when you made your account.",
+      "Stop getting them, in one click:",
+      options.unsubscribeUrl,
+      "",
+      "Shahzad's Halal Food",
+      "152 Easton Ave, New Brunswick, NJ 08901 · (848) 202-1430",
+    ].join("\n"),
+    html: `<!doctype html>
+<html lang="en">
+<body style="margin:0;padding:32px 16px;background:${BRAND.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <div style="max-width:520px;margin:0 auto;background:${BRAND.card};border:1px solid ${BRAND.line};border-radius:18px;padding:36px 32px">
+    <div style="font-size:13px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:${BRAND.gold};margin-bottom:22px">Shahzad's Halal Food</div>
+    <h1 style="margin:0 0 20px;font-size:26px;line-height:1.25;color:${BRAND.cream}">${escapeHtml(options.heading)}</h1>
+    ${paragraphs}
+    <p style="margin:28px 0">
+      <a href="${options.url}" style="display:inline-block;padding:15px 28px;border-radius:999px;background:${BRAND.red};color:#ffffff;font-weight:700;font-size:16px;text-decoration:none">${escapeHtml(options.buttonLabel)}</a>
+    </p>
+    <p style="margin:0;padding-top:20px;border-top:1px solid ${BRAND.line};font-size:13px;line-height:1.6;color:${BRAND.muted}">
+      You&rsquo;re getting this because you asked for offers when you made your account.
+      <a href="${options.unsubscribeUrl}" style="color:${BRAND.gold}">Unsubscribe in one click</a> — it takes effect straight away, and you&rsquo;ll still get receipts for anything you order.
+    </p>
+    <p style="margin:16px 0 0;font-size:12px;line-height:1.6;color:${BRAND.muted}">Shahzad's Halal Food, 152 Easton Ave, New Brunswick, NJ 08901 &middot; (848) 202-1430</p>
+  </div>
+</body>
+</html>`,
+  };
+}

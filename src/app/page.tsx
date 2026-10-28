@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CartButton } from "@/components/cart/CartButton";
+import { MapEmbed } from "@/components/ui/MapEmbed";
 import { DrawerAuth, NavAuth } from "@/components/home/AuthNav";
 import HomeInteractions from "@/components/home/HomeInteractions";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -471,11 +472,7 @@ export default async function HomePage() {
                 </div>
               </div>
               <div className="map reveal">
-                <iframe
-                  title="Map to Shahzad's Halal Food"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src="https://maps.google.com/maps?q=152%20Easton%20Ave%2C%20New%20Brunswick%2C%20NJ%2008901&z=16&output=embed"
-                ></iframe>
+                <MapEmbed />
               </div>
             </div>
 

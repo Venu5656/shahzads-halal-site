@@ -13,6 +13,7 @@ const validSignup = {
   email: "aisha@example.com",
   password: "a good enough password",
   acceptTerms: "on",
+  confirmAge: "on",
   marketingOptIn: null,
 };
 
@@ -27,6 +28,7 @@ describe("signupSchema", () => {
       email: "aisha@example.com",
       password: "a good enough password",
       acceptTerms: true,
+      confirmAge: true,
       marketingOptIn: false,
     });
   });
@@ -150,5 +152,18 @@ describe("profileSchema", () => {
     expect(profileSchema.safeParse({ name: "Sam", email: "", marketingOptIn: null }).success).toBe(
       false,
     );
+  });
+});
+
+describe("the age confirmation", () => {
+  it("is required, and is its own tick rather than part of the terms", () => {
+    const r = signupSchema.safeParse({ ...validSignup, confirmAge: null });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const errors = fieldErrorsFrom(r.error);
+      expect(errors.confirmAge).toMatch(/18 or older/);
+      // Accepting the terms must not be taken as confirming an age.
+      expect(errors.acceptTerms).toBeUndefined();
+    }
   });
 });

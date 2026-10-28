@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { countFor, toPath, waitForLink } from "./outbox";
 
 /**
@@ -63,6 +65,7 @@ async function signUp(page: Page, name: string, account: Account, password = PAS
   await page.getByLabel("Mobile number").fill(account.typed);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByLabel(/I agree to the/).check();
+  await page.getByLabel(/I'm 18 or older/).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await settled(page, "/signup");
 }
@@ -550,6 +553,74 @@ test("the homepage offers log in and sign up, then shows the account", async ({
     await expect(page.locator("#nav").getByRole("link", { name: /Yusuf/ })).toBeVisible();
     await expect(page.locator("#nav").getByRole("link", { name: "Log in" })).toHaveCount(0);
   }
+
+  await wipe(acc);
+});
+
+/** The unsubscribe signature, computed the way the server does. */
+function signUnsubscribe(userId: string): string {
+  const secret = readFileSync(".env", "utf8").match(/^AUTH_SECRET="?([^"\n]+)"?/m)?.[1];
+  if (!secret) throw new Error("AUTH_SECRET not found in .env");
+  return createHmac("sha256", secret).update(`unsubscribe:v1\u0000${userId}`).digest("hex");
+}
+
+// ------------------------------------------------- age and unsubscribing
+
+test("will not open an account without confirming an age", async ({ page }) => {
+  const acc = accountFor(30);
+  await wipe(acc);
+
+  await page.goto("/signup");
+  await page.getByLabel("Your name").fill("Too Young");
+  await page.getByLabel("Email", { exact: true }).fill(acc.email);
+  await page.getByLabel("Mobile number").fill(acc.typed);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByLabel(/I agree to the/).check();
+  // The age box is deliberately left unticked.
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(page.locator("main")).toContainText("18 or older");
+  await expect(page).toHaveURL(/\/signup/);
+  expect(await prisma.user.count({ where: { email: acc.email } })).toBe(0);
+
+  await wipe(acc);
+});
+
+test("turns marketing email off from a link, with nobody signed in", async ({ page, context }) => {
+  const acc = accountFor(31);
+  await wipe(acc);
+  await registerAndLogIn(page, "Opted In", acc);
+
+  // Opt in the way the account page would.
+  await prisma.user.update({ where: { email: acc.email }, data: { marketingOptIn: true } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
+
+  // Signed here rather than imported: the module is server-only, and a test
+  // that recomputes the signature independently is a better check anyway.
+  await context.clearCookies();
+  await page.goto(`/api/unsubscribe?u=${user.id}&s=${signUnsubscribe(user.id)}`);
+  await expect(page.locator("main")).toContainText("off the list");
+
+  const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  expect(after.marketingOptIn).toBe(false);
+
+  await wipe(acc);
+});
+
+test("ignores an unsubscribe link signed for somebody else", async ({ page }) => {
+  const acc = accountFor(32);
+  await wipe(acc);
+  await registerAndLogIn(page, "Still Subscribed", acc);
+  await prisma.user.update({ where: { email: acc.email }, data: { marketingOptIn: true } });
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
+
+  const wrong = signUnsubscribe("usr_someone_else");
+  await page.goto(`/api/unsubscribe?u=${user.id}&s=${wrong}`);
+
+  // The page sets a typographic apostrophe, so match on the half that has none.
+  await expect(page.locator("main")).toContainText("That link");
+  const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  expect(after.marketingOptIn).toBe(true);
 
   await wipe(acc);
 });

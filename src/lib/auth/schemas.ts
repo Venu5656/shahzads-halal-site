@@ -112,6 +112,12 @@ export const signupSchema = z
     email: emailSchema,
     password: newPasswordSchema,
     acceptTerms: requiredCheckboxSchema("Accept the terms to continue."),
+    // Kept separate from the terms rather than bundled into one tick:
+    // consent to two different things collected by one checkbox is worth
+    // nothing, and the age is the one an account actually turns on.
+    confirmAge: requiredCheckboxSchema(
+      "You need to be 18 or older to open an account and pay online.",
+    ),
     marketingOptIn: checkboxSchema,
   })
   // The only rule that needs two fields: don't let the password be the number.

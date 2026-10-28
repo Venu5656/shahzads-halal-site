@@ -27,6 +27,12 @@ export type Mail = {
   subject: string;
   text: string;
   html: string;
+  /**
+   * Extra headers, such as List-Unsubscribe. A mail client shows its own
+   * unsubscribe button from these, which a reader trusts more than a link
+   * in a footer.
+   */
+  headers?: Record<string, string>;
   /** Only for the outbox, so tests can find the message they want. */
   tag: string;
 };
@@ -87,6 +93,7 @@ async function sendViaResend(mail: Mail): Promise<SendResult> {
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
+        ...(mail.headers ? { headers: mail.headers } : {}),
       }),
       // A hung mail provider must not hold a signup open forever.
       signal: AbortSignal.timeout(10_000),

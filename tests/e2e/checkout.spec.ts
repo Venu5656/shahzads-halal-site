@@ -46,6 +46,7 @@ async function registerAndLogIn(page: Page, name: string, account: Account) {
   await page.getByLabel("Mobile number").fill(account.typed);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByLabel(/I agree to the/).check();
+  await page.getByLabel(/I'm 18 or older/).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await page.goto(toPath(await waitForLink(account.email, "verify", before)));
 

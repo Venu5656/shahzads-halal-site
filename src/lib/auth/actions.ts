@@ -54,6 +54,7 @@ export async function signup(_prev: FormState, form: FormData): Promise<FormStat
     ...values,
     password: field(form, "password") ?? "",
     acceptTerms: form.get("acceptTerms"),
+    confirmAge: form.get("confirmAge"),
     marketingOptIn: form.get("marketingOptIn"),
   });
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), values };
