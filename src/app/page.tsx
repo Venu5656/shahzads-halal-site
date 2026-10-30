@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CartButton } from "@/components/cart/CartButton";
 import { MapEmbed } from "@/components/ui/MapEmbed";
+import { SpinningPlate, type Plate } from "@/components/home/SpinningPlate";
 import { DrawerAuth, NavAuth } from "@/components/home/AuthNav";
 import HomeInteractions from "@/components/home/HomeInteractions";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -35,6 +36,19 @@ const ArrowIcon = () => (
 
 export default async function HomePage() {
   const [user, menu] = await Promise.all([getCurrentUser(), getMenu()]);
+
+  // Only the platters: they are the dishes photographed top-down, and a
+  // three-quarter photograph set spinning reads as a sticker turning rather
+  // than a plate.
+  const plates: Plate[] = (menu.find((c) => c.slug === "platters")?.items ?? [])
+    .filter((item) => item.imagePath.includes("/plate/"))
+    .map((item) => ({
+      slug: item.slug,
+      name: item.name,
+      description: item.description,
+      imagePath: item.imagePath,
+      priceCents: item.basePriceCents,
+    }));
 
   // The homepage shows a handful, drawn with the original card markup; the
   // whole menu lives at /menu, so duplicating it here would just be a longer
@@ -101,6 +115,8 @@ export default async function HomePage() {
       </div>
 
       <main id="top">
+        {plates.length ? <SpinningPlate plates={plates} /> : null}
+
         <section className="hero">
           <canvas id="embers"></canvas>
           <div className="wrap">

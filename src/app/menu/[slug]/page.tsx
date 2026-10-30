@@ -46,6 +46,7 @@ export default async function MenuItemPage({ params }: { params: Promise<{ slug:
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.imagePath}
+              data-dish-image=""
           alt=""
           className={`size-full object-contain p-6 ${cutoutShadow(item.imagePath, "lg")}`}
         />

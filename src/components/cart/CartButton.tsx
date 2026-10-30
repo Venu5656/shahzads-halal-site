@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "./CartProvider";
+import { CART_TARGET_ATTR } from "./FlyToCart";
 
 /**
  * The header's cart control. Renders in both headers — the homepage's legacy
@@ -13,6 +14,7 @@ export function CartButton({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={open}
+      {...{ [CART_TARGET_ATTR]: "" }}
       aria-label={itemCount ? `Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}` : "Cart"}
       className={`relative inline-flex items-center gap-2 rounded-full border border-line bg-cream/5 px-4 py-2.5 text-[15px] font-bold text-cream transition-colors duration-300 hover:border-line-strong ${className}`}
     >

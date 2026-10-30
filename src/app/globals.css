@@ -34,6 +34,10 @@
   --color-cream: #f6ecdc;
   --color-muted: #b3a393;
   --color-brand: #e23a2f;
+  /* The brand red fails white text at 4.30:1. Three points darker clears the
+   * 4.5:1 floor and is indistinguishable beside it. For buttons only; the
+   * brand red itself is untouched. */
+  --color-brand-ink: #dc372d;
   --color-brand-2: #ff5a3c;
   --color-gold: #f5b53d;
   --color-herb: #8bbf5a;
@@ -465,4 +469,15 @@ footer p{color:var(--muted);font-size:14px}
       display: none;
     }
   }
+}
+
+/* ---------------------------------------------------------------- the plate
+ * Its slow turn is a keyframe rather than a motion animation: it runs for the
+ * whole visit, so the compositor should own it and JavaScript should never
+ * wake for it. It sits on its own element inside the one motion drives, so
+ * the two transforms compose instead of fighting over `transform`. */
+@keyframes plate-turn { to { transform: rotate(360deg); } }
+.plate-turn { animation: plate-turn 26s linear infinite; will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .plate-turn { animation: none; }
 }

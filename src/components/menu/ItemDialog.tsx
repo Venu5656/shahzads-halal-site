@@ -45,6 +45,7 @@ export function ItemDialog({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={item.imagePath}
+              data-dish-image=""
               alt=""
               className={`size-full object-contain p-4 ${cutoutShadow(item.imagePath, "md")}`}
             />

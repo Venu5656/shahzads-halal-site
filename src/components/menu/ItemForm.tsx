@@ -10,6 +10,7 @@ import {
   type PricedItem,
 } from "@/lib/menu/pricing";
 import { useCart } from "@/components/cart/CartProvider";
+import { useFlyToCart } from "@/components/cart/FlyToCart";
 
 export type ItemFormItem = PricedItem & {
   description: string;
@@ -38,6 +39,7 @@ export function ItemForm({
   autoFocus?: boolean;
 }) {
   const { add, open } = useCart();
+  const flyToCart = useFlyToCart();
 
   // Required single-choice groups start on their first option, so the cheapest
   // configuration is always valid and the total is never blank.
@@ -86,6 +88,10 @@ export function ItemForm({
       return;
     }
     add({ itemSlug: item.slug, optionIds: selected, quantity, note: note.trim() || null });
+    // The dish flies only once it is genuinely in the cart, and the picture it
+    // flies is whichever one this screen is showing — the dialog's or the item
+    // page's. Decoration: nothing below waits on it.
+    flyToCart(document.querySelector<HTMLElement>("[data-dish-image]"));
     open();
     onAdded?.();
   };

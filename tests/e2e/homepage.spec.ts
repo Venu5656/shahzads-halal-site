@@ -13,7 +13,8 @@ test("renders the ported homepage", async ({ page }) => {
   await page.goto("/");
 
   await expect(page).toHaveTitle(/Shahzad's Halal Food/);
-  await expect(page.locator("h1")).toContainText("Stacked.");
+  // Scoped: the plate hero above it carries its own heading.
+  await expect(page.locator(".hero h1")).toContainText("Stacked.");
 
   // The teaser grid, the sauces and the hours list are all script-built. The
   // grid shows a handful of real dishes from the database; the whole menu
@@ -72,4 +73,61 @@ test("self-hosts its fonts and images", async ({ page }) => {
 
   await page.goto("/", { waitUntil: "networkidle" });
   expect(external).toEqual([]);
+});
+
+// --------------------------------------------------- the spinning platters
+
+test("cycles the platters, and only the platters", async ({ page }) => {
+  await page.goto("/");
+  const stage = page.getByRole("region", { name: "Tonight's platters" });
+  await expect(stage).toBeVisible();
+
+  const dish = stage.getByRole("heading", { level: 2 }).first();
+  const first = (await dish.innerText()).trim();
+
+  await page.getByLabel("Next platter").click();
+  await expect.poll(async () => (await dish.innerText()).trim()).not.toBe(first);
+
+  await page.getByLabel("Previous platter").click();
+  await expect.poll(async () => (await dish.innerText()).trim()).toBe(first);
+
+  // Every picture on the stage is a top-down plate; nothing else may spin.
+  for (const src of await stage.locator("img").evaluateAll((els) =>
+    els.map((e) => (e as HTMLImageElement).getAttribute("src") ?? ""),
+  )) {
+    expect(src).toContain("/img/menu/plate/");
+  }
+});
+
+test("the page keeps exactly one h1", async ({ page }) => {
+  await page.goto("/");
+  // The plate's dish name changes when you press an arrow, so it is content
+  // and not the title of the page.
+  await expect(page.locator("h1")).toHaveCount(1);
+  await expect(page.locator("h1")).toContainText("Stacked.");
+});
+
+test("jumping to a platter by name swaps the plate", async ({ page }) => {
+  await page.goto("/");
+  const stage = page.getByRole("region", { name: "Tonight's platters" });
+
+  await stage.getByRole("button", { name: "Lamb over Rice" }).click();
+  await expect(stage.getByRole("heading", { level: 2 })).toContainText("Lamb over Rice");
+  await expect(stage.locator("img").first()).toHaveAttribute(
+    "src",
+    /\/plate\/lamb-over-rice\.webp$/,
+  );
+});
+
+test("the plate stops turning for anyone who asks for less motion", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  const turn = page.locator(".plate-turn").first();
+  await expect(turn).toBeVisible();
+  // The keyframe is switched off in CSS, not merely paused by script.
+  expect(await turn.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+
+  await context.close();
 });

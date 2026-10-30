@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CartPanel } from "@/components/cart/CartPanel";
 import { CartProvider, type CartMenuIndex } from "@/components/cart/CartProvider";
+import { FlyToCartProvider } from "@/components/cart/FlyToCart";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { loadCart } from "@/lib/cart/actions";
 import { getMenuItems } from "@/lib/menu/queries";
@@ -51,8 +52,10 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <CartProvider menu={menuIndex} initialLines={lines} isSignedIn={Boolean(user)}>
+          <FlyToCartProvider>
           {children}
           <CartPanel />
+        </FlyToCartProvider>
         </CartProvider>
       </body>
     </html>
