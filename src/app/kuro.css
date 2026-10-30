@@ -1,0 +1,127 @@
+/* ---------------------------------------------------------------------------
+ * The dark-counter design.
+ *
+ * Its own stylesheet and its own tokens, sharing nothing with the ported
+ * homepage. That page is a loud red-and-gold street sign; this one is a quiet
+ * near-black room with one orange light in it, and mixing the two would give
+ * neither. Nothing here reads a brand token, and the legacy layer is not
+ * involved — these pages use no legacy class.
+ *
+ * Three faces, each with one job: a high-contrast serif for the dish, a
+ * monospace for the small capital labels, and the existing sans for anything
+ * anyone has to read at length.
+ * ------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Playfair Display";
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/playfair-display-latin-500-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2");
+}
+
+.kuro {
+  --bg: #0a0908;
+  --bg-raised: #131110;
+  --bg-panel: #181514;
+  --ink: #f2ece4;
+  --muted: #8b8179;
+  --muted-dim: #5d564f;
+  --accent: #e8622c;
+  --accent-soft: rgb(232 98 44 / 0.14);
+  --line: rgb(242 236 228 / 0.08);
+  --line-strong: rgb(242 236 228 / 0.18);
+
+  --serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "DM Sans", system-ui, sans-serif;
+
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100svh;
+}
+
+/* A label in small capitals: the recurring device of this design. Used for
+ * categories, counters, ingredient kinds and the ticker, never for prose. */
+.kuro-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kuro-label-accent { color: var(--accent); }
+
+.kuro-serif {
+  font-family: var(--serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+}
+
+/* The one lit control on the page. Its glow is a shadow rather than a filter,
+ * so it costs nothing to repaint and never blurs the label inside it. */
+.kuro-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 34px -8px rgb(232 98 44 / 0.75);
+  transition:
+    transform 0.4s var(--ease),
+    box-shadow 0.4s var(--ease);
+}
+.kuro-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 42px -8px rgb(232 98 44 / 0.9);
+}
+.kuro-cta:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* The plate's turn. A keyframe, so the compositor owns it and script never
+ * wakes for it; it sits inside the element motion drives so the two
+ * transforms compose rather than overwrite one another. */
+@keyframes kuro-turn {
+  to { transform: rotate(360deg); }
+}
+.kuro-turn {
+  animation: kuro-turn 30s linear infinite;
+  will-change: transform;
+}
+
+/* The ticker along the foot. Duplicated content scrolls by one half of its
+ * own width, which is what makes the loop seamless without measuring. */
+@keyframes kuro-ticker {
+  to { transform: translateX(-50%); }
+}
+.kuro-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: kuro-ticker 48s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kuro-turn,
+  .kuro-ticker-track {
+    animation: none;
+  }
+}
