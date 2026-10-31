@@ -162,3 +162,30 @@
 @media (prefers-reduced-motion: reduce) {
   .kuro-flare { animation: none; }
 }
+
+/* The sauce blob's slow morph, carried over from the ported homepage: a sauce
+ * is a colour and a consistency before it is a word, and a circle says
+ * neither. */
+@keyframes kuro-morph {
+  25%  { border-radius: 58% 42% 38% 62% / 55% 58% 42% 45%; }
+  50%  { border-radius: 38% 62% 55% 45% / 62% 38% 58% 42%; }
+  75%  { border-radius: 52% 48% 42% 58% / 38% 55% 45% 62%; }
+}
+.kuro-morph { animation: kuro-morph 12s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kuro-morph { animation: none; }
+}
+
+/* The marker at the current hour. A CSS keyframe rather than SVG <animate>:
+ * React treats SMIL attributes as ordinary props and reports a hydration
+ * mismatch on them, and a keyframe gives reduced-motion a switch for free. */
+@keyframes kuro-pulse {
+  0%, 100% { transform: scale(0.8); }
+  50%      { transform: scale(1.45); }
+}
+.kuro-pulse { animation: kuro-pulse 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kuro-pulse { animation: none; }
+}

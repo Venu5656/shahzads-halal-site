@@ -94,7 +94,16 @@ export function KuroHeader({ signedIn }: { signedIn: boolean }) {
           type="button"
           onClick={open}
           {...{ [CART_TARGET_ATTR]: "" }}
-          aria-label={itemCount ? `Order, ${itemCount} item${itemCount === 1 ? "" : "s"}` : "Order"}
+          /* `ready` guards this exactly as it guards the visible count: a
+             guest's cart lives in localStorage, so the server renders zero and
+             the client renders what it restored. Leaving the label ungated
+             makes the two disagree on an attribute, which React reports as a
+             hydration mismatch and cannot patch. */
+          aria-label={
+            ready && itemCount
+              ? `Order, ${itemCount} item${itemCount === 1 ? "" : "s"}`
+              : "Order"
+          }
           className="inline-flex items-center gap-2 rounded-full border px-3 py-2.5 text-[14px] transition-colors sm:gap-3 sm:px-4"
           style={{ borderColor: "var(--line-strong)", color: "var(--ink)" }}
         >

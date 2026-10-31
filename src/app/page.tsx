@@ -4,15 +4,14 @@ import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { StoreHero } from "@/components/kuro/StoreHero";
 import { PlateStage, type StagePlate } from "@/components/kuro/PlateStage";
 import { Ticker } from "@/components/kuro/Ticker";
-import { SauceRail } from "@/components/kuro/SauceRail";
-import { StoreClock } from "@/components/kuro/StoreClock";
+import { SauceStage } from "@/components/kuro/SauceStage";
+import { HoursDial } from "@/components/kuro/HoursDial";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { getMenu } from "@/lib/menu/queries";
 import { SAUCES } from "@/lib/menu-data";
 import {
   DAY_NAMES,
   HOURS,
-  WEEK_ORDER,
   fmtDuration,
   fmtHour,
   nyNow,
@@ -54,13 +53,11 @@ export default async function HomePage() {
       ? "Kitchen closing · ordering reopens in the morning"
       : `Closed · opens in ${fmtDuration(store.hoursUntilChange)}`;
 
-  const clockInitial = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date());
+  // Formatted exactly as HoursDial ticks it, or the first tick visibly
+  // rewrites the clock a second after the page settles.
+  const clockInitial = `${now.h % 12 || 12}:${String(now.m).padStart(2, "0")} ${
+    now.h < 12 ? "AM" : "PM"
+  }`;
 
   const today = HOURS[now.d]!;
   const closesLabel = store.open
@@ -83,91 +80,23 @@ export default async function HomePage() {
       <KuroHeader signedIn={Boolean(user)} />
 
       <main>
-        <StoreHero
-          closesLabel={closesLabel}
-          clock={
-            <StoreClock
-              initial={clockInitial}
-              statusLabel={statusLabel}
-              isOpen={ordering.canOrder}
-            />
-          }
-        />
+        <StoreHero closesLabel={closesLabel} statusLabel={statusLabel} isOpen={ordering.canOrder} />
 
         {plates.length ? <PlateStage plates={plates} /> : null}
 
-        <SauceRail
+
+        <SauceStage
           sauces={SAUCES.map((s) => ({
             slug: s.slug,
             name: s.name,
             color: s.color,
+            ink: s.ink,
             heat: s.heat,
             description: s.description,
           }))}
         />
 
-        {/* ------------------------------------------------------- the week */}
-        <section id="visit" className="px-6 py-24 sm:px-10">
-          <div className="mx-auto grid max-w-[1320px] gap-14 lg:grid-cols-2">
-            <div>
-              <p className="kuro-label kuro-label-accent">Visit</p>
-              <h2 className="kuro-serif mt-5 text-[clamp(38px,5vw,64px)]">
-                Seventeen hours
-                <br />a day.
-              </h2>
-              <address
-                className="mt-8 text-[16px] leading-[1.9] not-italic"
-                style={{ color: "var(--muted)" }}
-              >
-                152 Easton Ave
-                <br />
-                New Brunswick, NJ 08901
-                <br />
-                <a
-                  href="tel:+18482021430"
-                  className="underline-offset-4 hover:underline"
-                  style={{ color: "var(--accent)" }}
-                >
-                  (848) 202-1430
-                </a>
-              </address>
-              <p
-                className="mt-6 max-w-[38ch] text-[15px] leading-[1.8]"
-                style={{ color: "var(--muted-dim)" }}
-              >
-                Pickup only. Last orders are twenty minutes before close, because a ticket
-                at 2:58 cannot be cooked and collected by three.
-              </p>
-            </div>
-
-            <table className="w-full self-start">
-              <caption className="sr-only">Opening hours</caption>
-              <tbody>
-                {WEEK_ORDER.map((day) => {
-                  const [from, to] = HOURS[day]!;
-                  const isToday = now.d === day;
-                  return (
-                    <tr key={day} className="border-b" style={{ borderColor: "var(--line)" }}>
-                      <th
-                        scope="row"
-                        className="py-4 text-left text-[15.5px] font-normal"
-                        style={{ color: isToday ? "var(--accent)" : "var(--ink)" }}
-                      >
-                        {DAY_NAMES[day]}
-                      </th>
-                      <td
-                        className="py-4 text-right text-[15.5px] tabular-nums"
-                        style={{ color: "var(--muted)" }}
-                      >
-                        {fmtHour(from)} — {fmtHour(to)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <HoursDial initialNow={now} initialClock={clockInitial} />
       </main>
 
       <Ticker

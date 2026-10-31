@@ -104,7 +104,7 @@ test("is readable with no JavaScript at all", async ({ browser }) => {
   await expect(page.locator("main")).toContainText("152 Easton Ave");
   const stage = page.getByRole("region", { name: "Tonight's platters" });
   await expect(stage.getByRole("heading", { level: 2 })).toBeVisible();
-  await expect(page.locator("#visit tbody tr")).toHaveCount(7);
+  await expect(page.locator("#hours tbody tr")).toHaveCount(7);
 
   await context.close();
 });
@@ -127,4 +127,28 @@ test("self-hosts its fonts and images", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   // The serif and the monospace are served from /fonts, not from Google.
   expect(external).toEqual([]);
+});
+
+test("shows the week as a dial, from the shop's own clock", async ({ page }) => {
+  await page.goto("/");
+  const hours = page.locator("#hours");
+
+  await expect(hours).toContainText("Now in New Brunswick");
+  await expect(hours.locator("tbody tr")).toHaveCount(7);
+  // The arc is drawn from the real service hours, not a decorative circle.
+  await expect(hours.locator("svg path[stroke^='url(']")).toHaveCount(1);
+  // Today is marked.
+  await expect(hours.locator("tbody tr th").filter({ hasText: /./ }).first()).toBeVisible();
+});
+
+test("the sauces carry their own colour and heat", async ({ page }) => {
+  await page.goto("/");
+  const sauces = page.locator("#sauces");
+
+  await expect(sauces.getByRole("button")).toHaveCount(6);
+  await expect(sauces).toContainText("White");
+
+  // Choosing one swaps the blob's description.
+  await sauces.getByRole("button", { name: /Tahini/ }).click();
+  await expect(sauces).toContainText("sesame");
 });
