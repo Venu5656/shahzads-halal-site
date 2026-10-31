@@ -63,7 +63,7 @@ export function ItemDialog({
 
           <div className="p-6 sm:p-8">
             <header className="mb-7">
-              <h2 className="font-display text-[clamp(34px,5vw,46px)] leading-[0.95] font-black uppercase">
+              <h2 className="font-display text-[clamp(34px,5vw,46px)] leading-[0.95]">
                 {item.name}
               </h2>
               <p className="mt-2 text-[16px] leading-relaxed text-muted">{item.description}</p>

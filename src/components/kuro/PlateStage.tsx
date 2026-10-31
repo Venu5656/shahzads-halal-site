@@ -137,6 +137,11 @@ export function PlateStage({ plates }: { plates: StagePlate[] }) {
           onMouseLeave={() => setHovering(false)}
         >
           <div className="relative aspect-square w-[min(88vw,560px)]">
+            {/* The light behind the plate. Keyed on the dish so the flare
+                keyframe restarts with every change — React replaces the node,
+                which is what re-triggers a CSS animation. */}
+            <div key={`glow-${plate.slug}`} className={`kuro-glow ${quiet ? "" : "kuro-flare"}`} />
+
             {/* The ring that appears when the plate is held. */}
             <motion.div
               aria-hidden="true"

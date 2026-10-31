@@ -20,7 +20,7 @@ export default async function MenuPage() {
       <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
         <div>
           <span className="eyebrow">Order ahead · pickup only</span>
-          <h1 className="mt-3 font-display text-[clamp(48px,9vw,96px)] leading-[0.88] font-black uppercase">
+          <h1 className="mt-3 font-display text-[clamp(48px,9vw,96px)] leading-[0.88]">
             The{" "}
             <em className="font-serif text-[0.8em] font-bold tracking-[-0.03em] text-gold normal-case italic">
               menu

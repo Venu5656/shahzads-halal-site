@@ -39,7 +39,7 @@ export function CartPanel() {
     >
       <div className="flex h-dvh flex-col border-l border-line bg-ink">
         <header className="flex items-center justify-between gap-4 border-b border-line px-6 py-5">
-          <h2 className="font-display text-[34px] leading-none font-black uppercase">
+          <h2 className="font-display text-[34px] leading-none">
             Your cart
             {itemCount > 0 ? (
               <span className="ml-3 align-middle text-[18px] font-bold text-muted">
@@ -86,7 +86,7 @@ export function CartPanel() {
                 <span className="text-[15px] font-bold tracking-[0.14em] uppercase text-muted">
                   Subtotal
                 </span>
-                <span className="font-display text-[34px] leading-none font-black">
+                <span className="font-display text-[34px] leading-none">
                   {formatCents(subtotalCents)}
                 </span>
               </div>
@@ -124,7 +124,7 @@ function CartRow({ line }: { line: CartLineView }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-[22px] leading-tight font-extrabold uppercase">
+          <h3 className="font-display text-[22px] leading-tight">
             {line.item.name}
           </h3>
           <span className="shrink-0 text-[16px] font-bold">

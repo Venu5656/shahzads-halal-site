@@ -33,7 +33,7 @@ export default async function CheckoutPage() {
       <SiteHeader />
       <main className="wrap max-w-[860px] pt-10 pb-28 sm:pt-14">
         <span className="eyebrow">Pickup only · 152 Easton Ave</span>
-        <h1 className="mt-3 mb-8 font-display text-[clamp(44px,8vw,76px)] leading-[0.9] font-black uppercase">
+        <h1 className="mt-3 mb-8 font-display text-[clamp(44px,8vw,76px)] leading-[0.9]">
           Check{" "}
           <em className="font-serif text-[0.8em] font-bold tracking-[-0.03em] text-gold normal-case italic">
             out.
@@ -52,7 +52,7 @@ export default async function CheckoutPage() {
 
             <aside className="flex flex-col gap-5">
               <section className="rounded-[26px] border border-line bg-card p-6 sm:p-7">
-                <h2 className="mb-4 font-display text-[26px] leading-none font-extrabold uppercase">
+                <h2 className="mb-4 font-display text-[26px] leading-none">
                   Collecting
                 </h2>
                 <dl className="flex flex-col gap-3 text-[16px]">

@@ -25,27 +25,43 @@
 /* Brand tokens for every page built after the port, as Tailwind utilities
  * (bg-card, text-cream, border-line, font-display, …). Same values as the
  * homepage's own :root variables. */
+/* On this branch the whole site wears the dark-counter design, so the tokens
+ * every page already reads are repointed at that palette instead of each page
+ * being rewritten. The names stay — bg-card, text-cream, text-muted — and only
+ * what they resolve to changes, which is the whole reason they are tokens.
+ *
+ * The brand red is the one value that does not move: it was always Shahzad's
+ * red, and it is the accent here too. */
 @theme {
-  --color-ink: #0d0907;
-  --color-ink-2: #150f0b;
-  --color-card: #1b140f;
-  --color-line: rgb(246 236 220 / 0.1);
-  --color-line-strong: rgb(246 236 220 / 0.3);
-  --color-cream: #f6ecdc;
-  --color-muted: #b3a393;
+  --color-ink: #0a0908;
+  --color-ink-2: #131110;
+  --color-card: #131110;
+  --color-card-2: #181514;
+  --color-line: rgb(242 236 228 / 0.08);
+  --color-line-strong: rgb(242 236 228 / 0.18);
+  --color-cream: #f2ece4;
+  --color-muted: #8b8179;
+  --color-muted-dim: #5d564f;
   --color-brand: #e23a2f;
   /* The brand red fails white text at 4.30:1. Three points darker clears the
    * 4.5:1 floor and is indistinguishable beside it. For buttons only; the
    * brand red itself is untouched. */
   --color-brand-ink: #dc372d;
   --color-brand-2: #ff5a3c;
-  --color-gold: #f5b53d;
+  /* One accent on this branch. Gold was the ported design's second voice and
+   * it argues with the red; everything that asked for gold now gets the red,
+   * which clears 4.62:1 on this ground. */
+  --color-gold: #e23a2f;
   --color-herb: #8bbf5a;
-  --font-display: "Big Shoulders Display", Impact, sans-serif;
-  --font-serif: "Fraunces", Georgia, serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-sans: "DM Sans", system-ui, sans-serif;
   --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+@font-face{font-family:"Playfair Display";font-weight:500;font-display:swap;src:url(/fonts/playfair-display-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
 
 @layer legacy {
 @font-face{font-family:"Big Shoulders Display";font-weight:800;font-display:swap;src:url(/fonts/big-shoulders-display-latin-800-normal.woff2) format("woff2")}
@@ -55,8 +71,8 @@
 @font-face{font-family:"DM Sans";font-weight:700 900;font-display:swap;src:url(/fonts/dm-sans-latin-700-normal.woff2) format("woff2")}
 @font-face{font-family:"Fraunces";font-style:italic;font-weight:500 700;font-display:swap;src:url(/fonts/fraunces-latin-700-italic.woff2) format("woff2")}
 :root{
-  --bg:#0d0907; --bg-2:#150f0b; --card:#1b140f; --line:rgba(246,236,220,.10);
-  --cream:#f6ecdc; --muted:#b3a393; --red:#e23a2f; --red-2:#ff5a3c; --gold:#f5b53d; --herb:#8bbf5a;
+  --bg:#0a0908; --bg-2:#131110; --card:#131110; --line:rgba(246,236,220,.10);
+  --cream:#f2ece4; --muted:#8b8179; --red:#e23a2f; --red-2:#ff5a3c; --gold:#e23a2f; --herb:#8bbf5a;
   --display:"Big Shoulders Display",Impact,sans-serif; --serif:"Fraunces",Georgia,serif; --sans:"DM Sans",system-ui,sans-serif;
   --r:22px; --ease:cubic-bezier(.2,.8,.2,1);
 }
@@ -480,4 +496,27 @@ footer p{color:var(--muted);font-size:14px}
 .plate-turn { animation: plate-turn 26s linear infinite; will-change: transform; }
 @media (prefers-reduced-motion: reduce) {
   .plate-turn { animation: none; }
+}
+
+/* The legacy sheet styles bare `h1` and `h2` for the ported homepage, which no
+ * longer renders on this branch. They are element selectors, so they were
+ * still setting the face, the size and UPPERCASE on every heading of the menu
+ * and the checkout — pages that use none of that CSS.
+ *
+ * In `components`, deliberately. Unlayered this reset would beat every
+ * Tailwind utility too, and a heading asking for text-[clamp(44px,8vw,76px)]
+ * would come out at body size. The layer order is theme, base, legacy,
+ * components, utilities — so here it beats the legacy rule and still loses to
+ * the utility that each page uses to state its own heading type. */
+@layer components {
+  h1,
+  h2 {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: normal;
+    text-transform: none;
+    margin: 0;
+  }
 }

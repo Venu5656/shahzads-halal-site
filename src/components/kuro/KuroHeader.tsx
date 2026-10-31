@@ -22,13 +22,15 @@ export function KuroHeader({ signedIn }: { signedIn: boolean }) {
   return (
     <header className="relative z-40 flex items-center justify-between gap-6 px-6 py-6 sm:px-10">
       <Link href="/" className="flex items-center gap-3" aria-label="Shahzad's Halal Food, home">
-        <span
-          aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-full border"
-          style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-        >
-          <span className="kuro-serif text-[17px] leading-none">S</span>
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/img/logo.png"
+          alt=""
+          width={38}
+          height={38}
+          className="size-9 shrink-0 object-contain"
+          style={{ filter: "drop-shadow(0 0 12px rgb(226 58 47 / 0.5))" }}
+        />
         <span
           className="kuro-serif hidden text-[21px] whitespace-nowrap min-[480px]:inline sm:text-[24px]"
           style={{ letterSpacing: "0.26em" }}

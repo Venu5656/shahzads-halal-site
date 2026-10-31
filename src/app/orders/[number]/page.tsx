@@ -45,7 +45,7 @@ export default async function OrderPage({
       <SiteHeader />
       <main className="wrap pt-10 pb-24 sm:pt-14">
         <span className="eyebrow">Pickup only · 152 Easton Ave</span>
-        <h1 className="mt-3 font-display text-[clamp(44px,8vw,86px)] leading-[0.9] font-black uppercase">
+        <h1 className="mt-3 font-display text-[clamp(44px,8vw,86px)] leading-[0.9]">
           Order{" "}
           <em className="font-serif text-[0.78em] font-bold tracking-[-0.03em] text-gold normal-case italic">
             {order.orderNumber}
@@ -64,7 +64,7 @@ export default async function OrderPage({
           <section aria-labelledby="progress-heading">
             <h2
               id="progress-heading"
-              className="mb-5 font-display text-[28px] leading-none font-black uppercase"
+              className="mb-5 font-display text-[28px] leading-none"
             >
               Where it is
             </h2>
@@ -80,7 +80,7 @@ export default async function OrderPage({
           <section aria-labelledby="receipt-heading" className="lg:sticky lg:top-8 lg:self-start">
             <h2
               id="receipt-heading"
-              className="mb-5 font-display text-[28px] leading-none font-black uppercase"
+              className="mb-5 font-display text-[28px] leading-none"
             >
               What you ordered
             </h2>

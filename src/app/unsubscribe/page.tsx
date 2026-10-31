@@ -37,7 +37,7 @@ export default async function UnsubscribePage({
       <SiteHeader />
       <main className="wrap pt-14 pb-28">
         <span className="eyebrow">Email preferences</span>
-        <h1 className="mt-3 mb-6 font-display text-[clamp(40px,7vw,76px)] leading-[0.9] font-black uppercase">
+        <h1 className="mt-3 mb-6 font-display text-[clamp(40px,7vw,76px)] leading-[0.9]">
           {done ? (
             <>
               You&rsquo;re{" "}

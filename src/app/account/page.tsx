@@ -30,7 +30,7 @@ function Panel({
     >
       <h2
         id={id ? `${id}-title` : undefined}
-        className="mt-0 mb-5 font-display text-[30px] leading-none font-extrabold uppercase"
+        className="mt-0 mb-5 font-display text-[30px] leading-none"
       >
         {title}
       </h2>
@@ -50,7 +50,7 @@ export default async function AccountPage() {
       <SiteHeader />
       <main className="wrap pt-10 pb-24 sm:pt-16">
         <span className="eyebrow">Your account</span>
-        <h1 className="mt-3 mb-10 font-display text-[clamp(48px,9vw,96px)] leading-[0.88] font-black tracking-normal uppercase">
+        <h1 className="mt-3 mb-10 font-display text-[clamp(48px,9vw,96px)] leading-[0.88] tracking-normal">
           Hey,{" "}
           <em className="font-serif text-[0.8em] font-bold tracking-[-0.03em] text-brand normal-case italic">
             {firstName}.
@@ -95,7 +95,7 @@ export default async function AccountPage() {
                         href={`/orders/${order.orderNumber}`}
                         className="group flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
                       >
-                        <span className="font-display text-[22px] leading-none font-extrabold uppercase group-hover:text-gold">
+                        <span className="font-display text-[22px] leading-none group-hover:text-gold">
                           {order.orderNumber}
                         </span>
                         <span className="text-[16px] font-bold tabular-nums">

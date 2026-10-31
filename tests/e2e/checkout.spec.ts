@@ -14,6 +14,21 @@ const prisma = new PrismaClient();
 
 test.describe.configure({ mode: "serial" });
 
+/**
+ * Every test in this suite comes from 127.0.0.1, and the login limiter freezes
+ * an IP after MAX_FAILURES_PER_IP failures in its window. The suite tests
+ * wrong-password paths on purpose, so those failures pile up and eventually
+ * lock out whichever file happens to run next — which reads as flakiness and
+ * is really the limiter working correctly against a shared address.
+ *
+ * Clearing the ledger before each file keeps the limiter's own tests honest
+ * (they create their own failures) without letting one file poison the next.
+ */
+test.beforeAll(async () => {
+  await prisma.loginAttempt.deleteMany({});
+});
+
+
 const PASSWORD = "a good enough password";
 const AREA = { desktop: "201", mobile: "973" } as const;
 

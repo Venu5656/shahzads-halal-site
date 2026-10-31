@@ -139,7 +139,7 @@ export function MenuBrowser({ categories }: { categories: BrowserCategory[] }) {
             <section>
               {/* Only worth a heading when there is something above it. */}
               {mains.length ? (
-                <h2 className="mb-5 font-display text-[26px] leading-none font-black uppercase">
+                <h2 className="mb-5 font-display text-[26px] leading-none">
                   Add to your order
                 </h2>
               ) : null}
@@ -265,7 +265,7 @@ function ItemCard({
         <p className="mb-1 text-[12px] font-bold tracking-[0.16em] uppercase text-gold">
           {categoryName}
         </p>
-        <h3 className="font-display text-[27px] leading-none font-extrabold uppercase">
+        <h3 className="font-display text-[27px] leading-none">
           {item.name}
         </h3>
         <p className="mt-2 mb-4 line-clamp-2 flex-1 text-[15px] leading-snug text-muted">
@@ -331,7 +331,7 @@ function AddOnRow({
       </div>
 
       <div className="min-w-0 flex-1">
-        <h3 className="font-display text-[21px] leading-none font-extrabold uppercase">
+        <h3 className="font-display text-[21px] leading-none">
           {item.name}
         </h3>
         <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-snug text-muted">

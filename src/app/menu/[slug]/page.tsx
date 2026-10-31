@@ -64,7 +64,7 @@ export default async function MenuItemPage({ params }: { params: Promise<{ slug:
       <div className="wrap max-w-[640px] pt-8">
         <header className="mb-8">
           <span className="eyebrow">{item.categoryName}</span>
-          <h1 className="mt-3 font-display text-[clamp(38px,8vw,60px)] leading-[0.92] font-black uppercase">
+          <h1 className="mt-3 font-display text-[clamp(38px,8vw,60px)] leading-[0.92]">
             {item.name}
           </h1>
           <p className="mt-3 text-[17px] leading-relaxed text-muted">{item.description}</p>

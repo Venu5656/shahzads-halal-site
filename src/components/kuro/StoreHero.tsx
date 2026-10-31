@@ -9,25 +9,17 @@ import Link from "next/link";
  * script runs and right for someone reading at two in the morning.
  */
 export function StoreHero({
-  statusLabel,
-  isOpen,
   closesLabel,
+  clock,
 }: {
-  statusLabel: string;
-  isOpen: boolean;
   closesLabel: string;
+  /** The live clock, passed in so this stays a server component. */
+  clock: React.ReactNode;
 }) {
   return (
     <section className="relative px-6 pt-10 pb-20 sm:px-10 lg:pt-16 lg:pb-28">
       <div className="mx-auto max-w-[1320px]">
-        <p className="kuro-label flex items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="inline-block size-1.5 rounded-full"
-            style={{ background: isOpen ? "var(--accent)" : "var(--muted-dim)" }}
-          />
-          {statusLabel}
-        </p>
+        {clock}
 
         <h1 className="kuro-serif mt-7 text-[clamp(52px,10vw,124px)]">
           Halal off the

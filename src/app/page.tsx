@@ -4,8 +4,11 @@ import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { StoreHero } from "@/components/kuro/StoreHero";
 import { PlateStage, type StagePlate } from "@/components/kuro/PlateStage";
 import { Ticker } from "@/components/kuro/Ticker";
+import { SauceRail } from "@/components/kuro/SauceRail";
+import { StoreClock } from "@/components/kuro/StoreClock";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { getMenu } from "@/lib/menu/queries";
+import { SAUCES } from "@/lib/menu-data";
 import {
   DAY_NAMES,
   HOURS,
@@ -51,6 +54,14 @@ export default async function HomePage() {
       ? "Kitchen closing · ordering reopens in the morning"
       : `Closed · opens in ${fmtDuration(store.hoursUntilChange)}`;
 
+  const clockInitial = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date());
+
   const today = HOURS[now.d]!;
   const closesLabel = store.open
     ? `Open until ${fmtHour(today[1])}`
@@ -72,9 +83,28 @@ export default async function HomePage() {
       <KuroHeader signedIn={Boolean(user)} />
 
       <main>
-        <StoreHero statusLabel={statusLabel} isOpen={ordering.canOrder} closesLabel={closesLabel} />
+        <StoreHero
+          closesLabel={closesLabel}
+          clock={
+            <StoreClock
+              initial={clockInitial}
+              statusLabel={statusLabel}
+              isOpen={ordering.canOrder}
+            />
+          }
+        />
 
         {plates.length ? <PlateStage plates={plates} /> : null}
+
+        <SauceRail
+          sauces={SAUCES.map((s) => ({
+            slug: s.slug,
+            name: s.name,
+            color: s.color,
+            heat: s.heat,
+            description: s.description,
+          }))}
+        />
 
         {/* ------------------------------------------------------- the week */}
         <section id="visit" className="px-6 py-24 sm:px-10">
