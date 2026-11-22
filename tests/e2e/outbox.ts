@@ -43,7 +43,7 @@ export async function countFor(email: string, tag?: string): Promise<number> {
  */
 export async function waitForLink(
   email: string,
-  tag: "verify" | "reset" | "list-confirm",
+  tag: "verify" | "reset" | "list-confirm" | "marketing",
   after = 0,
   timeoutMs = 15_000,
 ): Promise<string> {
@@ -54,6 +54,34 @@ export async function waitForLink(
       const link = mine[mine.length - 1]!.text.match(/https?:\/\/\S+/)?.[0];
       if (link) return link;
       throw new Error(`The ${tag} email to ${email} had no link in it.`);
+    }
+    if (Date.now() > deadline) {
+      throw new Error(
+        `No ${tag} email for ${email} within ${timeoutMs}ms (saw ${mine.length}, wanted more than ${after}).`,
+      );
+    }
+    await new Promise((r) => setTimeout(r, 120));
+  }
+}
+
+/**
+ * Every link in the newest matching message.
+ *
+ * waitForLink returns the first one, which is what the verification and reset
+ * emails have. An offer has two — the button and the unsubscribe — so a test
+ * that wants a particular one has to say which.
+ */
+export async function waitForLinks(
+  email: string,
+  tag: "verify" | "reset" | "list-confirm" | "marketing",
+  after = 0,
+  timeoutMs = 15_000,
+): Promise<string[]> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const mine = (await readOutbox()).filter((m) => m.to === email && m.tag === tag);
+    if (mine.length > after) {
+      return mine[mine.length - 1]!.text.match(/https?:\/\/\S+/g) ?? [];
     }
     if (Date.now() > deadline) {
       throw new Error(

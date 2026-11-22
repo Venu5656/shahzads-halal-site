@@ -60,6 +60,7 @@ model User {
   auditLogs    AuditLog[]    @relation("AuditActor")
   priceChanges PriceChange[]
   invitesSent  StaffInvite[] @relation("InviteCreatedBy")
+  offers       Offer[]       @relation("OfferAuthor")
 
   @@index([role])
 }
@@ -185,8 +186,9 @@ model Subscriber {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  tokens   SubscriberToken[]
-  consents ConsentEvent[]
+  tokens     SubscriberToken[]
+  consents   ConsentEvent[]
+  offerSends OfferSend[]
 
   @@index([emailConfirmedAt])
   @@index([phone])
@@ -267,6 +269,79 @@ model ConsentEvent {
 
   @@index([subscriberId, channel, createdAt])
   @@index([channel, action, createdAt])
+}
+
+enum OfferStatus {
+  DRAFT
+  /// The audience is fixed and the sending is under way.
+  SENDING
+  SENT
+  /// Finished with at least one address that would not take it.
+  SENT_WITH_FAILURES
+}
+
+/// One offer, written by the owner and sent to the list.
+///
+/// The body is stored as the owner typed it, not as HTML. He writes
+/// paragraphs; the template turns them into an email. Keeping the two apart
+/// means the look of an offer can be changed later without rewriting what
+/// anybody said, and means nothing he types can become markup.
+model Offer {
+  id            String      @id @default(cuid())
+  subject       String
+  heading       String
+  /// Paragraphs, in order. Plain text — escaped on the way into the email.
+  body          String[]
+  buttonLabel   String
+  /// Where the button goes. Usually the menu or the ordering page.
+  url           String
+  status        OfferStatus @default(DRAFT)
+  createdById   String?
+  createdBy     User?       @relation("OfferAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  /// Snapshotted, so the history reads after the account goes.
+  createdByName String
+  createdAt     DateTime    @default(now())
+  /// When sending began. The audience is frozen at this moment: somebody who
+  /// joins a minute later is not in this send, and somebody who leaves a
+  /// minute later is not sent to, because their row is skipped.
+  startedAt     DateTime?
+  finishedAt    DateTime?
+
+  sends OfferSend[]
+
+  @@index([status, createdAt])
+}
+
+enum OfferSendStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+/// One row per recipient per offer: the sending queue and the record of it.
+///
+/// Written up front, all of them, in the transaction that starts the send.
+/// That is what makes a send resumable — a process that dies halfway through
+/// leaves rows saying exactly who has had it and who has not, so picking it
+/// up again cannot send anybody a second copy. A loop over a list in memory
+/// cannot say either of those things after it stops.
+model OfferSend {
+  id           String          @id @default(cuid())
+  offerId      String
+  offer        Offer           @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  subscriberId String
+  subscriber   Subscriber      @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  /// The address as it stood when the audience was frozen.
+  email        String
+  status       OfferSendStatus @default(PENDING)
+  /// Why it did not go, when it did not. Kept so a bad address can be found.
+  error        String?
+  sentAt       DateTime?
+
+  /// One send per subscriber per offer. The database refuses a second copy,
+  /// which is a better guarantee than remembering not to ask for one.
+  @@unique([offerId, subscriberId])
+  @@index([offerId, status])
 }
 
 // -------------------------------------------------------------------- menu

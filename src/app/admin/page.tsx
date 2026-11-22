@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "../kuro.css";
 import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { PriceForm } from "@/components/admin/PriceForm";
@@ -70,15 +71,24 @@ export default async function AdminPage() {
               change them on the ordering page too, or the two will disagree.
             </p>
           </div>
-          <form action={logout}>
-            <button
-              type="submit"
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/admin/offers"
               className="rounded-full border px-5 py-3 text-[14px] font-semibold"
-              style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+              style={{ borderColor: "var(--line-strong)", color: "var(--ink)" }}
             >
-              Log out
-            </button>
-          </form>
+              Offers
+            </Link>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="rounded-full border px-5 py-3 text-[14px] font-semibold"
+                style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+              >
+                Log out
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* What is wrong right now, before the long list. The two states worth
