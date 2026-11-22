@@ -148,3 +148,91 @@ test("the sauces carry their own colour and heat", async ({ page }) => {
   await sauces.getByRole("button", { name: /Tahini/ }).click();
   await expect(sauces).toContainText("sesame");
 });
+
+// ------------------------------------------------- the hero's video
+
+/**
+ * The flat-top running behind the headline.
+ *
+ * Three things are worth guarding here and none of them is "the video is
+ * there". A background video breaks in ways nobody notices until a customer
+ * does: it swallows the buttons sitting on top of it, it starts making noise,
+ * or it plays at somebody who has asked their whole machine to stop moving.
+ */
+
+test("plays the flat-top behind the hero, on a loop and in silence", async ({ page }) => {
+  await page.goto("/");
+  const video = page.locator("section video");
+
+  await expect(video).toHaveCount(1);
+  await expect(video).toHaveAttribute("loop", "");
+  // playsinline keeps iOS from throwing it into the full-screen player, which
+  // would turn a background into the only thing on the screen.
+  await expect(video).toHaveJSProperty("playsInline", true);
+  // Muted is not a preference. A browser refuses to autoplay anything else,
+  // so an unmuted background video is a background video that never starts.
+  await expect(video).toHaveJSProperty("muted", true);
+
+  // It is actually running, not just present and frozen on frame one.
+  await expect
+    .poll(async () => video.evaluate((v: HTMLVideoElement) => v.currentTime), {
+      timeout: 10_000,
+    })
+    .toBeGreaterThan(0.2);
+});
+
+test("the hero's buttons still work with the video behind them", async ({ page }) => {
+  await page.goto("/");
+
+  // The thing that actually goes wrong: a full-bleed layer over a section
+  // with controls in it takes the clicks, and the button looks fine and does
+  // nothing. Ask the browser what is on top at each control's centre.
+  for (const control of [
+    page.getByRole("link", { name: /See tonight/ }),
+    page.locator('section a[href^="tel:"]'),
+  ]) {
+    // elementFromPoint only answers for coordinates inside the viewport, and
+    // the hero is taller than one. Without this the test reports every
+    // control as covered and is right about none of them.
+    await control.scrollIntoViewIfNeeded();
+    const onTop = await control.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return hit === el || el.contains(hit);
+    });
+    expect(onTop).toBe(true);
+  }
+
+  // And Playwright's own click does a hit test of its own: it throws rather
+  // than clicking if something is intercepting the pointer.
+  await page.getByRole("link", { name: /See tonight/ }).click();
+  await expect(page).toHaveURL(/#platters$/);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY), { timeout: 5000 })
+    .toBeGreaterThan(200);
+});
+
+test("sends no video at all to anyone who asked for less motion", async ({ browser }) => {
+  const ctx = await browser.newContext({ reducedMotion: "reduce" });
+  const page = await ctx.newPage();
+
+  const videoRequests: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/video/") && r.url().endsWith(".mp4")) videoRequests.push(r.url());
+  });
+
+  await page.goto("/");
+  await page.waitForTimeout(1200);
+
+  // Not hidden with CSS — never asked for. Downloading a megabyte of cooking
+  // to then not play it is the same bandwidth and none of the point.
+  await expect(page.locator("section video")).toHaveCount(0);
+  expect(videoRequests).toEqual([]);
+
+  // The still is what stays, so the hero is never an empty black rectangle.
+  await expect(page.locator('section img[src*="flat-top-poster"]')).toBeVisible();
+  // And the headline is still the headline.
+  await expect(page.locator("h1")).toContainText("flat-top");
+
+  await ctx.close();
+});

@@ -25,3 +25,12 @@ preview/
 # would leave a gitlink nobody can check out. The taste skill under .agents/ is
 # plain files and is committed, pinned by skills-lock.json.
 agent-skills/
+
+# Camera-original footage. The hero video in public/video/ is derived from it
+# by scripts/hero-video.sh — a 92 MB 4K vertical .mov becoming a 1 MB 720p
+# loop. Committing the source would roughly double this repository for a file
+# nothing reads at build or run time, and a big binary in git history cannot
+# be taken back out without rewriting it. Keep the originals with the rest of
+# the shoot, not here.
+*.mov
+*.MOV

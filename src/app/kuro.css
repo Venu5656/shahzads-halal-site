@@ -189,3 +189,88 @@
 @media (prefers-reduced-motion: reduce) {
   .kuro-pulse { animation: none; }
 }
+
+/* ---------------------------------------------------------------------------
+ * The hero's video background.
+ *
+ * Everything here exists so that moving pictures of food can sit behind words
+ * without making the words harder to read. The order of the layers is the
+ * argument:
+ *
+ *   1. a flat wash over the whole frame, so no single bright frame of the
+ *      video can ever decide how legible the headline is;
+ *   2. a left-to-right gradient, heaviest where the text is. The text is
+ *      left-aligned, so the right-hand side is where the food gets to show —
+ *      dimming the whole frame evenly would have meant either unreadable text
+ *      or a video nobody can see, and this is how you get both;
+ *   3. a short fade at the top, because the site header sits over this;
+ *   4. a fade to the page colour at the bottom, so the section hands over to
+ *      what follows instead of stopping at an edge.
+ *
+ * The stack is pointer-events: none, which is not a detail. A full-bleed
+ * absolutely-positioned layer over a section containing two links is exactly
+ * how a button stops responding to taps, and it is the kind of break nobody
+ * finds until somebody complains they could not ring the shop.
+ * ------------------------------------------------------------------------- */
+
+.kuro-hero-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.kuro-hero-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    /* hand the section over to the page below */
+    linear-gradient(to bottom, transparent 48%, rgb(10 9 8 / 0.96) 84%, var(--bg) 97%),
+    /* the site header sits over this */
+    linear-gradient(to bottom, rgb(10 9 8 / 0.82) 0%, rgb(10 9 8 / 0.12) 24%),
+    /* The text column, held down hard, then released. The fall-off is steep
+     * rather than gentle on purpose: a gentle one spreads the darkness across
+     * the whole frame to protect a column that only occupies half of it, and
+     * the food ends up under a grey sheet. Past 62% the video is nearly
+     * untouched, which is the half of the frame that has no words on it. */
+    linear-gradient(
+      to right,
+      rgb(10 9 8 / 0.96) 0%,
+      rgb(10 9 8 / 0.94) 38%,
+      rgb(10 9 8 / 0.74) 56%,
+      rgb(10 9 8 / 0.26) 72%,
+      rgb(10 9 8 / 0.06) 100%
+    ),
+    /* A floor, so no single bright frame decides anything. Kept light: it
+     * applies to the whole frame including the half with no words on it, and
+     * every point of it is paid for over there in food nobody can see. The
+     * column gradient above is what actually protects the text. */
+    rgb(10 9 8 / 0.12);
+}
+
+/* Narrow screens put the text across the full width, so a gradient that let
+ * the right-hand side through would be letting it through underneath the
+ * words. It flattens into one heavier wash plus a band behind the headline —
+ * on a phone the food is better served by the photographs further down the
+ * page than by a strip of flat-top behind a paragraph. */
+@media (max-width: 1023px) {
+  .kuro-hero-scrim {
+    background:
+      linear-gradient(to bottom, transparent 44%, rgb(10 9 8 / 0.97) 82%, var(--bg) 96%),
+      linear-gradient(to bottom, rgb(10 9 8 / 0.84) 0%, rgb(10 9 8 / 0.3) 28%),
+      linear-gradient(
+        to bottom,
+        transparent 10%,
+        rgb(10 9 8 / 0.5) 19%,
+        rgb(10 9 8 / 0.5) 62%,
+        transparent 74%
+      ),
+      rgb(10 9 8 / 0.64);
+  }
+}
+
+.kuro-hero-text {
+  text-shadow: 0 1px 26px rgb(10 9 8 / 0.75);
+}
