@@ -503,14 +503,28 @@ model StoreSettings {
   updatedAt      DateTime @updatedAt
 }
 
+/// Every move a price has made, and who moved it.
+///
+/// Written in the same transaction as the price itself, so the history can
+/// never drift from the number. It answers the question the owner actually
+/// asks — "when did this go up, and did I change it here or only on the
+/// ordering page" — which a column holding just the current value cannot.
 model PriceChange {
   id            String   @id @default(cuid())
   menuItemId    String
   menuItem      MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   oldPriceCents Int?
   newPriceCents Int?
-  changedById   String
-  changedBy     User     @relation(fields: [changedById], references: [id])
+  /// Null once that account is gone. The relation cannot be required: a
+  /// manager who has ever touched a price would then be undeletable, and
+  /// "we cannot remove your login because you changed the gyro in March" is
+  /// not a policy anybody chose.
+  changedById   String?
+  changedBy     User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  /// The name as it stood, snapshotted the way an order snapshots its items.
+  /// It is what keeps the history readable after the account goes, which is
+  /// the whole point of keeping it.
+  changedByName String
   createdAt     DateTime @default(now())
 
   @@index([menuItemId, createdAt])

@@ -76,7 +76,7 @@ export function nyNow(date: Date = new Date()): WallClock {
   };
 }
 
-function hoursFor(day: number): readonly [number, number] {
+export function hoursFor(day: number): readonly [number, number] {
   const h = HOURS[((day % 7) + 7) % 7];
   if (!h) throw new Error(`No hours configured for day ${day}`);
   return h;

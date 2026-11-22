@@ -350,7 +350,7 @@ test("keeps customers out of the manager area and lets the owner in", async ({ p
 
   await prisma.user.update({ where: { email: acc.email }, data: { role: "OWNER" } });
   await page.goto("/admin");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("phase 5");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("The menu");
   await expect(page.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
 
   await wipe(acc);
