@@ -1,12 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ItemForm } from "@/components/menu/ItemForm";
-import { SiteHeader } from "@/components/ui/SiteHeader";
+import { ItemDetail } from "@/components/menu/ItemDetail";
+import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { formatCents } from "@/lib/money";
 import { isSoldOut, startingPriceCents } from "@/lib/menu/pricing";
 import { cutoutShadow } from "@/lib/menu/images";
 import { getMenuItem, getMenuItems } from "@/lib/menu/queries";
+
+/**
+ * Never cached.
+ *
+ * The owner changes prices and marks dishes sold out from the manager, and a
+ * menu that was rendered at build time would go on advertising last week's
+ * prices and selling food the kitchen ran out of at one in the morning.
+ *
+ * This used to happen by accident: the root layout read cookies on every
+ * request, which forced every page to render dynamically. Removing the cart
+ * removed that, and these two pages quietly became static. They are the two
+ * pages on the site whose content actually changes, so they say so themselves
+ * rather than depending on something else's side effect.
+ */
+export const dynamic = "force-dynamic";
+
 
 /** Pre-render every item; the menu is small and changes rarely. */
 export async function generateStaticParams() {
@@ -29,7 +45,7 @@ export async function generateMetadata({
 
 /**
  * One item, full page. This is what a phone gets when it taps a card, and what
- * any shared link opens. The desktop dialog renders the same <ItemForm>.
+ * any shared link opens. The desktop dialog renders the same <ItemDetail>.
  */
 export default async function MenuItemPage({ params }: { params: Promise<{ slug: string }> }) {
   const item = await getMenuItem((await params).slug);
@@ -40,7 +56,7 @@ export default async function MenuItemPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
-      <SiteHeader />
+      <KuroHeader />
       <main className="pb-24">
       <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[21/9]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -80,7 +96,7 @@ export default async function MenuItemPage({ params }: { params: Promise<{ slug:
           </div>
         </header>
 
-        <ItemForm item={item} />
+        <ItemDetail item={item} />
       </div>
       </main>
     </>

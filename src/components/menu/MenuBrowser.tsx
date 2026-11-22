@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { formatCents } from "@/lib/money";
 import { hasPriceRange, isSoldOut, startingPriceCents } from "@/lib/menu/pricing";
 import { cutoutShadow } from "@/lib/menu/images";
-import { ItemForm, type ItemFormItem } from "./ItemForm";
+import { ItemDetail, type DetailItem } from "./ItemDetail";
 import { ItemDialog } from "./ItemDialog";
 
-export type BrowserCategory = { id: string; name: string; slug: string; items: ItemFormItem[] };
+export type BrowserCategory = { id: string; name: string; slug: string; items: DetailItem[] };
 
 /**
  * Sides, sweets, drinks and sauces are things you add to an order, not things
@@ -25,13 +25,13 @@ const ADD_ON_CATEGORIES = new Set(["sides", "desserts-and-sweets", "beverages", 
  * On a wide screen an item opens in a dialog so the menu stays behind it; on a
  * phone the card is a plain link to the item's own page, which is easier to
  * scroll and gives the back button something to do. The dialog and the page
- * render the same <ItemForm>, so there is one implementation of the rules.
+ * render the same <ItemDetail>, so a dish reads identically either way.
  */
 export function MenuBrowser({ categories }: { categories: BrowserCategory[] }) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
-  const [openItem, setOpenItem] = useState<ItemFormItem | null>(null);
+  const [openItem, setOpenItem] = useState<DetailItem | null>(null);
 
   const allItems = useMemo(
     () => categories.flatMap((category) => category.items.map((item) => ({ item, category }))),
@@ -62,7 +62,7 @@ export function MenuBrowser({ categories }: { categories: BrowserCategory[] }) {
     return [mains, addOns];
   }, [results]);
 
-  const openOnDesktop = (item: ItemFormItem) => {
+  const openOnDesktop = (item: DetailItem) => {
     // Coarse pointers get the full page; fine pointers get the dialog.
     if (window.matchMedia("(min-width: 900px)").matches) {
       setOpenItem(item);
@@ -161,7 +161,7 @@ export function MenuBrowser({ categories }: { categories: BrowserCategory[] }) {
 
       <ItemDialog item={openItem} onClose={() => setOpenItem(null)}>
         {openItem ? (
-          <ItemForm item={openItem} onAdded={() => setOpenItem(null)} autoFocus />
+          <ItemDetail item={openItem} />
         ) : null}
       </ItemDialog>
     </>
@@ -199,7 +199,7 @@ function Tab({
 }
 
 /** What the price reads as before any options are picked. */
-function Price({ item }: { item: ItemFormItem }) {
+function Price({ item }: { item: DetailItem }) {
   const from = startingPriceCents(item);
   if (from === null) return <span className="text-muted">Ask in store</span>;
   return (
@@ -217,7 +217,7 @@ function ItemCard({
   categoryName,
   onOpen,
 }: {
-  item: ItemFormItem;
+  item: DetailItem;
   categoryName: string;
   onOpen: () => void;
 }) {
@@ -302,7 +302,7 @@ function AddOnRow({
   categoryName,
   onOpen,
 }: {
-  item: ItemFormItem;
+  item: DetailItem;
   categoryName: string;
   onOpen: () => void;
 }) {

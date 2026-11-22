@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { safeNextPath } from "@/lib/auth/redirect";
 
 describe("safeNextPath", () => {
-  it.each(["/account", "/menu?item=combo", "/admin/orders", "/"])("allows %s", (path) => {
+  it.each(["/admin", "/menu?item=combo", "/admin/orders", "/"])("allows %s", (path) => {
     expect(safeNextPath(path)).toBe(path);
   });
 
@@ -21,7 +21,7 @@ describe("safeNextPath", () => {
     42,
     "/" + "a".repeat(600),
   ])("refuses %s", (path) => {
-    expect(safeNextPath(path)).toBe("/account");
+    expect(safeNextPath(path)).toBe("/admin");
   });
 
   it("uses the given fallback", () => {

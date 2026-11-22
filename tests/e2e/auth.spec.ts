@@ -5,9 +5,15 @@ import { readFileSync } from "node:fs";
 import { countFor, toPath, waitForLink } from "./outbox";
 
 /**
- * Sign up, prove your address, log in, reset a forgotten password, and manage
- * the account — end to end, following the actual links out of the actual
- * emails (read from the development outbox).
+ * Sign up, prove your address, log in and reset a forgotten password — end to
+ * end, following the actual links out of the actual emails (read from the
+ * development outbox).
+ *
+ * There is no customer account area any more: ordering is DoorDash's, and the
+ * only person with a reason to sign in is Shahzad, to edit the menu. So the
+ * place a successful login lands is /admin, and it opens only for a MANAGER or
+ * an OWNER — a signed-in CUSTOMER gets the same 404 a stranger gets, because
+ * the manager area does not advertise that it exists.
  *
  * Every test owns one phone number in the fictional 555-01xx block and one
  * address at example.test, per project, and wipes both before and after, so
@@ -107,11 +113,23 @@ async function logIn(page: Page, identifier: string, password = PASSWORD, next?:
   await settled(page, "/login");
 }
 
-/** Signs up, verifies, and logs in — the state most tests start from. */
+/** Makes an account staff. Sign-up only ever creates a CUSTOMER. */
+async function promote(account: Account) {
+  await prisma.user.update({ where: { email: account.email }, data: { role: "OWNER" } });
+}
+
+/**
+ * Signs up, verifies, promotes, and logs in — the state most tests start from,
+ * because the signed-in state this site actually has is Shahzad's. A CUSTOMER
+ * can hold a session but has nowhere to land, so a test that needs to see a
+ * page while signed in needs the role too.
+ */
 async function registerAndLogIn(page: Page, name: string, account: Account) {
   await register(page, name, account);
+  await promote(account);
   await logIn(page, account.email);
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByText(`Signed in as ${name}`)).toBeVisible();
 }
 
 test.afterAll(async () => {
@@ -152,9 +170,15 @@ test("signing up sends a link and does not log you in until it is opened", async
   const verified = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
   expect(verified.emailVerifiedAt).not.toBeNull();
 
+  // The session is real — but a customer has nowhere to go, so the only place
+  // a login can land is the manager area, and that is not hers.
   await logIn(page, acc.email);
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Aisha");
+  await expect(page).toHaveURL(/\/admin$/);
+  expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(1);
+
+  await promote(acc);
+  await page.goto("/admin");
+  await expect(page.getByText("Signed in as Aisha Khan")).toBeVisible();
 
   await wipe(acc);
 });
@@ -174,7 +198,7 @@ test("an unverified account cannot log in, even with the right password", async 
   // Logging in does not fire off another email — the signup link still stands.
   expect(await countFor(acc.email, "verify")).toBe(sentAtSignup);
 
-  await page.goto("/account");
+  await page.goto("/admin");
   await expect(page).toHaveURL(/\/login/);
 
   await wipe(acc);
@@ -244,13 +268,13 @@ test("logs out and back in, with either the address or the number", async ({ pag
   await expect(page).toHaveURL("/");
   expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(0);
 
-  await page.goto("/account");
-  await expect(page).toHaveURL(/\/login\?next=%2Faccount/);
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
 
   // The mobile number still works as a login name.
-  await logIn(page, acc.typed, PASSWORD, "/account");
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Omar");
+  await logIn(page, acc.typed, PASSWORD, "/admin");
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByText("Signed in as Omar")).toBeVisible();
 
   await wipe(acc);
 });
@@ -323,7 +347,7 @@ test("resets a forgotten password from an emailed link", async ({ page }) => {
   await logIn(page, acc.email, PASSWORD);
   await expect(page).toHaveURL(/\/login/);
   await logIn(page, acc.email, "a different good password");
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/admin$/);
 
   await wipe(acc);
 });
@@ -339,7 +363,7 @@ test("a reset link works once, and signs every device out when it is used", asyn
   const laptop = await browser.newContext();
   const pageB = await laptop.newPage();
   await logIn(pageB, acc.email);
-  await expect(pageB).toHaveURL(/\/account$/);
+  await expect(pageB).toHaveURL(/\/admin$/);
   expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(2);
 
   // The reset is asked for from a logged-out device — the real situation
@@ -358,7 +382,7 @@ test("a reset link works once, and signs every device out when it is used", asyn
 
   // Whoever knew the old password is out, on every device.
   expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(0);
-  await pageA.goto("/account");
+  await pageA.goto("/admin");
   await expect(pageA).toHaveURL(/\/login/);
 
   // The link cannot be used a second time.
@@ -385,146 +409,28 @@ test("asking to reset an unknown address says the same thing and sends nothing",
   expect(await countFor(unknown.email)).toBe(0);
 });
 
-// ------------------------------------------------------------- the account
+// ------------------------------------------------------- the manager area
 
-test("edits the profile, and a new address has to be confirmed first", async ({ page }) => {
-  const acc = accountFor(13);
-  const moved = accountFor(14);
-  await wipe(acc, moved);
-  await registerAndLogIn(page, "Zaid", acc);
 
-  await page.getByLabel("Name").fill("Zaid Ahmed");
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("main").getByRole("status")).toContainText("Saved.");
-  expect(await prisma.user.findUniqueOrThrow({ where: { email: acc.email } })).toMatchObject({
-    name: "Zaid Ahmed",
-  });
 
-  // Moving to a new address parks it until the link is opened.
-  const before = await countFor(moved.email, "verify");
-  await page.getByLabel("Email").fill(moved.email);
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("main").getByRole("status")).toContainText("Confirm the new address");
 
-  let user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-  expect(user.pendingEmail).toBe(moved.email);
-
-  const link = await waitForLink(moved.email, "verify", before);
-  await page.goto(toPath(link));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("confirmed");
-
-  user = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-  expect(user.email).toBe(moved.email);
-  expect(user.pendingEmail).toBeNull();
-
-  // Changing the address ends every session, so the new one is what logs in.
-  await page.goto("/account");
-  await expect(page).toHaveURL(/\/login/);
-  await logIn(page, moved.email);
-  await expect(page).toHaveURL(/\/account$/);
-
-  await wipe(acc, moved);
-});
-
-test("changes the password, signs other devices out, and requires the new one", async ({
-  browser,
-}) => {
-  const acc = accountFor(15);
-  await wipe(acc);
-
-  const phoneCtx = await browser.newContext();
-  const pageA = await phoneCtx.newPage();
-  await registerAndLogIn(pageA, "Hassan", acc);
-
-  const laptop = await browser.newContext();
-  const pageB = await laptop.newPage();
-  await logIn(pageB, acc.email);
-  await expect(pageB).toHaveURL(/\/account$/);
-
-  await pageA.getByRole("button", { name: "Change password" }).click();
-  await pageA.getByLabel("Current password").fill(PASSWORD);
-  await pageA.getByLabel("New password").fill("a different good password");
-  await pageA.getByRole("button", { name: "Change password" }).click();
-  await expect(pageA.locator("main").getByRole("status")).toContainText("Password changed");
-
-  // This device stays in; the other one is out.
-  await pageA.goto("/account");
-  await expect(pageA).toHaveURL(/\/account$/);
-  await pageB.goto("/account");
-  await expect(pageB).toHaveURL(/\/login/);
-
-  await logIn(pageB, acc.email, PASSWORD);
-  await expect(pageB).toHaveURL(/\/login/);
-  await logIn(pageB, acc.email, "a different good password");
-  await expect(pageB).toHaveURL(/\/account$/);
-
-  await phoneCtx.close();
-  await laptop.close();
-  await wipe(acc);
-});
-
-test("changing the phone number requires the password", async ({ page }) => {
-  const acc = accountFor(16);
-  const newNumber = accountFor(17);
-  await wipe(acc, newNumber);
-  await registerAndLogIn(page, "Layla", acc);
-
-  await page.getByRole("button", { name: "Change number" }).click();
-  await page.getByLabel("New mobile number").fill(newNumber.typed);
-  await page.getByLabel("Your password").fill("not the right one");
-  await page.getByRole("button", { name: "Change number" }).click();
-  await expect(page.getByText("That's not your current password.")).toBeVisible();
-
-  let user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-  expect(user.phone).toBe(acc.e164);
-
-  await page.getByLabel("Your password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Change number" }).click();
-  await expect(page.locator("main").getByRole("status")).toContainText("number has been updated");
-
-  user = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-  expect(user.phone).toBe(newNumber.e164);
-
-  await wipe(acc, newNumber);
-});
-
-test("log out of all devices ends every session", async ({ browser }) => {
-  const acc = accountFor(18);
-  await wipe(acc);
-
-  const phoneCtx = await browser.newContext();
-  const pageA = await phoneCtx.newPage();
-  await registerAndLogIn(pageA, "Bilal", acc);
-
-  const laptop = await browser.newContext();
-  const pageB = await laptop.newPage();
-  await logIn(pageB, acc.email);
-  await expect(pageB).toHaveURL(/\/account$/);
-  expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(2);
-
-  await pageA.getByRole("button", { name: "Log out of all devices" }).click();
-  await expect(pageA).toHaveURL(/\/login\?signedOut=all/);
-
-  await pageB.goto("/account");
-  await expect(pageB).toHaveURL(/\/login/);
-  expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(0);
-
-  await phoneCtx.close();
-  await laptop.close();
-  await wipe(acc);
-});
 
 test("keeps customers out of the manager area and lets the owner in", async ({ page }) => {
   const acc = accountFor(19);
   await wipe(acc);
-  await registerAndLogIn(page, "Customer", acc);
+  await register(page, "Customer", acc);
+  await logIn(page, acc.email);
 
+  // Signed in, and still a stranger here. A 404 rather than a 403: a 403 would
+  // confirm there is something to find.
   const response = await page.goto("/admin");
   expect(response?.status()).toBe(404);
+  await expect(page.getByText(/Signed in as/)).toHaveCount(0);
 
-  await prisma.user.update({ where: { email: acc.email }, data: { role: "OWNER" } });
+  await promote(acc);
   await page.goto("/admin");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("phase 5");
+  await expect(page.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
 
   await wipe(acc);
 });
@@ -536,27 +442,11 @@ test("never redirects off-site after login", async ({ page }) => {
 
   await logIn(page, acc.email, PASSWORD, "//evil.example/steal");
   await expect(page).toHaveURL(/localhost|127\.0\.0\.1/);
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/admin$/);
 
   await wipe(acc);
 });
 
-test("the homepage offers log in and sign up, then shows the account", async ({ page }) => {
-  const acc = accountFor(21);
-  await wipe(acc);
-
-  await page.goto("/");
-  // One header at every width: no drawer to open on this design.
-  const header = page.getByRole("banner");
-  await expect(header.getByRole("link", { name: "Sign up" })).toBeVisible();
-
-  await registerAndLogIn(page, "Yusuf Ali", acc);
-  await page.goto("/");
-  await expect(header.getByRole("link", { name: "Account" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Sign up" })).toHaveCount(0);
-
-  await wipe(acc);
-});
 
 /** The unsubscribe signature, computed the way the server does. */
 function signUnsubscribe(userId: string): string {
@@ -590,9 +480,9 @@ test("will not open an account without confirming an age", async ({ page }) => {
 test("turns marketing email off from a link, with nobody signed in", async ({ page, context }) => {
   const acc = accountFor(31);
   await wipe(acc);
-  await registerAndLogIn(page, "Opted In", acc);
+  await register(page, "Opted In", acc);
 
-  // Opt in the way the account page would.
+  // Opt in the way the sign-up form's marketing box does.
   await prisma.user.update({ where: { email: acc.email }, data: { marketingOptIn: true } });
   const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
 
@@ -611,7 +501,7 @@ test("turns marketing email off from a link, with nobody signed in", async ({ pa
 test("ignores an unsubscribe link signed for somebody else", async ({ page }) => {
   const acc = accountFor(32);
   await wipe(acc);
-  await registerAndLogIn(page, "Still Subscribed", acc);
+  await register(page, "Still Subscribed", acc);
   await prisma.user.update({ where: { email: acc.email }, data: { marketingOptIn: true } });
   const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SiteHeader } from "@/components/ui/SiteHeader";
+import { KuroHeader } from "@/components/kuro/KuroHeader";
 
 export const metadata: Metadata = {
   title: "Unsubscribed · Shahzad's Halal Food",
@@ -34,7 +34,7 @@ export default async function UnsubscribePage({
 
   return (
     <>
-      <SiteHeader />
+      <KuroHeader />
       <main className="wrap pt-14 pb-28">
         <span className="eyebrow">Email preferences</span>
         <h1 className="mt-3 mb-6 font-display text-[clamp(40px,7vw,76px)] leading-[0.9]">
@@ -71,13 +71,13 @@ export default async function UnsubscribePage({
           <p className="max-w-[52ch] text-[18px] leading-relaxed text-muted">
             The link may have been cut in half by your mail app, which happens with long
             links. Copy the whole thing from the email and paste it into the address bar,
-            or turn offers off from your account page — it does exactly the same thing.
+            or write to us and we will take you off by hand.
           </p>
         )}
 
         <div className="mt-10 flex flex-wrap gap-4">
-          <Link href="/account" className="btn btn-red">
-            Email preferences
+          <Link href="/menu" className="btn btn-red">
+            See the menu
           </Link>
           <Link href="/menu" className="btn btn-ghost">
             Back to the menu

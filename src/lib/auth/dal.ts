@@ -23,7 +23,7 @@ export const getCurrentUser = cache(async () => {
 });
 
 /** The signed-in user, or a redirect to /login that comes back here afterwards. */
-export async function requireUser(returnTo = "/account"): Promise<CurrentUser> {
+export async function requireUser(returnTo = "/admin"): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(returnTo)}`);
   return user;

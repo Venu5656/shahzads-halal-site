@@ -109,12 +109,6 @@ test("is readable with no JavaScript at all", async ({ browser }) => {
   await context.close();
 });
 
-test("the order control carries the running total", async ({ page }) => {
-  await page.goto("/");
-  const order = page.getByRole("button", { name: /^Order/ });
-  await expect(order).toBeVisible();
-  await expect(order).toContainText("$0.00");
-});
 
 test("self-hosts its fonts and images", async ({ page }) => {
   const external: string[] = [];

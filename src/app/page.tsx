@@ -6,7 +6,6 @@ import { PlateStage, type StagePlate } from "@/components/kuro/PlateStage";
 import { Ticker } from "@/components/kuro/Ticker";
 import { SauceStage } from "@/components/kuro/SauceStage";
 import { HoursDial } from "@/components/kuro/HoursDial";
-import { getCurrentUser } from "@/lib/auth/dal";
 import { getMenu } from "@/lib/menu/queries";
 import { SAUCES } from "@/lib/menu-data";
 import {
@@ -39,7 +38,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [user, menu] = await Promise.all([getCurrentUser(), getMenu()]);
+  const menu = await getMenu();
 
   const now = nyNow();
   const store = storeStatus(now);
@@ -77,7 +76,7 @@ export default async function HomePage() {
 
   return (
     <div className="kuro">
-      <KuroHeader signedIn={Boolean(user)} />
+      <KuroHeader />
 
       <main>
         <StoreHero closesLabel={closesLabel} statusLabel={statusLabel} isOpen={ordering.canOrder} />

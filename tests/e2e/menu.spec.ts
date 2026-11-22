@@ -1,63 +1,22 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
-import { countFor, toPath, waitForLink } from "./outbox";
-
-/**
- * The menu and the cart, end to end.
- *
- * These run against the seeded menu, so the numbers here are the owner's real
- * prices: a 12 pc wing at 9.99 + 8.00, a platter at 13.99 + 3.00 for extra
- * protein. If a price changes, these tests are supposed to fail.
- */
 
 const prisma = new PrismaClient();
 
-test.describe.configure({ mode: "serial" });
 
-/**
- * Every test in this suite comes from 127.0.0.1, and the login limiter freezes
- * an IP after MAX_FAILURES_PER_IP failures in its window. The suite tests
- * wrong-password paths on purpose, so those failures pile up and eventually
- * lock out whichever file happens to run next — which reads as flakiness and
- * is really the limiter working correctly against a shared address.
- *
- * Clearing the ledger before each file keeps the limiter's own tests honest
- * (they create their own failures) without letting one file poison the next.
- */
-test.beforeAll(async () => {
-  await prisma.loginAttempt.deleteMany({});
+
+
+
+test.afterAll(async () => {
+  await prisma.$disconnect();
 });
 
+// ------------------------------------------------------------- browsing
 
-const PASSWORD = "a good enough password";
-
-const AREA = { desktop: "201", mobile: "973" } as const;
-
-function accountFor(slot: number) {
-  const area = AREA[test.info().project.name as keyof typeof AREA] ?? "908";
-  const last = String(slot).padStart(2, "0");
-  return {
-    typed: `(${area}) 555-02${last}`,
-    e164: `+1${area}55502${last}`,
-    email: `menu-${area}-${last}@example.test`,
-  };
-}
-
-type Account = ReturnType<typeof accountFor>;
-
-async function wipe(...accounts: Account[]) {
-  const emails = accounts.map((a) => a.email);
-  const phones = accounts.map((a) => a.e164);
-  await prisma.loginAttempt.deleteMany({ where: { identifier: { in: [...emails, ...phones] } } });
-  await prisma.user.deleteMany({ where: { OR: [{ email: { in: emails } }, { phone: { in: phones } }] } });
-}
 
 /**
- * Opens an item, whichever way this viewport does it.
- *
- * Matched on the exact heading, not on text: the board has a "Lamb" gyro and a
- * "Lamb over Rice" platter, and a "Cheese Burger" beside a "Double Cheese
- * Burger".
+ * Opens one dish. A phone navigates to the item's page; a desktop opens the
+ * dialog. Either way the dish is ready once its ordering link is on screen.
  */
 async function openItem(page: Page, name: string) {
   await page.goto("/menu");
@@ -67,62 +26,10 @@ async function openItem(page: Page, name: string) {
     .first()
     .getByRole("button")
     .click();
-  // A phone navigates to the item's page; a desktop opens the dialog. Either
-  // way the form is ready when its Add to cart button is.
-  await expect(page.getByRole("button", { name: /^Add to cart/ })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /^(Order now|Call to order)/ }).first(),
+  ).toBeVisible();
 }
-
-/**
- * Ticks an option by its control rather than its text: the menu behind the
- * dialog has cards carrying the same words (an "Extra Sauces" card called
- * "White", for instance), and text matching would find those instead.
- *
- * The control's accessible name carries the surcharge too — "12 Pc +$8.00" —
- * so match on the start of the name.
- */
-async function pick(page: Page, name: string) {
-  const at = new RegExp("^" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  // .or() waits for whichever control the group renders; counting first would
-  // be a snapshot taken before the dialog has drawn.
-  await page
-    .getByRole("checkbox", { name: at })
-    .or(page.getByRole("radio", { name: at }))
-    .first()
-    .check();
-}
-
-async function addToCart(page: Page) {
-  await page.getByRole("button", { name: /^Add to cart/ }).click();
-  await expect(page.getByRole("dialog", { name: "Your cart" })).toBeVisible();
-}
-
-async function register(page: Page, name: string, account: Account) {
-  const before = await countFor(account.email, "verify");
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill(name);
-  await page.getByLabel("Email", { exact: true }).fill(account.email);
-  await page.getByLabel("Mobile number").fill(account.typed);
-  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await page.getByLabel(/I agree to the/).check();
-  await page.getByLabel(/I'm 18 or older/).check();
-  await page.getByRole("button", { name: "Create account" }).click();
-  const link = await waitForLink(account.email, "verify", before);
-  await page.goto(toPath(link));
-}
-
-async function logIn(page: Page, account: Account) {
-  await page.goto("/login");
-  await page.getByLabel("Email or mobile number").fill(account.email);
-  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
-  await expect(page).toHaveURL(/\/account$/);
-}
-
-test.afterAll(async () => {
-  await prisma.$disconnect();
-});
-
-// ------------------------------------------------------------- browsing
 
 test("lists the whole menu, filters by category and searches", async ({ page }) => {
   await page.goto("/menu");
@@ -179,26 +86,15 @@ test("sells dips and drinks as their own items", async ({ page }) => {
   ).toContainText("$1.99");
 });
 
-test("adds a dip on its own, without buying anything else", async ({ page }) => {
-  await page.goto("/menu");
-  await page.getByRole("tab", { name: /^Extra Sauces/ }).click();
-  await page
-    .locator("article")
-    .filter({ has: page.getByRole("heading", { name: "Hot", exact: true }) })
-    .getByRole("button")
-    .click();
-  await page.getByRole("button", { name: /^Add to cart/ }).click();
 
-  const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Hot");
-  await expect(panel).toContainText("$0.75");
-});
-
-test("a soda has to say which one", async ({ page }) => {
+test("a soda lists the flavours it comes in", async ({ page }) => {
+  // The choice is made on DoorDash now, but a menu that does not say which
+  // flavours exist is a worse menu than the board on the wall.
   await openItem(page, "Soda");
-  await pick(page, "Sprite");
-  await page.getByRole("button", { name: /^Add to cart/ }).click();
-  await expect(page.getByRole("dialog", { name: "Your cart" })).toContainText("Sprite");
+  const panel = page.locator("main, dialog").filter({ hasText: "Soda" }).first();
+  for (const flavour of ["Coke", "Sprite"]) {
+    await expect(panel).toContainText(flavour);
+  }
 });
 
 test("shows an unpriced item honestly instead of pretending", async ({ page }) => {
@@ -224,11 +120,15 @@ test("shows an unpriced item honestly instead of pretending", async ({ page }) =
   }
 });
 
-test("leaving the salad off a platter is free", async ({ page }) => {
-  await openItem(page, "Lamb & Chicken Mix");
-  await pick(page, "No salad");
-  // Still 13.99 — removing something never costs anything.
-  await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$13.99");
+test("says the platter extras and what each one adds", async ({ page }) => {
+  await openItem(page, "Lamb over Rice");
+  const panel = page.locator("main, dialog").filter({ hasText: "Lamb over Rice" }).first();
+  // Leaving the salad off is free, and the menu has to say so rather than
+  // leaving someone to find out at checkout.
+  await expect(panel).toContainText("No salad");
+  await expect(panel).not.toContainText("No salad +");
+  // A paid extra shows its surcharge.
+  await expect(panel).toContainText("+$3.00");
 });
 
 test("offers sauce on the side where a sauce belongs, and not elsewhere", async ({ page }) => {
@@ -274,165 +174,22 @@ test("shows sides and drinks as add-ons under the mains, not as full cards", asy
   ).toBeVisible();
 });
 
-test("adds a side straight from its row", async ({ page }) => {
-  await page.goto("/menu");
-  await page
-    .locator("article")
-    .filter({ has: page.getByRole("heading", { name: "Onion Rings", exact: true }) })
-    .getByRole("button")
-    .click();
-  await page.getByRole("button", { name: /^Add to cart/ }).click();
-
-  const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toBeVisible();
-  await expect(panel).toContainText("Onion Rings");
-  await expect(panel).toContainText("$4.99");
-});
 
 // ----------------------------------------------------------- the cart
 
-test("adds an item with options and prices it the way the menu says", async ({ page }) => {
-  await openItem(page, "Wings");
 
-  // 6 Pc is the default; 12 Pc is +8.00 on a 9.99 base.
-  await pick(page, "12 Pc");
-  await pick(page, "Hot Honey");
-  await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$17.99");
 
-  await addToCart(page);
 
-  const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Wings");
-  await expect(panel).toContainText("12 Pc · Hot Honey");
-  await expect(panel).toContainText("$17.99");
-});
 
-test("will not add an item until its required choices are made", async ({ page }) => {
-  await openItem(page, "Wings");
 
-  // Clearing the sauce is only possible by picking none — the group starts
-  // empty because it has no default, so the button should refuse.
-  await pick(page, "Lemon Pepper");
-  await pick(page, "Lemon Pepper"); // radios don't untick, so it stays chosen
-  await expect(page.getByRole("button", { name: /^Add to cart/ })).toBeEnabled();
-});
-
-test("holds the sauce limit at three", async ({ page }) => {
-  await openItem(page, "Lamb & Chicken Mix");
-
-  // The board names the sauces White, Hot, Green, Tahini, BBQ and Buffalo.
-  for (const sauce of ["White", "Hot", "Green"]) await pick(page, sauce);
-
-  // The fourth is disabled rather than rejected after the fact.
-  await expect(page.getByRole("checkbox", { name: /^Tahini/ }).first()).toBeDisabled();
-  await expect(page.getByText("That's the limit")).toBeVisible();
-});
-
-test("charges for the paid extras", async ({ page }) => {
-  await openItem(page, "Lamb & Chicken Mix");
-
-  await pick(page, "Extra protein");
-  await pick(page, "Add pita");
-  // 13.99 + 3.00 + 2.00
-  await expect(page.getByRole("button", { name: /^Add to cart/ })).toContainText("$18.99");
-});
-
-test("keeps a guest cart across a reload", async ({ page }) => {
-  await openItem(page, "Masala Fries");
-  await pick(page, "Lg");
-  await addToCart(page);
-  await page.getByRole("button", { name: "Close cart" }).click();
-
-  await page.reload();
-  await page.getByRole("button", { name: /^Cart/ }).click();
-
-  const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Masala Fries");
-  // 4.99 + 2.00 for the large
-  await expect(panel).toContainText("$6.99");
-});
-
-test("changes quantity and removes a line", async ({ page }) => {
-  await openItem(page, "Cheese Burger");
-  await addToCart(page);
-
-  const panel = page.getByRole("dialog", { name: "Your cart" });
-  await panel.getByRole("button", { name: /Add one Cheese Burger/ }).click();
-  await expect(panel).toContainText("$13.98");
-
-  await panel.getByRole("button", { name: "Remove", exact: true }).click();
-  await expect(panel).toContainText("Nothing in here yet");
-});
 
 // ------------------------------------------------- carrying the cart over
 
-test("folds a guest cart into the account at sign-in, and keeps it after", async ({ page }) => {
-  const account = accountFor(1);
-  await wipe(account);
-  await register(page, "Cart Keeper", account);
 
-  // Still logged out after verifying: fill a cart as a guest.
-  await openItem(page, "Lamb");
-  await pick(page, "Add fries and a soda");
-  await addToCart(page);
-  await page.getByRole("button", { name: "Close cart" }).click();
-
-  await logIn(page, account);
-
-  // The cart followed them in, and is now in the database.
-  await page.getByRole("button", { name: /^Cart/ }).click();
-  const panel = page.getByRole("dialog", { name: "Your cart" });
-  await expect(panel).toContainText("Lamb");
-  await expect(panel).toContainText("Add fries and a soda");
-  // 9.99 + 5.00
-  await expect(panel).toContainText("$14.99");
-
-  await expect
-    .poll(async () => prisma.cartItem.count({ where: { cart: { user: { email: account.email } } } }))
-    .toBe(1);
-
-  const stored = await prisma.cartItem.findFirstOrThrow({
-    where: { cart: { user: { email: account.email } } },
-    include: { menuItem: { select: { slug: true } } },
-  });
-  expect(stored.menuItem.slug).toBe("lamb-gyro");
-  expect(stored.quantity).toBe(1);
-
-  await wipe(account);
-});
-
-test("a signed-in cart comes back on another device", async ({ browser }) => {
-  const account = accountFor(2);
-  await wipe(account);
-
-  const first = await browser.newContext();
-  const pageA = await first.newPage();
-  await register(pageA, "Two Devices", account);
-  await logIn(pageA, account);
-
-  await openItem(pageA, "Philly Cheese Steak");
-  await addToCart(pageA);
-  await expect
-    .poll(async () => prisma.cartItem.count({ where: { cart: { user: { email: account.email } } } }))
-    .toBe(1);
-
-  // A different browser, same account.
-  const second = await browser.newContext();
-  const pageB = await second.newPage();
-  await logIn(pageB, account);
-  await pageB.getByRole("button", { name: /^Cart/ }).click();
-  await expect(pageB.getByRole("dialog", { name: "Your cart" })).toContainText(
-    "Philly Cheese Steak",
-  );
-
-  await first.close();
-  await second.close();
-  await wipe(account);
-});
 
 // ------------------------------------------------------------ sold out
 
-test("greys out a sold-out item and refuses to add it", async ({ page }) => {
+test("marks a sold-out dish and will not send anyone to order it", async ({ page }) => {
   const soldOutUntil = new Date(Date.now() + 60 * 60 * 1000);
   await prisma.menuItem.update({
     where: { slug: "onion-rings" },
@@ -443,11 +200,13 @@ test("greys out a sold-out item and refuses to add it", async ({ page }) => {
     await page.goto("/menu");
     const card = page.locator("article").filter({ hasText: "Onion Rings" });
     await expect(card).toContainText("Sold out");
-    await expect(card.getByRole("button", { name: /Sold out/ })).toBeDisabled();
 
-    // The item's own page says so too, and cannot be added from.
+    // The item's own page says so too, and offers no way to order it:
+    // sending somebody to DoorDash for a dish the kitchen ran out of is
+    // worse than saying so here.
     await page.goto("/menu/onion-rings");
-    await expect(page.getByRole("button", { name: "Sold out" })).toBeDisabled();
+    await expect(page.locator("main")).toContainText("Sold out");
+    await expect(page.getByRole("link", { name: /^Order now/ })).toHaveCount(0);
   } finally {
     await prisma.menuItem.update({
       where: { slug: "onion-rings" },
@@ -456,29 +215,6 @@ test("greys out a sold-out item and refuses to add it", async ({ page }) => {
   }
 });
 
-test("tells someone when something in their cart has sold out", async ({ page }) => {
-  await openItem(page, "Waffle Fries");
-  await addToCart(page);
-  await page.getByRole("button", { name: "Close cart" }).click();
-
-  await prisma.menuItem.update({
-    where: { slug: "waffle-fries" },
-    data: { outOfStockUntil: new Date(Date.now() + 60 * 60 * 1000) },
-  });
-
-  try {
-    await page.reload();
-    await page.getByRole("button", { name: /^Cart/ }).click();
-    const panel = page.getByRole("dialog", { name: "Your cart" });
-    await expect(panel).toContainText("sold out");
-    await expect(panel).toContainText("Something in your cart changed");
-  } finally {
-    await prisma.menuItem.update({
-      where: { slug: "waffle-fries" },
-      data: { outOfStockUntil: null },
-    });
-  }
-});
 
 // ------------------------------------------------------- the homepage
 

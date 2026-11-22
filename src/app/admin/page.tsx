@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { SiteHeader } from "@/components/ui/SiteHeader";
+import { KuroHeader } from "@/components/kuro/KuroHeader";
+import { logout } from "@/lib/auth/actions";
 import { STAFF_ROLES, requireRole } from "@/lib/auth/dal";
 
 export const metadata: Metadata = {
@@ -9,22 +9,24 @@ export const metadata: Metadata = {
 };
 
 /**
- * Placeholder for the phase 5 manager dashboard. It already sits behind the
- * real role check, so the gate is tested before anything valuable is behind it.
+ * The manager area — the only reason anyone signs in to this site.
+ *
+ * Ordering, payment, tracking and support are DoorDash's. What is left for
+ * Shahzad is the menu: changing a price when he changes it on the ordering
+ * page, and marking something sold out when the lamb runs out at one in the
+ * morning. The editors for both are built next; the gate is already real.
+ *
+ * The log-out button lives here rather than in the site header. The header is
+ * what a customer sees, and a customer should never learn this site has a
+ * login — but somebody who has signed in on the shop's shared tablet has to be
+ * able to sign out again.
  */
 export default async function AdminPage() {
   const user = await requireRole(STAFF_ROLES, "/admin");
 
   return (
     <>
-      <SiteHeader>
-        <Link
-          href="/account"
-          className="rounded-full px-4 py-2 text-[15px] font-medium text-muted transition-colors hover:bg-cream/5 hover:text-cream"
-        >
-          Account
-        </Link>
-      </SiteHeader>
+      <KuroHeader />
       <main className="wrap pt-10 pb-24 sm:pt-16">
         <span className="eyebrow">Manager area</span>
         <h1 className="mt-3 mb-6 font-display text-[clamp(48px,9vw,96px)] leading-[0.88] font-black tracking-normal uppercase">
@@ -34,9 +36,14 @@ export default async function AdminPage() {
           </em>
         </h1>
         <p className="max-w-[560px] text-muted">
-          Signed in as {user.name} ({user.role.toLowerCase()}). The live order queue, menu and
-          price editing, and the sales dashboard will be built here.
+          Signed in as {user.name} ({user.role.toLowerCase()}). Price editing and the sold-out
+          switch will be built here.
         </p>
+        <form action={logout} className="mt-8">
+          <button type="submit" className="btn btn-ghost">
+            Log out
+          </button>
+        </form>
       </main>
     </>
   );

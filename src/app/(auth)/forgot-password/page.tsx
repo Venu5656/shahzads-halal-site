@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function ForgotPasswordPage() {
   // Someone already logged in wants the change-password form, not this one.
-  if (await getCurrentUser()) redirect("/account");
+  if (await getCurrentUser()) redirect("/admin");
 
   return (
     <AuthCard

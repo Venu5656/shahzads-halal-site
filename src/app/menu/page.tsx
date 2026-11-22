@@ -1,8 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MenuBrowser } from "@/components/menu/MenuBrowser";
-import { SiteHeader } from "@/components/ui/SiteHeader";
+import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { getMenu } from "@/lib/menu/queries";
+
+/**
+ * Never cached.
+ *
+ * The owner changes prices and marks dishes sold out from the manager, and a
+ * menu that was rendered at build time would go on advertising last week's
+ * prices and selling food the kitchen ran out of at one in the morning.
+ *
+ * This used to happen by accident: the root layout read cookies on every
+ * request, which forced every page to render dynamically. Removing the cart
+ * removed that, and these two pages quietly became static. They are the two
+ * pages on the site whose content actually changes, so they say so themselves
+ * rather than depending on something else's side effect.
+ */
+export const dynamic = "force-dynamic";
+
 
 export const metadata: Metadata = {
   title: "Menu · Shahzad's Halal Food",
@@ -15,7 +31,7 @@ export default async function MenuPage() {
 
   return (
     <>
-      <SiteHeader />
+      <KuroHeader />
       <main className="wrap pt-10 pb-28 sm:pt-14">
       <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
         <div>
