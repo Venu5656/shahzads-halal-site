@@ -162,6 +162,12 @@ async function main() {
   });
 
   // --- owner account (optional) -------------------------------------------
+  //
+  // This is now the ONLY way a first account comes into being. There is no
+  // public sign-up form: the site takes no orders, so a customer has nothing
+  // to have an account for, and anyone who wants offers joins the promotions
+  // list, which has no password at all.
+  //
   // SEED_OWNER_EMAIL=... SEED_OWNER_PHONE=+1XXXXXXXXXX SEED_OWNER_PASSWORD='...' npm run db:seed
   const rawOwnerPhone = process.env.SEED_OWNER_PHONE;
   if (rawOwnerPhone) {
@@ -208,7 +214,7 @@ async function main() {
       `Owner account ready for ${ownerEmail.slice(0, 1)}••••${ownerEmail.slice(ownerEmail.indexOf("@"))}` +
         (hasPassword
           ? ""
-          : " — no password set, so it cannot log in yet. Re-run with SEED_OWNER_PASSWORD, or sign up with that address and then set the role."),
+          : " — no password set, so it cannot log in yet. Re-run with SEED_OWNER_PASSWORD."),
     );
   } else {
     console.log("SEED_OWNER_PHONE not set — no owner account created.");

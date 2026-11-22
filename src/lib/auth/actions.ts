@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "./dal";
 import { issueEmailToken, spendEmailToken } from "./email-tokens";
@@ -16,22 +15,23 @@ import {
   fieldErrorsFrom,
   loginSchema,
   resetPasswordSchema,
-  signupSchema,
   type FormState,
 } from "./schemas";
 import { createSession, endAllSessions, endCurrentSession } from "./session";
 
 /**
- * Sign up, log in, log out, and the two emailed journeys: proving an address
- * and resetting a forgotten password.
+ * Log in, log out, and the two emailed journeys: proving an address and
+ * resetting a forgotten password.
  *
- * Signing up no longer logs you in. The account is created unverified, a link
- * goes to the address, and the password only works once that link is opened —
- * which is what stops someone signing up with an address that isn't theirs and
- * what keeps a typo'd address from becoming an unreachable customer.
+ * There is no sign-up action any more. The site takes no orders, so a customer
+ * has nothing to have an account for, and a public form that creates one is a
+ * pile of other people's names and phone numbers kept for no reason. Accounts
+ * now exist only for the shop: the first is made by the database seed, and the
+ * rest will be made by invitation.
  *
- * Phone numbers are still collected (the kitchen calls about pickups) but are
- * not proved: SMS verification slots in on top when 10DLC registration clears.
+ * The verification machinery stays, and is still the gate on logging in. An
+ * account whose address has never been proved cannot sign in, which is what
+ * stops an invitation sent to a mistyped address from becoming a live login.
  *
  * Every server action here is a public POST endpoint, so each validates its own
  * input with Zod and re-derives the user from the session.
@@ -41,77 +41,6 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 /** Deliberately identical whether the account is unknown or the password is wrong. */
 const BAD_CREDENTIALS = "That email or number and password don't match.";
-
-// ------------------------------------------------------------------ sign up
-
-export async function signup(_prev: FormState, form: FormData): Promise<FormState> {
-  const values = {
-    name: field(form, "name") ?? "",
-    phone: field(form, "phone") ?? "",
-    email: field(form, "email") ?? "",
-  };
-  const parsed = signupSchema.safeParse({
-    ...values,
-    password: field(form, "password") ?? "",
-    acceptTerms: form.get("acceptTerms"),
-    confirmAge: form.get("confirmAge"),
-    marketingOptIn: form.get("marketingOptIn"),
-  });
-  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), values };
-
-  const { name, phone, email, password, marketingOptIn } = parsed.data;
-  const passwordHash = await hashPassword(password);
-
-  let user: { id: string; name: string } | null = null;
-  try {
-    user = await prisma.user.create({
-      data: {
-        name,
-        phone,
-        email,
-        passwordHash,
-        marketingOptIn,
-        role: "CUSTOMER",
-      },
-      select: { id: true, name: true },
-    });
-  } catch (error) {
-    const taken =
-      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-    if (!taken) throw error;
-    // Either the address or the number already has an account. Both cases end
-    // on the same screen as a real signup: saying "that number is taken" would
-    // turn this form into a way to ask whether someone eats here.
-  }
-
-  if (user) {
-    await issueEmailToken({
-      userId: user.id,
-      name: user.name,
-      email,
-      purpose: "VERIFY_EMAIL",
-    });
-  } else {
-    // The address may belong to an account that never finished verifying —
-    // most likely this same person, trying again. Send that account its link.
-    // A verified account gets nothing: it already exists, and its owner can
-    // log in or reset. Either way the browser sees the same screen.
-    const existing = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, name: true, emailVerifiedAt: true },
-    });
-    if (existing && !existing.emailVerifiedAt) {
-      await issueEmailToken({
-        userId: existing.id,
-        name: existing.name,
-        email,
-        purpose: "VERIFY_EMAIL",
-      });
-    }
-  }
-
-  redirect(`/check-email?to=${encodeURIComponent(email)}&for=verify`);
-}
 
 // ------------------------------------------------------------------- log in
 

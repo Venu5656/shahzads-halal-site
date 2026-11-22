@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Shown after signing up, after asking for a reset, and after trying to log in
- * to an unverified account.
+ * Shown after asking for a password reset, and after trying to log in to an
+ * account whose address has never been proved.
  *
- * It says the same thing in all three cases and never confirms whether an
- * account exists — the address it echoes back is simply the one that was
- * typed, masked, and it is validated here so the page cannot be used to bounce
+ * It says the same thing in both cases and never confirms whether an account
+ * exists — the address it echoes back is simply the one that was typed,
+ * masked, and it is validated here so the page cannot be used to bounce
  * arbitrary text back at someone.
  */
 export default async function CheckEmailPage({
@@ -48,7 +48,7 @@ export default async function CheckEmailPage({
       {params.again === "1" ? (
         <p className="mb-6 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-[15px] leading-relaxed text-cream">
           Your password was right — the address just hasn&apos;t been confirmed yet. Open the
-          link we sent when you signed up, or ask for a fresh one below.
+          link that came with the invitation, or ask for a fresh one below.
         </p>
       ) : null}
 
@@ -67,15 +67,9 @@ export default async function CheckEmailPage({
       {isReset ? null : <ResendVerificationForm defaultEmail={parsed.success ? parsed.data : ""} />}
 
       <p className="mt-7 text-center text-[13px] leading-relaxed text-muted">
-        Wrong address?{" "}
-        <Link href="/signup" className="text-gold underline-offset-4 hover:underline">
-          Sign up again
-        </Link>{" "}
-        or{" "}
         <Link href="/login" className="text-gold underline-offset-4 hover:underline">
-          log in
+          Back to log in
         </Link>
-        .
       </p>
     </AuthCard>
   );

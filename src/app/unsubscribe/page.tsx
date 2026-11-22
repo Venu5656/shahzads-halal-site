@@ -10,17 +10,18 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * Turning marketing email off.
+ * Turning the offers off.
  *
- * No sign-in, by design: somebody who wants out should not have to remember a
- * password to get out. The link's signature is the authority.
+ * No sign-in, by design — and now there is nothing to sign in to. Somebody on
+ * the list has no account and no password; the link's signature is the whole
+ * authority, which is what makes it work for a person who cannot remember
+ * ever giving us the address.
  *
  * Following the link does the work rather than showing a confirm button. Some
  * mail clients fetch a link before the human clicks it, which would normally
  * argue for a second step — but the worst case here is somebody stops getting
  * offers they can switch back on in one tap, and that is a far better failure
- * than a person who cannot unsubscribe. Receipts and security email are
- * untouched either way.
+ * than a person who cannot unsubscribe.
  */
 export default async function UnsubscribePage({
   searchParams,
@@ -62,9 +63,10 @@ export default async function UnsubscribePage({
               days.
             </p>
             <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-muted">
-              You will still get email about orders you place — the confirmation, the
-              receipt, and anything about your account or password. Those are not
-              marketing and you cannot be opted out of them while you have an account.
+              Offers are the only thing we ever sent you, so that is all of it. Anything
+              about an order you place belongs to whoever took the order, not to us, and
+              this link cannot turn that off — nor should it, since it is how you find out
+              where your food is.
             </p>
           </>
         ) : (
@@ -79,8 +81,8 @@ export default async function UnsubscribePage({
           <Link href="/menu" className="btn btn-red">
             See the menu
           </Link>
-          <Link href="/menu" className="btn btn-ghost">
-            Back to the menu
+          <Link href="/" className="btn btn-ghost">
+            Back to the shop
           </Link>
         </div>
 

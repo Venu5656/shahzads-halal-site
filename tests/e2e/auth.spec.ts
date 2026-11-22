@@ -1,19 +1,23 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
-import { createHmac } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { hashPassword } from "../../src/lib/auth/password";
 import { countFor, toPath, waitForLink } from "./outbox";
 
 /**
- * Sign up, prove your address, log in and reset a forgotten password — end to
- * end, following the actual links out of the actual emails (read from the
- * development outbox).
+ * Log in, prove an address, reset a forgotten password — end to end, following
+ * the actual links out of the actual emails (read from the development
+ * outbox).
  *
- * There is no customer account area any more: ordering is DoorDash's, and the
- * only person with a reason to sign in is Shahzad, to edit the menu. So the
- * place a successful login lands is /admin, and it opens only for a MANAGER or
- * an OWNER — a signed-in CUSTOMER gets the same 404 a stranger gets, because
- * the manager area does not advertise that it exists.
+ * There is no sign-up form to test any more. Ordering belongs to the delivery
+ * platform, so a customer has nothing to have an account for, and the only
+ * people who sign in are the ones who run the shop. Their accounts are made by
+ * the seed or by invitation, which is what these tests do directly: creating a
+ * row is the real path now, so a test that posted a form would be testing
+ * something no longer there.
+ *
+ * A successful login lands on /admin, which opens only for a MANAGER or an
+ * OWNER. A signed-in CUSTOMER gets the same 404 a stranger gets, because the
+ * manager area does not advertise that it exists.
  *
  * Every test owns one phone number in the fictional 555-01xx block and one
  * address at example.test, per project, and wipes both before and after, so
@@ -78,31 +82,33 @@ async function settled(page: Page, from: string) {
   ]);
 }
 
-/** Fills in the sign-up form. The account exists afterwards, but unverified. */
-async function signUp(page: Page, name: string, account: Account, password = PASSWORD) {
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill(name);
-  await page.getByLabel("Email", { exact: true }).fill(account.email);
-  await page.getByLabel("Mobile number").fill(account.typed);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByLabel(/I agree to the/).check();
-  await page.getByLabel(/I'm 18 or older/).check();
-  await page.getByRole("button", { name: "Create account" }).click();
-  await settled(page, "/signup");
+/**
+ * Creates an account the way the shop actually gets one: a row, with a hashed
+ * password, made by somebody who already had access. `verified` false models
+ * an invitation whose address has not been proved yet.
+ */
+async function createAccount(
+  name: string,
+  account: Account,
+  options: { verified?: boolean; role?: "CUSTOMER" | "MANAGER" | "OWNER"; password?: string } = {},
+) {
+  const { verified = true, role = "CUSTOMER", password = PASSWORD } = options;
+  await prisma.user.create({
+    data: {
+      name,
+      email: account.email,
+      phone: account.e164,
+      passwordHash: await hashPassword(password),
+      emailVerifiedAt: verified ? new Date() : null,
+      role,
+    },
+  });
 }
 
-/** Opens the verification link from the newest email to this address. */
-async function verify(page: Page, account: Account, after = 0) {
-  const link = await waitForLink(account.email, "verify", after);
-  await page.goto(toPath(link));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("confirmed");
-}
-
-/** Signs up and proves the address, leaving the browser logged out. */
-async function register(page: Page, name: string, account: Account, password = PASSWORD) {
-  const before = await countFor(account.email, "verify");
-  await signUp(page, name, account, password);
-  await verify(page, account, before);
+/** Asks for a fresh verification link, the way the check-email screen does. */
+async function askForVerificationLink(page: Page, account: Account) {
+  await page.goto(`/check-email?to=${encodeURIComponent(account.email)}&for=verify`);
+  await page.getByRole("button", { name: "Send the link again" }).click();
 }
 
 async function logIn(page: Page, identifier: string, password = PASSWORD, next?: string) {
@@ -113,20 +119,13 @@ async function logIn(page: Page, identifier: string, password = PASSWORD, next?:
   await settled(page, "/login");
 }
 
-/** Makes an account staff. Sign-up only ever creates a CUSTOMER. */
-async function promote(account: Account) {
-  await prisma.user.update({ where: { email: account.email }, data: { role: "OWNER" } });
-}
-
 /**
- * Signs up, verifies, promotes, and logs in — the state most tests start from,
- * because the signed-in state this site actually has is Shahzad's. A CUSTOMER
- * can hold a session but has nowhere to land, so a test that needs to see a
- * page while signed in needs the role too.
+ * The state most tests start from: Shahzad, signed in. It is the only
+ * signed-in state this site has — a CUSTOMER can hold a session but has
+ * nowhere to land, so anything that needs to see a page needs the role too.
  */
-async function registerAndLogIn(page: Page, name: string, account: Account) {
-  await register(page, name, account);
-  await promote(account);
+async function signInAsOwner(page: Page, name: string, account: Account) {
+  await createAccount(name, account, { role: "OWNER" });
   await logIn(page, account.email);
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByText(`Signed in as ${name}`)).toBeVisible();
@@ -136,67 +135,27 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-// ------------------------------------------------- signing up and verifying
+// -------------------------------------------------------- proving an address
 
-test("signing up sends a link and does not log you in until it is opened", async ({ page }) => {
-  const acc = accountFor(1);
-  await wipe(acc);
-  const before = await countFor(acc.email, "verify");
 
-  await signUp(page, "Aisha Khan", acc);
-
-  // No session yet — the address has not been proved.
-  await expect(page).toHaveURL(/\/check-email/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Check");
-  expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(0);
-
-  const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-  expect(user).toMatchObject({ name: "Aisha Khan", role: "CUSTOMER", emailVerifiedAt: null });
-  // The password is stored only as a salted scrypt hash.
-  expect(user.passwordHash).toMatch(/^scrypt\$\d+\$\d+\$\d+\$/);
-  expect(user.passwordHash).not.toContain(PASSWORD);
-  // Nothing has proved the number, and the flag says so honestly.
-  expect(user.phoneVerified).toBe(false);
-
-  // The emailed link carries a token we never stored in the clear.
-  const link = await waitForLink(acc.email, "verify", before);
-  const token = new URL(link).searchParams.get("token")!;
-  expect(token.length).toBeGreaterThan(20);
-  expect(await prisma.emailToken.count({ where: { tokenHash: token } })).toBe(0);
-
-  await page.goto(toPath(link));
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("confirmed");
-
-  const verified = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-  expect(verified.emailVerifiedAt).not.toBeNull();
-
-  // The session is real — but a customer has nowhere to go, so the only place
-  // a login can land is the manager area, and that is not hers.
-  await logIn(page, acc.email);
-  await expect(page).toHaveURL(/\/admin$/);
-  expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(1);
-
-  await promote(acc);
-  await page.goto("/admin");
-  await expect(page.getByText("Signed in as Aisha Khan")).toBeVisible();
-
-  await wipe(acc);
-});
-
-test("an unverified account cannot log in, even with the right password", async ({ page }) => {
+test("an account whose address is unproved cannot log in, right password or not", async ({
+  page,
+}) => {
   const acc = accountFor(2);
   await wipe(acc);
-  await signUp(page, "Omar", acc);
-  const sentAtSignup = await countFor(acc.email, "verify");
+  // An invitation sent to an address nobody has opened yet.
+  await createAccount("Omar", acc, { verified: false, role: "OWNER" });
+  const sentBefore = await countFor(acc.email, "verify");
 
   await logIn(page, acc.email);
 
-  // Sent back to the confirm screen, not into the account.
+  // Sent back to the confirm screen, not into the manager area.
   await expect(page).toHaveURL(/\/check-email/);
   await expect(page.getByText(/password was right/)).toBeVisible();
   expect(await prisma.session.count({ where: { user: { email: acc.email } } })).toBe(0);
-  // Logging in does not fire off another email — the signup link still stands.
-  expect(await countFor(acc.email, "verify")).toBe(sentAtSignup);
+  // Logging in does not fire off another email: the link already sent still
+  // stands, and the screen carries a resend button that says its own cooldown.
+  expect(await countFor(acc.email, "verify")).toBe(sentBefore);
 
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login/);
@@ -207,8 +166,9 @@ test("an unverified account cannot log in, even with the right password", async 
 test("a verification link only works once", async ({ page }) => {
   const acc = accountFor(3);
   await wipe(acc);
+  await createAccount("Sam", acc, { verified: false, role: "MANAGER" });
   const before = await countFor(acc.email, "verify");
-  await signUp(page, "Sam", acc);
+  await askForVerificationLink(page, acc);
 
   const link = await waitForLink(acc.email, "verify", before);
   await page.goto(toPath(link));
@@ -220,49 +180,14 @@ test("a verification link only works once", async ({ page }) => {
   await wipe(acc);
 });
 
-test("a taken address does not tell a stranger that it is taken", async ({ page }) => {
-  const acc = accountFor(4);
-  await wipe(acc);
-  await register(page, "Original Name", acc);
 
-  // Someone else tries the same address with a different number.
-  const other = { ...accountFor(5), email: acc.email };
-  await wipe(accountFor(5));
-  await signUp(page, "Somebody Else", other);
-
-  // Same screen a real signup gets, and the account is untouched.
-  await expect(page).toHaveURL(/\/check-email/);
-  await expect(page.getByText(/already/i)).toHaveCount(0);
-  const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-  expect(user.name).toBe("Original Name");
-  expect(await prisma.user.count({ where: { phone: other.e164 } })).toBe(0);
-
-  await wipe(acc, accountFor(5));
-});
-
-test("validates the sign-up form on the server", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Email", { exact: true }).fill("not-an-email");
-  await page.getByLabel("Mobile number").fill("12345");
-  await page.getByLabel("Password", { exact: true }).fill("short");
-  await page.getByRole("button", { name: "Create account" }).click();
-
-  await expect(page.getByText("Tell us your name.")).toBeVisible();
-  await expect(page.getByText("Enter a valid email address.")).toBeVisible();
-  await expect(page.getByText("Enter a valid US mobile number.")).toBeVisible();
-  await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
-  await expect(page.getByText("Accept the terms to continue.")).toBeVisible();
-  // What they typed is kept, except the password.
-  await expect(page.getByLabel("Mobile number")).toHaveValue("12345");
-  await expect(page.getByLabel("Password", { exact: true })).toHaveValue("");
-});
 
 // --------------------------------------------------------- logging back in
 
 test("logs out and back in, with either the address or the number", async ({ page }) => {
   const acc = accountFor(6);
   await wipe(acc);
-  await registerAndLogIn(page, "Omar", acc);
+  await signInAsOwner(page, "Omar", acc);
 
   await page.getByRole("button", { name: "Log out", exact: true }).click();
   await expect(page).toHaveURL("/");
@@ -283,7 +208,7 @@ test("refuses the wrong password without saying whether the account exists", asy
   const known = accountFor(7);
   const unknown = accountFor(8);
   await wipe(known, unknown);
-  await register(page, "Sam", known);
+  await createAccount("Sam", known, { role: "OWNER" });
 
   await logIn(page, known.email, "the wrong password");
   const wrongPassword = await page.locator("main").getByRole("alert").textContent();
@@ -301,7 +226,7 @@ test("refuses the wrong password without saying whether the account exists", asy
 test("locks an identifier after eight wrong passwords", async ({ page }) => {
   const acc = accountFor(9);
   await wipe(acc);
-  await register(page, "Target", acc);
+  await createAccount("Target", acc, { role: "OWNER" });
 
   // Eight failures are allowed; the ninth is refused before the password is
   // even looked at — so the right one does not get in either.
@@ -324,7 +249,7 @@ test("locks an identifier after eight wrong passwords", async ({ page }) => {
 test("resets a forgotten password from an emailed link", async ({ page }) => {
   const acc = accountFor(10);
   await wipe(acc);
-  await register(page, "Layla", acc);
+  await createAccount("Layla", acc, { role: "OWNER" });
   const before = await countFor(acc.email, "reset");
 
   await page.goto("/login");
@@ -358,7 +283,7 @@ test("a reset link works once, and signs every device out when it is used", asyn
 
   const phoneCtx = await browser.newContext();
   const pageA = await phoneCtx.newPage();
-  await registerAndLogIn(pageA, "Hassan", acc);
+  await signInAsOwner(pageA, "Hassan", acc);
 
   const laptop = await browser.newContext();
   const pageB = await laptop.newPage();
@@ -411,14 +336,10 @@ test("asking to reset an unknown address says the same thing and sends nothing",
 
 // ------------------------------------------------------- the manager area
 
-
-
-
-
 test("keeps customers out of the manager area and lets the owner in", async ({ page }) => {
   const acc = accountFor(19);
   await wipe(acc);
-  await register(page, "Customer", acc);
+  await createAccount("Customer", acc);
   await logIn(page, acc.email);
 
   // Signed in, and still a stranger here. A 404 rather than a 403: a 403 would
@@ -427,7 +348,7 @@ test("keeps customers out of the manager area and lets the owner in", async ({ p
   expect(response?.status()).toBe(404);
   await expect(page.getByText(/Signed in as/)).toHaveCount(0);
 
-  await promote(acc);
+  await prisma.user.update({ where: { email: acc.email }, data: { role: "OWNER" } });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("phase 5");
   await expect(page.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
@@ -438,80 +359,11 @@ test("keeps customers out of the manager area and lets the owner in", async ({ p
 test("never redirects off-site after login", async ({ page }) => {
   const acc = accountFor(20);
   await wipe(acc);
-  await register(page, "Nadia", acc);
+  await createAccount("Nadia", acc, { role: "OWNER" });
 
   await logIn(page, acc.email, PASSWORD, "//evil.example/steal");
   await expect(page).toHaveURL(/localhost|127\.0\.0\.1/);
   await expect(page).toHaveURL(/\/admin$/);
-
-  await wipe(acc);
-});
-
-
-/** The unsubscribe signature, computed the way the server does. */
-function signUnsubscribe(userId: string): string {
-  const secret = readFileSync(".env", "utf8").match(/^AUTH_SECRET="?([^"\n]+)"?/m)?.[1];
-  if (!secret) throw new Error("AUTH_SECRET not found in .env");
-  return createHmac("sha256", secret).update(`unsubscribe:v1\u0000${userId}`).digest("hex");
-}
-
-// ------------------------------------------------- age and unsubscribing
-
-test("will not open an account without confirming an age", async ({ page }) => {
-  const acc = accountFor(30);
-  await wipe(acc);
-
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill("Too Young");
-  await page.getByLabel("Email", { exact: true }).fill(acc.email);
-  await page.getByLabel("Mobile number").fill(acc.typed);
-  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await page.getByLabel(/I agree to the/).check();
-  // The age box is deliberately left unticked.
-  await page.getByRole("button", { name: "Create account" }).click();
-
-  await expect(page.locator("main")).toContainText("18 or older");
-  await expect(page).toHaveURL(/\/signup/);
-  expect(await prisma.user.count({ where: { email: acc.email } })).toBe(0);
-
-  await wipe(acc);
-});
-
-test("turns marketing email off from a link, with nobody signed in", async ({ page, context }) => {
-  const acc = accountFor(31);
-  await wipe(acc);
-  await register(page, "Opted In", acc);
-
-  // Opt in the way the sign-up form's marketing box does.
-  await prisma.user.update({ where: { email: acc.email }, data: { marketingOptIn: true } });
-  const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-
-  // Signed here rather than imported: the module is server-only, and a test
-  // that recomputes the signature independently is a better check anyway.
-  await context.clearCookies();
-  await page.goto(`/api/unsubscribe?u=${user.id}&s=${signUnsubscribe(user.id)}`);
-  await expect(page.locator("main")).toContainText("off the list");
-
-  const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-  expect(after.marketingOptIn).toBe(false);
-
-  await wipe(acc);
-});
-
-test("ignores an unsubscribe link signed for somebody else", async ({ page }) => {
-  const acc = accountFor(32);
-  await wipe(acc);
-  await register(page, "Still Subscribed", acc);
-  await prisma.user.update({ where: { email: acc.email }, data: { marketingOptIn: true } });
-  const user = await prisma.user.findUniqueOrThrow({ where: { email: acc.email } });
-
-  const wrong = signUnsubscribe("usr_someone_else");
-  await page.goto(`/api/unsubscribe?u=${user.id}&s=${wrong}`);
-
-  // The page sets a typographic apostrophe, so match on the half that has none.
-  await expect(page.locator("main")).toContainText("That link");
-  const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-  expect(after.marketingOptIn).toBe(true);
 
   await wipe(acc);
 });

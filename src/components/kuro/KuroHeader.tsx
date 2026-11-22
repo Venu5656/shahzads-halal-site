@@ -39,6 +39,7 @@ export function KuroHeader() {
           { href: "/menu", label: "Menu" },
           { href: "/#sauces", label: "Sauces" },
           { href: "/#hours", label: "Hours" },
+          { href: "/#deals", label: "Deals" },
         ].map((item) => (
           <Link
             key={item.label}

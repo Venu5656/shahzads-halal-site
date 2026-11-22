@@ -23,6 +23,13 @@ enum Role {
   OWNER
 }
 
+/// Somebody who works at the shop.
+///
+/// Not a customer. Customers have nothing to sign in for — ordering belongs to
+/// the delivery platform, and anyone who wants offers joins a Subscriber,
+/// which has no password at all. The CUSTOMER role survives as the default
+/// only because an account created without one should be the least privileged
+/// thing in the system, not the most.
 model User {
   id              String    @id @default(cuid())
   name            String
@@ -42,7 +49,6 @@ model User {
   /// A new address the customer asked for, held until they prove it.
   pendingEmail    String?
   role            Role      @default(CUSTOMER)
-  marketingOptIn  Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lastLoginAt     DateTime?
@@ -133,6 +139,134 @@ model StaffInvite {
   createdAt   DateTime  @default(now())
 
   @@index([phone])
+}
+
+// --------------------------------------------------- the promotions list
+
+/// Someone who asked to hear about offers.
+///
+/// Deliberately NOT a User. There is no password, no session and no role on
+/// this model, so the list cannot be used to sign in at all — a leak of it is
+/// a leak of addresses and nothing more. Accounts exist for the two or three
+/// people who run the shop; this is the several thousand who want to know
+/// about a deal.
+model Subscriber {
+  id               String    @id @default(cuid())
+  /// Lower-cased. Unique, because the same address joining twice is the same
+  /// person, not a second subscriber.
+  email            String    @unique
+  /// When they opened the confirmation link. Null means nothing has proved
+  /// the address, and nothing is ever sent to it except that one link — a
+  /// list built without double opt-in is a list of other people's typos.
+  emailConfirmedAt DateTime?
+  /// E.164. Optional, and deliberately NOT unique: a couple sharing one
+  /// handset should both be able to join, and refusing the second one teaches
+  /// the typist nothing they can act on.
+  phone            String?
+  /// Set only when the SMS box was ticked. Separate from the address because
+  /// permission to text is a separate permission — in law and in fact. Null
+  /// means they never agreed, whatever else they agreed to.
+  smsConsentAt     DateTime?
+  /// When the NUMBER was proved to belong to them, by replying to a
+  /// confirmation text. Null for every row today, because the number cannot
+  /// be proved until A2P 10DLC registration is through and we can send one.
+  ///
+  /// This column is the gate on sending, not smsConsentAt. The reason is the
+  /// oldest hole in SMS marketing: anybody can type a stranger's number into
+  /// a form and tick a box, and the stranger's carrier complaint lands on the
+  /// sender. A ticked box proves somebody agreed; only a reply from the
+  /// handset proves it was the person holding it.
+  smsConfirmedAt   DateTime?
+  /// Set when they stop it: a link, a STOP reply, or a word at the counter.
+  /// Stopped rather than deleted, so a later send cannot re-add them by
+  /// accident.
+  emailStoppedAt   DateTime?
+  smsStoppedAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tokens   SubscriberToken[]
+  consents ConsentEvent[]
+
+  @@index([emailConfirmedAt])
+  @@index([phone])
+}
+
+/// One row per confirmation link sent to a subscriber. Same shape and the same
+/// guarantees as EmailToken — only the SHA-256 of the token is stored, and
+/// `consumedAt` is set in the transaction that acts on it — but kept separate
+/// because a nullable foreign key pointing at either a user or a subscriber is
+/// the kind of union that eventually confirms the wrong one.
+model SubscriberToken {
+  /// SHA-256 (hex) of the token that travels in the link.
+  tokenHash    String     @id
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  /// The address this link was sent to, so a link issued for one address can
+  /// never confirm another.
+  email        String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@index([subscriberId, createdAt])
+  @@index([expiresAt])
+}
+
+enum ConsentChannel {
+  EMAIL
+  SMS
+}
+
+enum ConsentAction {
+  /// They ticked the box.
+  GRANTED
+  /// They proved the address by opening the link.
+  CONFIRMED
+  /// They stopped it.
+  WITHDRAWN
+}
+
+/// The evidence that somebody agreed.
+///
+/// Append-only. Rows are written and never updated or deleted, and the
+/// Subscriber columns beside them are only a cache of the latest state — the
+/// state is what a send reads, this is what answers the question afterwards.
+///
+/// The question is specific. Under the TCPA the sender carries the burden of
+/// proving consent, per message, at up to $1,500 each; "our database says
+/// true" is not proof, because a boolean has no date, no wording and no
+/// witness. A row that says this address, from this IP, in this browser, under
+/// this wording, at this minute, is.
+model ConsentEvent {
+  id                String         @id @default(cuid())
+  subscriberId      String
+  subscriber        Subscriber     @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  channel           ConsentChannel
+  action            ConsentAction
+  /// The address or number this was about, as it stood at the time, so a
+  /// later edit cannot rewrite what was agreed to.
+  target            String
+  /// The IP IN CLEAR — the one place in this schema that is.
+  ///
+  /// Every other IP here is an HMAC, because the only question asked of a
+  /// login IP is whether it matches another one, and a hash answers that
+  /// without keeping the address. A consent IP is read by a person deciding
+  /// whether a consent was real, sometimes years later. A hash tells that
+  /// person nothing, so storing one would be the appearance of evidence
+  /// rather than evidence.
+  ip                String?
+  userAgent         String?
+  /// Which wording was on the screen. The disclosure gets rewritten; the
+  /// proof has to say which version they actually read.
+  disclosureVersion String
+  /// Where it happened: "join-form", "email-confirm", "unsubscribe-link",
+  /// "sms-stop", "counter".
+  source            String
+  createdAt         DateTime       @default(now())
+
+  @@index([subscriberId, channel, createdAt])
+  @@index([channel, action, createdAt])
 }
 
 // -------------------------------------------------------------------- menu

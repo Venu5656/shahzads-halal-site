@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AuthCard, AuthTabs } from "@/components/auth/AuthCard";
+import { AuthCard } from "@/components/auth/AuthCard";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { FormAlert } from "@/components/ui/form";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -19,7 +19,6 @@ export default async function LoginPage({
 
   return (
     <>
-      <AuthTabs active="login" next={params.next ? next : undefined} />
       <AuthCard
         eyebrow="Welcome back"
         title="Log"

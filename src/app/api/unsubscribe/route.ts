@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
 import { verifyUnsubscribe } from "@/lib/email/unsubscribe";
+import { stop } from "@/lib/subscribers/list";
 
 /**
  * The endpoint the unsubscribe link actually points at.
@@ -23,14 +23,13 @@ export const dynamic = "force-dynamic";
 
 async function turnOff(request: NextRequest): Promise<boolean> {
   const { searchParams } = request.nextUrl;
-  const userId = verifyUnsubscribe(searchParams.get("u"), searchParams.get("s"));
-  if (!userId) return false;
+  const subscriberId = verifyUnsubscribe(searchParams.get("u"), searchParams.get("s"));
+  if (!subscriberId) return false;
 
-  await prisma.user.updateMany({
-    where: { id: userId, marketingOptIn: true },
-    data: { marketingOptIn: false },
-  });
-  return true;
+  // Email only. A link in an email is evidence about the email, and reading it
+  // as "stop the texts too" would be guessing at what they meant — the texts
+  // have their own STOP, which is the one a carrier looks for.
+  return stop({ subscriberId, channel: "EMAIL", source: "unsubscribe-link" });
 }
 
 export async function POST(request: NextRequest) {

@@ -6,6 +6,7 @@ import { PlateStage, type StagePlate } from "@/components/kuro/PlateStage";
 import { Ticker } from "@/components/kuro/Ticker";
 import { SauceStage } from "@/components/kuro/SauceStage";
 import { HoursDial } from "@/components/kuro/HoursDial";
+import { JoinSection } from "@/components/join/JoinSection";
 import { getMenu } from "@/lib/menu/queries";
 import { SAUCES } from "@/lib/menu-data";
 import {
@@ -96,6 +97,8 @@ export default async function HomePage() {
         />
 
         <HoursDial initialNow={now} initialClock={clockInitial} />
+
+        <JoinSection />
       </main>
 
       <Ticker

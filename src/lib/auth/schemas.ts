@@ -3,32 +3,14 @@ import { normalizePhone } from "./phone";
 import { MAX_PASSWORD_LENGTH, passwordProblem } from "./login-policy";
 
 /**
- * Server-side validation for every auth form. The browser-side `required` and
- * `type=tel` attributes are a convenience; these are the actual rules.
+ * Server-side validation for the auth forms. The browser-side `required` and
+ * `type=email` attributes are a convenience; these are the actual rules.
+ *
+ * Shorter than it was. There is no sign-up form any more — only the shop has
+ * an account, and the people who want offers join a list instead, which
+ * validates itself in src/lib/subscribers/schemas.ts. What is left here is
+ * logging in and the two emailed journeys.
  */
-
-// Letters, marks, spaces and the punctuation real names use.
-const NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M}' .\-]*$/u;
-
-export const nameSchema = z
-  .string({ error: "Tell us your name." })
-  .trim()
-  .min(1, "Tell us your name.")
-  .max(60, "That name is too long — 60 characters max.")
-  .regex(NAME_PATTERN, "Use letters only in your name.");
-
-export const phoneSchema = z
-  .string({ error: "Enter your mobile number." })
-  .trim()
-  .min(1, "Enter your mobile number.")
-  .transform((value, ctx) => {
-    const e164 = normalizePhone(value);
-    if (!e164) {
-      ctx.addIssue({ code: "custom", message: "Enter a valid US mobile number." });
-      return z.NEVER;
-    }
-    return e164;
-  });
 
 /**
  * Every account needs an address we can prove: it is where the verification
@@ -70,19 +52,6 @@ export const loginIdentifierSchema = z
     return { kind: "phone" as const, value: e164 };
   });
 
-/** A checkbox that has to be ticked, such as accepting the terms. */
-export function requiredCheckboxSchema(message: string) {
-  return z
-    .union([z.literal("on"), z.literal("true"), z.null(), z.undefined()])
-    .transform((value) => value === "on" || value === "true")
-    .refine((checked) => checked, { message });
-}
-
-/** HTML checkboxes submit "on" when ticked and nothing when not. */
-export const checkboxSchema = z
-  .union([z.literal("on"), z.literal("true"), z.null(), z.undefined()])
-  .transform((value) => value === "on" || value === "true");
-
 /**
  * A password being *set*. Never trimmed — leading and trailing spaces are the
  * customer's business — but capped so a megabyte of text cannot tie up a
@@ -105,27 +74,6 @@ export const givenPasswordSchema = z
   .min(1, "Enter your password.")
   .max(MAX_PASSWORD_LENGTH, "That's not your password.");
 
-export const signupSchema = z
-  .object({
-    name: nameSchema,
-    phone: phoneSchema,
-    email: emailSchema,
-    password: newPasswordSchema,
-    acceptTerms: requiredCheckboxSchema("Accept the terms to continue."),
-    // Kept separate from the terms rather than bundled into one tick:
-    // consent to two different things collected by one checkbox is worth
-    // nothing, and the age is the one an account actually turns on.
-    confirmAge: requiredCheckboxSchema(
-      "You need to be 18 or older to open an account and pay online.",
-    ),
-    marketingOptIn: checkboxSchema,
-  })
-  // The only rule that needs two fields: don't let the password be the number.
-  .superRefine((value, ctx) => {
-    const problem = passwordProblem(value.password, value.phone);
-    if (problem) ctx.addIssue({ code: "custom", path: ["password"], message: problem });
-  });
-
 export const loginSchema = z.object({
   identifier: loginIdentifierSchema,
   password: givenPasswordSchema,
@@ -139,32 +87,6 @@ export const resetPasswordSchema = z
     token: z.string().min(1).max(128),
     newPassword: newPasswordSchema,
   });
-
-export const profileSchema = z.object({
-  name: nameSchema,
-  email: emailSchema,
-  marketingOptIn: checkboxSchema,
-});
-
-export const changePasswordSchema = z
-  .object({
-    currentPassword: givenPasswordSchema,
-    newPassword: newPasswordSchema,
-  })
-  .superRefine((value, ctx) => {
-    if (value.currentPassword === value.newPassword) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["newPassword"],
-        message: "That's the password you already have.",
-      });
-    }
-  });
-
-export const changePhoneSchema = z.object({
-  phone: phoneSchema,
-  password: givenPasswordSchema,
-});
 
 /** Form state returned by every auth server action. */
 export type FormState =

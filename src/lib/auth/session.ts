@@ -19,7 +19,6 @@ export const sessionUserSelect = {
   emailVerifiedAt: true,
   pendingEmail: true,
   role: true,
-  marketingOptIn: true,
   createdAt: true,
 } as const;
 

@@ -43,7 +43,7 @@ export async function countFor(email: string, tag?: string): Promise<number> {
  */
 export async function waitForLink(
   email: string,
-  tag: "verify" | "reset",
+  tag: "verify" | "reset" | "list-confirm",
   after = 0,
   timeoutMs = 15_000,
 ): Promise<string> {
