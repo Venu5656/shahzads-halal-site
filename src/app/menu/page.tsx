@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Menu · Shahzad's Halal Food",
   description:
-    "Platters over rice, gyros, cheesesteaks, wings and sides — every protein halal. Order ahead for pickup on Easton Ave.",
+    "Platters over rice, gyros, cheesesteaks, wings and sides — every protein halal, on Easton Ave in New Brunswick. Delivery and pickup.",
 };
 
 export default async function MenuPage() {
@@ -35,7 +35,7 @@ export default async function MenuPage() {
       <main className="wrap pt-10 pb-28 sm:pt-14">
       <div className="mb-9 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <span className="eyebrow">Order ahead · pickup only</span>
+          <span className="eyebrow">Delivery &amp; pickup · 152 Easton Ave</span>
           <h1 className="mt-3 font-display text-[clamp(48px,9vw,96px)] leading-[0.88]">
             The{" "}
             <em className="font-serif text-[0.8em] font-bold tracking-[-0.03em] text-gold normal-case italic">
@@ -44,8 +44,8 @@ export default async function MenuPage() {
           </h1>
         </div>
         <p className="max-w-[420px] text-[17px] leading-relaxed text-muted">
-          Everything is made to order on the flat-top. Pick your sauces, tell us anything the
-          kitchen should know, and collect it at 152 Easton Ave.
+          Everything is made to order on the flat-top, with your pick of the sauces. Prices
+          are what you pay at the counter; what a delivery costs is set on the ordering page.
         </p>
       </div>
 

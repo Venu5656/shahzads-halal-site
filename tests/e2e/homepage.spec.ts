@@ -29,7 +29,9 @@ test("opens on the shop, not on a dish", async ({ page }) => {
   ).toBeVisible();
 
   await expect(page.locator("main")).toContainText("152 Easton Ave");
-  await expect(page.locator("main")).toContainText("Pickup only");
+  // Delivery or pickup — not "pickup only", which stopped being true the day
+  // the delivery partner took over.
+  await expect(page.locator("main")).toContainText("Delivery or pickup");
 
   expect(errors).toEqual([]);
 });

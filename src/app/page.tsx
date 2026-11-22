@@ -102,13 +102,16 @@ export default async function HomePage() {
       </main>
 
       <Ticker
+        /* No "pickup in 20 minutes" and no "order ahead": neither is ours to
+           promise any more. The kitchen line is still true and still useful —
+           it is the one thing here that changes. */
         items={[
           "Halal off the flat-top",
           "152 Easton Ave",
           "Open till 3 am",
-          "Pickup in 20 minutes",
+          "Six sauces",
           ordering.canOrder ? "Kitchen is live" : "Kitchen is closed",
-          "Order ahead",
+          "Delivery and pickup",
         ]}
       />
 

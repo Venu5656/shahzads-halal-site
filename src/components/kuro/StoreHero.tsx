@@ -42,8 +42,8 @@ export function StoreHero({
             style={{ color: "var(--muted)" }}
           >
             A counter on Easton Avenue in New Brunswick, cooking platters over rice,
-            gyros and cheesesteaks to order. Seventeen hours a day, every protein halal,
-            pickup only. Order ahead and it is bagged when you arrive.
+            gyros and cheesesteaks to order. Seventeen hours a day, every protein halal.
+            Come and get it, or have it brought to you.
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -65,7 +65,7 @@ export function StoreHero({
           {[
             ["Where", "152 Easton Ave, New Brunswick"],
             ["Tonight", closesLabel],
-            ["How", "Pickup only · ready in 20 minutes"],
+            ["How", "Delivery or pickup · ready in 20 minutes"],
           ].map(([term, value]) => (
             <div key={term} className="border-b py-6 sm:border-b-0" style={{ borderColor: "var(--line)" }}>
               <dt className="kuro-label">{term}</dt>
