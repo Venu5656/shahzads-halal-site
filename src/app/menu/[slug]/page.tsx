@@ -6,7 +6,7 @@ import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { formatCents } from "@/lib/money";
 import { isSoldOut, startingPriceCents } from "@/lib/menu/pricing";
 import { cutoutShadow } from "@/lib/menu/images";
-import { getMenuItem, getMenuItems } from "@/lib/menu/queries";
+import { getMenuItem } from "@/lib/menu/queries";
 
 /**
  * Never cached.
@@ -23,12 +23,19 @@ import { getMenuItem, getMenuItems } from "@/lib/menu/queries";
  */
 export const dynamic = "force-dynamic";
 
-
-/** Pre-render every item; the menu is small and changes rarely. */
-export async function generateStaticParams() {
-  const items = await getMenuItems();
-  return items.map((item) => ({ slug: item.slug }));
-}
+/*
+ * There is deliberately no generateStaticParams here.
+ *
+ * There used to be, left over from when these pages were pre-rendered. With
+ * force-dynamic above it pre-rendered nothing — but Next still ran it while
+ * collecting page data, so every build opened a connection and listed the
+ * menu. That made a reachable, already-migrated database a precondition of
+ * compiling the site, which is the wrong way round: the first deploy of a new
+ * environment then fails, because the database it is being pointed at has no
+ * tables in it yet.
+ *
+ * Nothing is lost by its absence. The pages are rendered on demand either way.
+ */
 
 export async function generateMetadata({
   params,
