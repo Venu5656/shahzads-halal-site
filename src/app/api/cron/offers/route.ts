@@ -1,3 +1,26 @@
+/*
+ * No schedule is registered for this route in vercel.json, and that is
+ * deliberate rather than an oversight.
+ *
+ * It used to ask for "* * * * *". Vercel's Hobby plan rejects any cron that
+ * would fire more than once a day — the deployment fails outright with
+ * "Hobby accounts are limited to daily Cron Jobs" — and the once-a-day run it
+ * does allow is only accurate to the hour, which is no use to an offer that
+ * says "tonight only".
+ *
+ * Nothing is lost at this size. Pressing "Send it" delivers the first batch
+ * (BATCH_SIZE, currently 40) in the request itself, and "Send the next batch
+ * now" on the offer's page delivers each one after that, so a list under 40
+ * never needs a scheduler at all.
+ *
+ * To make it automatic again, any of these work, and the route needs no
+ * change for any of them:
+ *   - upgrade to Pro and put the crons block back in vercel.json;
+ *   - point an external scheduler at this path, sending the CRON_SECRET as a
+ *     bearer token;
+ *   - keep clicking the button.
+ */
+
 import { NextResponse, type NextRequest } from "next/server";
 import { deliverBatch, unfinishedOffers } from "@/lib/offers/send";
 
