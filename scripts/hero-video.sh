@@ -36,10 +36,16 @@ LOOP=7
 # rather than in CSS means we are not shipping thousands of pixels of ceiling.
 CROP="crop=2160:1215:0:1500"
 
-# A slight grade, baked in: down a little, desaturated a little. It is behind
-# a dark scrim either way, and taking the highlights off here costs fewer bits
-# than asking the encoder to keep them.
-GRADE="eq=brightness=-0.05:saturation=0.88:contrast=1.02"
+# The grade, baked in. Up a little and a touch richer, which is the opposite
+# of where this started: the first version took the brightness DOWN on the
+# theory that a heavy scrim was going over it anyway, and the two compounded
+# into a hero nobody could make out. Mean luma was 82 of 255 before the scrim
+# and about 29 after it on a phone. It is 108 now, and the scrim came down to
+# match — see .kuro-hero-scrim in src/app/kuro.css, which is the other half of
+# this and has to move with it.
+#
+# Override to try another: GRADE="eq=brightness=0.1" scripts/hero-video.sh ...
+GRADE="${GRADE:-eq=brightness=0.06:saturation=1.08:contrast=1.06}"
 
 ffmpeg -v error -ss "$START" -t "$LEN" -i "$SRC" -an \
   -vf "$CROP,scale=1280:720:flags=lanczos" \

@@ -60,7 +60,7 @@ export function StoreHero({
               one does not, because the background under it is not flat. */}
           <p
             className="kuro-label kuro-hero-text flex items-start gap-2.5"
-            style={{ color: "rgb(242 236 228 / 0.82)" }}
+            style={{ color: "rgb(242 236 228 / 0.94)" }}
           >
             {/* items-start, not items-center: this line wraps to two on a
                 phone, and centring put the dot in the gap between them
@@ -78,7 +78,7 @@ export function StoreHero({
             <br />
             flat-top,
             <br />
-            <span style={{ color: "var(--accent)" }}>till&nbsp;3&nbsp;am.</span>
+            <span style={{ color: "var(--accent-hero)" }}>till&nbsp;3&nbsp;am.</span>
           </h1>
 
           <p

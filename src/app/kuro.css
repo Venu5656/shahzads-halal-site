@@ -36,6 +36,13 @@
    * a label. It does NOT clear 4.5 under white text (4.30:1), so anything
    * with a word sitting on it uses --accent-ink, three points darker at 4.54. */
   --accent: #e23a2f;
+  /* The same red, lifted, for the one place it sits on moving pictures.
+   * #e23a2f carries a relative luminance of 0.19, which is plenty against the
+   * page colour and not enough against a lit piece of chicken: it measured
+   * 2.02:1 on a phone once the video was brightened, against the 3:1 that
+   * large text needs. Everything else on the site keeps --accent; only the
+   * hero headline uses this. */
+  --accent-hero: #ff6a52;
   --accent-ink: #dc372d;
   --accent-soft: rgb(226 58 47 / 0.15);
   --line: rgb(242 236 228 / 0.08);
@@ -237,17 +244,17 @@
      * untouched, which is the half of the frame that has no words on it. */
     linear-gradient(
       to right,
-      rgb(10 9 8 / 0.96) 0%,
-      rgb(10 9 8 / 0.94) 38%,
-      rgb(10 9 8 / 0.74) 56%,
-      rgb(10 9 8 / 0.26) 72%,
-      rgb(10 9 8 / 0.06) 100%
+      rgb(10 9 8 / 0.95) 0%,
+      rgb(10 9 8 / 0.92) 36%,
+      rgb(10 9 8 / 0.66) 54%,
+      rgb(10 9 8 / 0.18) 70%,
+      rgb(10 9 8 / 0.02) 100%
     ),
     /* A floor, so no single bright frame decides anything. Kept light: it
      * applies to the whole frame including the half with no words on it, and
      * every point of it is paid for over there in food nobody can see. The
      * column gradient above is what actually protects the text. */
-    rgb(10 9 8 / 0.12);
+    rgb(10 9 8 / 0.08);
 }
 
 /* Narrow screens put the text across the full width, so a gradient that let
@@ -259,18 +266,40 @@
   .kuro-hero-scrim {
     background:
       linear-gradient(to bottom, transparent 44%, rgb(10 9 8 / 0.97) 82%, var(--bg) 96%),
-      linear-gradient(to bottom, rgb(10 9 8 / 0.84) 0%, rgb(10 9 8 / 0.3) 28%),
+      linear-gradient(to bottom, rgb(10 9 8 / 0.68) 0%, rgb(10 9 8 / 0.16) 28%),
+      /* The band that carries the words, and only the band. A phone has no
+       * side to spare — the text runs the full width — so the darkness has to
+       * be bought vertically instead, tightly, where the headline actually
+       * is. */
       linear-gradient(
         to bottom,
-        transparent 10%,
-        rgb(10 9 8 / 0.5) 19%,
-        rgb(10 9 8 / 0.5) 62%,
-        transparent 74%
+        transparent 8%,
+        rgb(10 9 8 / 0.64) 17%,
+        rgb(10 9 8 / 0.64) 63%,
+        transparent 75%
       ),
-      rgb(10 9 8 / 0.64);
+      /* 0.64 before, which was the single darkest thing on the page. Combined
+       * with a video that had itself been graded down, it put the food at
+       * about 29 of 255 — a picture of a flat-top that read as a black
+       * rectangle. The band above protects the text; this only has to stop a
+       * bright frame shouting. */
+      rgb(10 9 8 / 0.22);
   }
 }
 
 .kuro-hero-text {
-  text-shadow: 0 1px 26px rgb(10 9 8 / 0.75);
+  /* Three layers, near to far: a tight one that darkens the pixels a glyph
+   * actually sits on, a middle one for its surround, and the wide haze that
+   * was here before. The tight one is what lets the scrim come down — it
+   * follows the letters instead of covering the picture, so legibility stops
+   * being something the whole frame pays for.
+   *
+   * Note the contrast figures quoted for this hero ignore these entirely:
+   * they sample the video and scrim behind each glyph box, with the text
+   * layer hidden, so what is measured is the floor and the real thing is
+   * better than the number. */
+  text-shadow:
+    0 1px 3px rgb(10 9 8 / 0.92),
+    0 2px 11px rgb(10 9 8 / 0.8),
+    0 1px 30px rgb(10 9 8 / 0.7);
 }
