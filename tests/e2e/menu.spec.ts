@@ -36,16 +36,17 @@ test("lists the whole menu, filters by category and searches", async ({ page }) 
 
   const cards = page.locator("article");
   // Every dish on the printed menu.
-  await expect(cards).toHaveCount(53);
+  await expect(cards).toHaveCount(55);
 
   await page.getByRole("tab", { name: /^Gyros/ }).click();
   await expect(cards).toHaveCount(9);
 
   await page.getByRole("tab", { name: /^Sandwiches/ }).click();
-  await expect(cards).toHaveCount(8);
+  // Nine since the Grilled Chicken Sandwich joined.
+  await expect(cards).toHaveCount(9);
 
   await page.getByRole("tab", { name: /^All/ }).click();
-  await expect(cards).toHaveCount(53);
+  await expect(cards).toHaveCount(55);
 
   await page.getByPlaceholder("Search").fill("chapli");
   // Chicken, Beef and Mix chapli — as platters and as gyros.

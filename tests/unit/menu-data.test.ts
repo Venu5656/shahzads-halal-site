@@ -14,8 +14,8 @@ import {
 const publicDir = join(process.cwd(), "public");
 
 describe("menu data", () => {
-  it("carries all 53 items on the printed menu", () => {
-    expect(MENU_ITEMS).toHaveLength(53);
+  it("carries all 55 items on the printed menu", () => {
+    expect(MENU_ITEMS).toHaveLength(55);
   });
 
   it("has the sections the printed menu has, in its order", () => {
@@ -35,9 +35,9 @@ describe("menu data", () => {
     const counts: Record<string, number> = {};
     for (const item of MENU_ITEMS) counts[item.category] = (counts[item.category] ?? 0) + 1;
     expect(counts).toEqual({
-      Platters: 9,
+      Platters: 10,
       Gyros: 9,
-      Sandwiches: 8,
+      Sandwiches: 9,
       Wings: 1,
       Sides: 12,
       "Desserts & Sweets": 5,
@@ -91,6 +91,7 @@ describe("menu data", () => {
       "lamb-over-rice": 1299,
       "chicken-kofta-kabab-over-rice": 1299,
       "chicken-chapli-kabab": 1299,
+      "shrimp-platter": 1299,
       "beef-chapli-kabab-rice": 1399,
       "mix-platter": 1399,
       "chapli-kabab-mix": 1499,
@@ -110,6 +111,7 @@ describe("menu data", () => {
       "fish-sandwich": 699,
       "veggie-burger": 699,
       "crispy-chicken-burger": 799,
+      "grilled-chicken-sandwich": 799,
       "double-cheese-burger": 999,
       "philly-cheesesteak": 1099,
       "chicken-cheesesteak": 1099,

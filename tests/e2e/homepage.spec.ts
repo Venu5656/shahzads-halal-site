@@ -75,8 +75,9 @@ test("the counter and the prices are the real ones", async ({ page }) => {
   await page.goto("/");
   const stage = page.getByRole("region", { name: "Tonight's platters" });
 
-  // Eight platters have the new photography; the ninth has no photo yet.
-  await expect(stage).toContainText("08");
+  // Ten platters, all photographed: the shoot covered Chapli Kabab Mix, which
+  // had been on a placeholder, and Shrimp Platter joined the menu with it.
+  await expect(stage).toContainText("10");
   await expect(stage).toContainText("$11.99");
   await expect(stage.getByRole("button", { name: /Lamb & Chicken Mix/ })).toContainText("$13.99");
 });
