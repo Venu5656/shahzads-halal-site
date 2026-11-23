@@ -66,6 +66,13 @@ export default async function OffersPage() {
             Write an offer
           </Link>
           <Link
+            href="/admin/subscribers"
+            className="rounded-full border px-6 py-3.5 text-[15px] font-semibold"
+            style={{ borderColor: "var(--line-strong)", color: "var(--ink)" }}
+          >
+            See who they are
+          </Link>
+          <Link
             href="/admin"
             className="rounded-full border px-6 py-3.5 text-[15px] font-semibold"
             style={{ borderColor: "var(--line)", color: "var(--muted)" }}

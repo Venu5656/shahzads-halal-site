@@ -73,6 +73,13 @@ export default async function AdminPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link
+              href="/admin/subscribers"
+              className="rounded-full border px-5 py-3 text-[14px] font-semibold"
+              style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+            >
+              The list
+            </Link>
+            <Link
               href="/admin/offers"
               className="rounded-full border px-5 py-3 text-[14px] font-semibold"
               style={{ borderColor: "var(--line-strong)", color: "var(--ink)" }}
