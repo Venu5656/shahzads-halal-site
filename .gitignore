@@ -34,3 +34,4 @@ agent-skills/
 # the shoot, not here.
 *.mov
 *.MOV
+.env*
