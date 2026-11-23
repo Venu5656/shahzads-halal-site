@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { orderUrl, ORDER_FALLBACK_TEL } from "@/lib/ordering";
+import { LogoMenu } from "./LogoMenu";
 
 /**
  * The counter's header.
@@ -16,7 +17,18 @@ export function KuroHeader() {
 
   return (
     <header className="relative z-40 flex items-center justify-between gap-6 px-6 py-6 sm:px-10">
-      <Link href="/" className="flex items-center gap-3" aria-label="Shahzad's Halal Food, home">
+      {/* Below md the links do not fit, so the logo carries them. At md and
+          up the nav is on the header already and the logo goes home, which is
+          what a logo should do when there is room for both. */}
+      <div className="md:hidden">
+        <LogoMenu />
+      </div>
+
+      <Link
+        href="/"
+        className="hidden items-center gap-3 md:flex"
+        aria-label="Shahzad's Halal Food, home"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/img/logo.png"
@@ -27,7 +39,7 @@ export function KuroHeader() {
           style={{ filter: "drop-shadow(0 0 12px rgb(226 58 47 / 0.5))" }}
         />
         <span
-          className="kuro-serif hidden text-[21px] whitespace-nowrap min-[480px]:inline sm:text-[24px]"
+          className="kuro-serif text-[21px] whitespace-nowrap sm:text-[24px]"
           style={{ letterSpacing: "0.26em" }}
         >
           SHAHZAD&rsquo;S

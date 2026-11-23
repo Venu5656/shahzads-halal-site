@@ -77,12 +77,12 @@ export function PlateStage({ plates }: { plates: StagePlate[] }) {
       id="platters"
       aria-label="Tonight's platters"
       onWheel={onWheel}
-      className="relative px-6 pt-4 pb-16 sm:px-10"
+      className="relative px-6 pt-2 pb-6 sm:px-10 sm:pt-4 sm:pb-16"
     >
-      <div className="mx-auto grid max-w-[1320px] items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)_minmax(0,0.62fr)] lg:gap-6">
+      <div className="mx-auto grid max-w-[1320px] items-center gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)_minmax(0,0.62fr)] lg:gap-6">
         {/* ------------------------------------------------------ the words */}
         <div className="order-2 lg:order-1">
-          <p className="kuro-label mb-5 flex items-center gap-3">
+          <p className="kuro-label mb-3 flex items-center gap-3 sm:mb-5">
             <span style={{ color: "var(--ink)" }}>
               {String(index + 1).padStart(2, "0")}
             </span>
@@ -98,12 +98,12 @@ export function PlateStage({ plates }: { plates: StagePlate[] }) {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: quiet ? 0 : 0.3, ease: [0.22, 0.8, 0.24, 1] }}
             >
-              <p className="kuro-label kuro-label-accent mb-4">{plate.categoryLabel}</p>
+              <p className="kuro-label kuro-label-accent mb-2 sm:mb-4">{plate.categoryLabel}</p>
               {/* h2: the page's heading names the restaurant. A heading that
                   changes when you press an arrow is content, not a title. */}
-              <h2 className="kuro-serif text-[clamp(44px,5.4vw,72px)]">{plate.name}</h2>
+              <h2 className="kuro-serif text-[clamp(32px,5.4vw,72px)]">{plate.name}</h2>
               <p
-                className="mt-6 max-w-[38ch] text-[15.5px] leading-[1.75]"
+                className="mt-3 max-w-[38ch] text-[15.5px] leading-[1.75] sm:mt-6"
                 style={{ color: "var(--muted)" }}
               >
                 {plate.description}
@@ -111,7 +111,7 @@ export function PlateStage({ plates }: { plates: StagePlate[] }) {
             </motion.div>
           </AnimatePresence>
 
-          <div className="mt-9 flex flex-wrap items-center gap-6">
+          <div className="mt-5 flex flex-wrap items-center gap-6 sm:mt-9">
             <span className="kuro-serif text-[30px]">
               {plate.priceCents === null ? "—" : formatCents(plate.priceCents)}
             </span>
@@ -125,7 +125,7 @@ export function PlateStage({ plates }: { plates: StagePlate[] }) {
             </button>
           </div>
 
-          <p className="kuro-label mt-8 max-w-[34ch] leading-[1.9]" style={{ color: "var(--muted-dim)" }}>
+          <p className="kuro-label mt-8 hidden max-w-[34ch] leading-[1.9] lg:block" style={{ color: "var(--muted-dim)" }}>
             Hover to hold it still · ← → for the next dish
           </p>
         </div>
@@ -136,7 +136,7 @@ export function PlateStage({ plates }: { plates: StagePlate[] }) {
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
         >
-          <div className="relative aspect-square w-[min(88vw,560px)]">
+          <div className="relative aspect-square w-[min(57vw,300px)] sm:w-[min(80vw,420px)] lg:w-[min(88vw,560px)]">
             {/* The light behind the plate. Keyed on the dish so the flare
                 keyframe restarts with every change — React replaces the node,
                 which is what re-triggers a CSS animation. */}
