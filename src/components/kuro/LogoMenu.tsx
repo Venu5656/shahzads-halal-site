@@ -68,8 +68,30 @@ export function LogoMenu() {
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={open ? "Close the menu" : "Open the menu"}
-        className="flex items-center gap-3 rounded-2xl py-1 pr-2"
+        className="flex items-center gap-2.5 rounded-2xl py-1 pr-2"
       >
+        {/* Three lines, first thing in the bar. The shape is what everybody
+            already reads as "there is a menu behind this" — but only where
+            they expect to find it, which on a phone is the far left. Sitting
+            between the name and the order button it read as punctuation.
+
+            The middle line retracts when the panel is open, which says the
+            same thing as spinning it into an X and is quieter about it. */}
+        <span
+          aria-hidden="true"
+          className="mr-0.5 flex h-[18px] w-[22px] shrink-0 flex-col justify-center gap-[4px]"
+        >
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="block h-[2px] rounded-full transition-all duration-200"
+              style={{
+                background: open ? "var(--ink)" : "var(--muted)",
+                width: open && i === 1 ? "60%" : "100%",
+              }}
+            />
+          ))}
+        </span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/img/logo.png"
@@ -98,26 +120,6 @@ export function LogoMenu() {
           </span>
         </span>
 
-        {/* Three lines, because that is the shape everybody already reads as
-            "there is a menu behind this". The caret it replaces said something
-            opens, but not that it was navigation. The middle line retracts
-            when the panel is open, which is a quieter way of saying the same
-            thing as spinning it into an X. */}
-        <span
-          aria-hidden="true"
-          className="ml-0.5 flex h-[18px] w-[22px] shrink-0 flex-col justify-center gap-[4px]"
-        >
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="block h-[2px] rounded-full transition-all duration-200"
-              style={{
-                background: open ? "var(--ink)" : "var(--muted)",
-                width: open && i === 1 ? "60%" : "100%",
-              }}
-            />
-          ))}
-        </span>
       </button>
 
       <div
