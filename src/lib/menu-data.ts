@@ -36,18 +36,35 @@ export type SeedMenuItem = {
 };
 
 /** Exactly the section names on the printed menu, in its order. */
+/**
+ * The sections, with their slugs written down rather than derived.
+ *
+ * The slug used to be slugify(name), which made the printed label and the
+ * URL the same string. That is fine until somebody renames a section: the
+ * seed upserts categories BY SLUG, so "Platters" becoming "Signature
+ * Platters" would not have renamed anything — it would have created a second,
+ * empty category and left the first one behind, while #platters on the
+ * homepage, the hero's own button and the plate carousel's filter all went on
+ * pointing at a section that no longer had a name.
+ *
+ * So the two are separate now. The name is what the board says and may change
+ * whenever Shahzad likes; the slug is an address and does not move.
+ */
 export const CATEGORIES = [
-  "Platters",
-  "Gyros",
-  "Sandwiches",
-  "Wings",
-  "Sides",
-  "Desserts & Sweets",
-  "Beverages",
-  "Extra Sauces",
+  { name: "Signature Platters", slug: "platters" },
+  { name: "Salad Platters", slug: "salad-platters" },
+  { name: "Gyros", slug: "gyros" },
+  { name: "Sandwiches", slug: "sandwiches" },
+  { name: "Wings", slug: "wings" },
+  { name: "Sides", slug: "sides" },
+  // "and", not "&": this is the slug already in the database, and the menu
+  // page groups add-ons by it.
+  { name: "Desserts & Sweets", slug: "desserts-and-sweets" },
+  { name: "Beverages", slug: "beverages" },
+  { name: "Extra Sauces", slug: "extra-sauces" },
 ] as const;
 
-export type CategoryName = (typeof CATEGORIES)[number];
+export type CategoryName = (typeof CATEGORIES)[number]["name"];
 
 // ---------------------------------------------------------------- sauces
 
@@ -183,6 +200,44 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
     ],
   },
   {
+    // The salad platter is one dish and the protein is the choice, so this
+    // group is required: an order with no meat picked is not an order.
+    slug: "salad-meat",
+    name: "Choose your meat",
+    minSelect: 1,
+    maxSelect: 1,
+    options: [
+      { slug: "chicken", name: "Chicken", priceCents: 0 },
+      { slug: "lamb", name: "Lamb", priceCents: 0 },
+      { slug: "chicken-kofta", name: "Chicken Kofta", priceCents: 0 },
+      { slug: "chicken-chapli", name: "Chicken Chapli", priceCents: 0 },
+      { slug: "falafel", name: "Falafel", priceCents: 0 },
+      { slug: "fish", name: "Fish", priceCents: 0 },
+      { slug: "shrimp", name: "Shrimp", priceCents: 0 },
+      // The three that cost more over rice cost more here, by the same
+      // amounts, so the two halves of the menu cannot drift apart. Nothing is
+      // priced BELOW the base: fish and falafel are a dollar less as a rice
+      // platter, and whether that discount carries over is Shahzad's call
+      // rather than something to assume.
+      { slug: "chicken-lamb-mix", name: "Chicken & Lamb Mix", priceCents: 100 },
+      { slug: "beef-chapli", name: "Beef Chapli", priceCents: 100 },
+      { slug: "mix-chapli", name: "Mix Chapli", priceCents: 200 },
+    ],
+  },
+  {
+    // The platter group with "No salad" taken out of it, which would be a
+    // strange thing to offer on a salad.
+    slug: "salad-extras",
+    name: "Make it bigger",
+    minSelect: 0,
+    maxSelect: 3,
+    options: [
+      { slug: "extra-protein", name: "Extra protein", priceCents: 300 },
+      { slug: "add-fries", name: "Add fries", priceCents: 200 },
+      { slug: "add-pita", name: "Add pita", priceCents: 200 },
+    ],
+  },
+  {
     // "Add Fries & Soda +$5" under GYROS.
     slug: "meal-deal-gyro",
     name: "Make it a meal",
@@ -263,6 +318,8 @@ export const OPTION_GROUPS: SeedOptionGroup[] = [
 // ------------------------------------------------------------------ items
 
 const PLATTER_GROUPS = ["rice-style", "sauce-choice", "platter-extras", "extra-sauce"];
+// Everything a rice platter offers except the rice.
+const SALAD_GROUPS = ["salad-meat", "sauce-choice", "salad-extras", "extra-sauce"];
 const GYRO_GROUPS = ["sauce-choice", "meal-deal-gyro", "extra-sauce"];
 const SANDWICH_GROUPS = ["meal-deal-sandwich"];
 
@@ -274,7 +331,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "fish-over-rice",
     name: "2 Pc Fish over Rice",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/fish-over-rice.webp",
     description: "Two fried fish fillets over brown basmati with salad and your sauce.",
     basePriceCents: 1199,
@@ -284,7 +341,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "falafel-over-rice",
     name: "Falafel over Rice",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/falafel-over-rice.webp",
     description:
       "Crispy falafel over brown basmati with a side salad and your choice of sauce.",
@@ -295,7 +352,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "chicken-over-rice",
     name: "Chicken over Rice",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/chicken-over-rice.webp",
     description:
       "Marinated chicken chopped hot off the flat-top, over brown basmati with salad.",
@@ -306,7 +363,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "lamb-over-rice",
     name: "Lamb over Rice",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/lamb-over-rice.webp",
     description: "Lamb cut from the spit and crisped on the griddle, over brown basmati.",
     basePriceCents: 1299,
@@ -316,7 +373,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "chicken-kofta-kabab-over-rice",
     name: "Chicken Kofta Kabab",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/chicken-kofta-kabab-over-rice.webp",
     description:
       "Freshly ground chicken with herbs and spices, chopped and served over rice.",
@@ -327,7 +384,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "chicken-chapli-kabab",
     name: "Chicken Chapli Kabab",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/chicken-chapli-kabab.webp",
     description: "Spiced chicken chapli patties over rice with a crisp side salad.",
     basePriceCents: 1299,
@@ -337,7 +394,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "shrimp-platter",
     name: "Shrimp Platter",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/shrimp-platter.webp",
     description: "Fried shrimp over brown basmati with salad and your sauce.",
     basePriceCents: 1299,
@@ -347,7 +404,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "beef-chapli-kabab-rice",
     name: "Beef Chapli Kabab",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/beef-chapli-kabab-rice.webp",
     description: "Savory beef chapli kebabs over seasoned rice with a crisp side salad.",
     basePriceCents: 1399,
@@ -357,7 +414,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "mix-platter",
     name: "Lamb & Chicken Mix",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/mix-platter.webp",
     description:
       "Chicken and lamb together over brown basmati, with salad and any of Shahzad's sauces.",
@@ -368,7 +425,7 @@ export const MENU_ITEMS: SeedMenuItem[] = [
   {
     slug: "chapli-kabab-mix",
     name: "Chapli Kabab Mix",
-    category: "Platters",
+    category: "Signature Platters",
     imagePath: "/img/menu/plate/chapli-kabab-mix.webp",
     description: "Chicken and beef chapli kebabs together over rice, with salad.",
     basePriceCents: 1499,
@@ -376,6 +433,22 @@ export const MENU_ITEMS: SeedMenuItem[] = [
     optionGroups: PLATTER_GROUPS,
   },
 
+
+  // --------------------------------------------------- SALAD PLATTERS
+  // One dish, and the meat is the choice. The rice platters are ten separate
+  // dishes because the board prints them that way; this is one because the
+  // only thing that varies is what goes on top of it.
+  {
+    slug: "salad-platter",
+    name: "Salad Platter",
+    category: "Salad Platters",
+    imagePath: pending("salad-platter"),
+    description:
+      "Everything off the flat-top over a chopped salad instead of rice, with your choice of meat and sauce.",
+    basePriceCents: 1299,
+    tags: [{ kind: "star", label: "New" }],
+    optionGroups: SALAD_GROUPS,
+  },
   // ------------------------------------------------------------ GYROS
   // "Pita · salad · sauces | Add Fries & Soda +$5"
   {

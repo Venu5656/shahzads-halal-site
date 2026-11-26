@@ -15,12 +15,6 @@ import { passwordProblem } from "../src/lib/auth/login-policy";
 
 const prisma = new PrismaClient();
 
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
 
 async function main() {
   // --- store settings ------------------------------------------------------
@@ -32,11 +26,13 @@ async function main() {
 
   // --- categories ----------------------------------------------------------
   const categoryIds = new Map<string, string>();
-  for (const [index, name] of CATEGORIES.entries()) {
+  // Upserted by slug, so renaming a section renames it rather than creating a
+  // second one. That is the whole reason CATEGORIES carries its own slugs.
+  for (const [index, { name, slug }] of CATEGORIES.entries()) {
     const category = await prisma.category.upsert({
-      where: { slug: slugify(name) },
+      where: { slug },
       update: { name, sortOrder: index },
-      create: { name, slug: slugify(name), sortOrder: index },
+      create: { name, slug, sortOrder: index },
     });
     categoryIds.set(name, category.id);
   }

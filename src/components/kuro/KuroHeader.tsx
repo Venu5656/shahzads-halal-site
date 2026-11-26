@@ -65,13 +65,13 @@ export function KuroHeader() {
       </nav>
 
       {href ? (
-        <a href={href} target="_blank" rel="noopener" className="kuro-cta !px-6 !py-3 !text-[14px]">
+        <a href={href} target="_blank" rel="noopener" className="kuro-cta !px-4 !py-2.5 !text-[13px] whitespace-nowrap sm:!px-6 sm:!py-3 sm:!text-[14px]">
           Order now
         </a>
       ) : (
         /* No link configured yet. A button that goes nowhere is worse than a
            phone number that works, so this falls back rather than pretending. */
-        <a href={`tel:${ORDER_FALLBACK_TEL}`} className="kuro-cta !px-6 !py-3 !text-[14px]">
+        <a href={`tel:${ORDER_FALLBACK_TEL}`} className="kuro-cta !px-4 !py-2.5 !text-[13px] whitespace-nowrap sm:!px-6 sm:!py-3 sm:!text-[14px]">
           Call to order
         </a>
       )}

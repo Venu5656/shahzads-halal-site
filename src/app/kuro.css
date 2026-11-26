@@ -25,6 +25,14 @@
   src: url(/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2");
 }
 
+/* :root as well as .kuro. These started life scoped to the homepage's own
+ * wrapper, which was fine while nothing else used them — then KuroHeader
+ * and ItemDetail went on the menu pages, which have no .kuro around them,
+ * and every kuro-* class there resolved its colours to nothing. The order
+ * button rendered as plain text on the two pages where somebody is
+ * actually choosing food. Tokens a shared component depends on have to be
+ * reachable from wherever that component is used. */
+:root,
 .kuro {
   --bg: #0a0908;
   --bg-raised: #131110;

@@ -4,6 +4,7 @@ import "../kuro.css";
 import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { PriceForm } from "@/components/admin/PriceForm";
 import { StockForm } from "@/components/admin/StockForm";
+import { DishForm } from "@/components/admin/DishForm";
 import { logout } from "@/lib/auth/actions";
 import { STAFF_ROLES, requireRole } from "@/lib/auth/dal";
 import { listForManager } from "@/lib/menu/manage";
@@ -159,6 +160,12 @@ export default async function AdminPage() {
                     <div className="flex flex-col gap-4 sm:items-end">
                       <PriceForm itemId={item.id} priceCents={item.basePriceCents} />
                       <StockForm itemId={item.id} mode={mode} />
+                      <DishForm
+                        itemId={item.id}
+                        itemName={item.name}
+                        description={item.description}
+                        imagePath={item.imagePath}
+                      />
                     </div>
                   </li>
                 );

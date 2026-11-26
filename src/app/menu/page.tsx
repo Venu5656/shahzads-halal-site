@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MenuBrowser } from "@/components/menu/MenuBrowser";
+import "../kuro.css";
 import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { getMenu } from "@/lib/menu/queries";
 

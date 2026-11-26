@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ItemDetail } from "@/components/menu/ItemDetail";
+import "../../kuro.css";
 import { KuroHeader } from "@/components/kuro/KuroHeader";
 import { formatCents } from "@/lib/money";
 import { isSoldOut, startingPriceCents } from "@/lib/menu/pricing";

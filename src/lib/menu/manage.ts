@@ -5,6 +5,8 @@ import { requestMeta } from "@/lib/auth/request";
 import { STAFF_ROLES, requireRole } from "@/lib/auth/dal";
 import { parseDollarsToCents } from "@/lib/money";
 import { stockStateFor, type StockMode } from "./stock";
+import { preparePhoto } from "./photo";
+import { put } from "@vercel/blob";
 
 /**
  * The manager's two jobs: change a price, and mark something sold out.
@@ -33,6 +35,8 @@ export type ManagedItem = {
   isAvailable: boolean;
   outOfStockUntil: Date | null;
   lastPriceChangeAt: Date | null;
+  description: string;
+  imagePath: string;
 };
 
 /** Every item on the menu, in menu order, with its latest price change. */
@@ -47,6 +51,8 @@ export async function listForManager(): Promise<ManagedItem[]> {
       basePriceCents: true,
       isAvailable: true,
       outOfStockUntil: true,
+      description: true,
+      imagePath: true,
       category: { select: { name: true } },
       priceChanges: {
         orderBy: { createdAt: "desc" },
@@ -65,6 +71,8 @@ export async function listForManager(): Promise<ManagedItem[]> {
     isAvailable: row.isAvailable,
     outOfStockUntil: row.outOfStockUntil,
     lastPriceChangeAt: row.priceChanges[0]?.createdAt ?? null,
+    description: row.description,
+    imagePath: row.imagePath,
   }));
 }
 
@@ -169,6 +177,132 @@ export async function setStock(itemId: string, mode: StockMode): Promise<ManageR
   return {
     ok: true,
     message: mode === "in-stock" ? `${item.name} is back on.` : `${item.name} is off.`,
+  };
+}
+
+export const MAX_DESCRIPTION = 300;
+const MIN_DESCRIPTION = 10;
+
+/**
+ * Rewrites what a dish says it is.
+ *
+ * Bounded at both ends. Too short and the card has a line of nothing under a
+ * name; too long and it pushes the price and the button off a phone screen,
+ * which is a layout somebody only discovers after it is live. Three hundred is
+ * roughly twice the longest one on the menu today.
+ *
+ * Newlines are flattened rather than rejected. A phone keyboard offers a
+ * return key and the card renders one paragraph, so a description typed across
+ * two lines would come out with the break silently ignored — better to make
+ * the flattening the actual behaviour than to let the stored text disagree
+ * with what everybody can see.
+ */
+export async function setDescription(itemId: string, text: string): Promise<ManageResult> {
+  const user = await requireRole(STAFF_ROLES);
+  const meta = await requestMeta();
+
+  const next = text.replace(/\s+/g, " ").trim();
+  if (next.length < MIN_DESCRIPTION) {
+    return { ok: false, error: `Say a little more — at least ${MIN_DESCRIPTION} characters.` };
+  }
+  if (next.length > MAX_DESCRIPTION) {
+    return { ok: false, error: `That is longer than ${MAX_DESCRIPTION} characters.` };
+  }
+
+  const item = await prisma.menuItem.findUnique({
+    where: { id: itemId },
+    select: { id: true, name: true, description: true },
+  });
+  if (!item) return { ok: false, error: "That item is no longer on the menu." };
+  if (item.description === next) return { ok: true, message: `${item.name} already says that.` };
+
+  await prisma.$transaction([
+    prisma.menuItem.update({ where: { id: item.id }, data: { description: next } }),
+    prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: "menu.description",
+        entityType: "MenuItem",
+        entityId: item.id,
+        oldValue: { description: item.description },
+        newValue: { description: next },
+        ipHash: meta.ipHash,
+      },
+    }),
+  ]);
+
+  revalidateMenu();
+  return { ok: true, message: `${item.name} updated.` };
+}
+
+/**
+ * Replaces a dish's photograph.
+ *
+ * The committed photographs are files in the repository, which cannot be the
+ * answer here: the filesystem a deployed Next app runs on is read-only, and
+ * would be thrown away on the next deploy even if it were not. So an uploaded
+ * photo goes to blob storage and the item keeps the URL. Nothing on the
+ * customer side changes — every component already renders whatever string is
+ * in imagePath, whether that is /img/menu/plate/… or a URL.
+ *
+ * The old path is kept in the audit row rather than deleted. Photographs get
+ * replaced by accident, usually with the wrong one, and the question that
+ * follows is "what was it before" — which an audit row answers and a deleted
+ * file does not.
+ */
+export async function setPhoto(itemId: string, file: File): Promise<ManageResult> {
+  const user = await requireRole(STAFF_ROLES);
+  const meta = await requestMeta();
+
+  const item = await prisma.menuItem.findUnique({
+    where: { id: itemId },
+    select: { id: true, name: true, slug: true, imagePath: true },
+  });
+  if (!item) return { ok: false, error: "That item is no longer on the menu." };
+
+  const prepared = await preparePhoto(file);
+  if (!prepared.ok) return { ok: false, error: prepared.error };
+
+  let url: string;
+  try {
+    // addRandomSuffix, so uploading twice never serves a stale cached copy
+    // under a reused name — and so the uploader's own filename, which is
+    // attacker-controlled in the general case, is never part of the path.
+    const blob = await put(`menu/${item.slug}.webp`, prepared.bytes, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: "image/webp",
+      cacheControlMaxAge: 60 * 60 * 24 * 365,
+    });
+    url = blob.url;
+  } catch {
+    return {
+      ok: false,
+      error: "The photo could not be saved. Try again in a moment.",
+    };
+  }
+
+  await prisma.$transaction([
+    prisma.menuItem.update({ where: { id: item.id }, data: { imagePath: url } }),
+    prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: "menu.photo",
+        entityType: "MenuItem",
+        entityId: item.id,
+        oldValue: { imagePath: item.imagePath },
+        newValue: { imagePath: url, keyed: prepared.keyed },
+        ipHash: meta.ipHash,
+      },
+    }),
+  ]);
+
+  revalidateMenu();
+  return {
+    ok: true,
+    message: prepared.keyed
+      ? `${item.name} has a new photo, with the background taken out.`
+      : `${item.name} has a new photo.`,
   };
 }
 

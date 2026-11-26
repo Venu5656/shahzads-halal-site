@@ -14,13 +14,16 @@ import {
 const publicDir = join(process.cwd(), "public");
 
 describe("menu data", () => {
-  it("carries all 55 items on the printed menu", () => {
-    expect(MENU_ITEMS).toHaveLength(55);
+  it("carries all 56 items on the printed menu", () => {
+    expect(MENU_ITEMS).toHaveLength(56);
   });
 
   it("has the sections the printed menu has, in its order", () => {
-    expect(CATEGORIES).toEqual([
-      "Platters",
+    // Name and slug are separate now: the label is what the board says, the
+    // slug is an address that must not move when the label changes.
+    expect(CATEGORIES.map((c) => c.name)).toEqual([
+      "Signature Platters",
+      "Salad Platters",
       "Gyros",
       "Sandwiches",
       "Wings",
@@ -29,13 +32,27 @@ describe("menu data", () => {
       "Beverages",
       "Extra Sauces",
     ]);
+    // These are in URLs, in the homepage's own filter and in the #platters
+    // anchor the hero button points at. Renaming a section must not touch them.
+    expect(CATEGORIES.map((c) => c.slug)).toEqual([
+      "platters",
+      "salad-platters",
+      "gyros",
+      "sandwiches",
+      "wings",
+      "sides",
+      "desserts-and-sweets",
+      "beverages",
+      "extra-sauces",
+    ]);
   });
 
   it("has the same number of dishes per section as the board", () => {
     const counts: Record<string, number> = {};
     for (const item of MENU_ITEMS) counts[item.category] = (counts[item.category] ?? 0) + 1;
     expect(counts).toEqual({
-      Platters: 10,
+      "Signature Platters": 10,
+      "Salad Platters": 1,
       Gyros: 9,
       Sandwiches: 9,
       Wings: 1,
@@ -53,7 +70,7 @@ describe("menu data", () => {
 
   it("only uses known categories", () => {
     for (const item of MENU_ITEMS) {
-      expect(CATEGORIES).toContain(item.category);
+      expect(CATEGORIES.map((c) => c.name)).toContain(item.category);
     }
   });
 
@@ -92,6 +109,8 @@ describe("menu data", () => {
       "chicken-kofta-kabab-over-rice": 1299,
       "chicken-chapli-kabab": 1299,
       "shrimp-platter": 1299,
+      // SALAD PLATTERS
+      "salad-platter": 1299,
       "beef-chapli-kabab-rice": 1399,
       "mix-platter": 1399,
       "chapli-kabab-mix": 1499,
@@ -184,7 +203,10 @@ describe("menu data", () => {
   it("offers sauce on the side on platters and gyros only — elsewhere it is a dip", () => {
     for (const item of MENU_ITEMS) {
       const onTheSide = item.optionGroups.includes("extra-sauce");
-      const expected = item.category === "Platters" || item.category === "Gyros";
+      const expected =
+        item.category === "Signature Platters" ||
+        item.category === "Salad Platters" ||
+        item.category === "Gyros";
       expect(onTheSide).toBe(expected);
     }
   });
@@ -207,7 +229,10 @@ describe("menu data", () => {
   it("gives free sauces to platters and gyros only", () => {
     for (const item of MENU_ITEMS) {
       const free = item.optionGroups.includes("sauce-choice");
-      const expected = item.category === "Platters" || item.category === "Gyros";
+      const expected =
+        item.category === "Signature Platters" ||
+        item.category === "Salad Platters" ||
+        item.category === "Gyros";
       expect(free).toBe(expected);
     }
   });

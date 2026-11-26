@@ -79,23 +79,44 @@ export function LogoMenu() {
           className="size-9 shrink-0 object-contain"
           style={{ filter: "drop-shadow(0 0 12px rgb(226 58 47 / 0.5))" }}
         />
-        <span
-          className="kuro-serif hidden text-[21px] whitespace-nowrap min-[480px]:inline"
-          style={{ letterSpacing: "0.26em" }}
-        >
-          SHAHZAD&rsquo;S
+        {/* The name, with what the shop sells under it. It used to be hidden
+            below 480px, which left a phone with a logo and nothing else — so
+            it is smaller and tighter here than the desktop wordmark rather
+            than absent. */}
+        <span className="flex min-w-0 flex-col items-start leading-none">
+          <span
+            className="kuro-serif text-[17px] whitespace-nowrap sm:text-[19px]"
+            style={{ letterSpacing: "0.2em" }}
+          >
+            SHAHZAD&rsquo;S
+          </span>
+          <span
+            className="kuro-label mt-[3px] whitespace-nowrap"
+            style={{ fontSize: "9.5px", letterSpacing: "0.22em", color: "var(--muted)" }}
+          >
+            HALAL FOOD
+          </span>
         </span>
-        {/* Points down when shut and up when open: the only thing on the
-            header that says it does anything at all. */}
+
+        {/* Three lines, because that is the shape everybody already reads as
+            "there is a menu behind this". The caret it replaces said something
+            opens, but not that it was navigation. The middle line retracts
+            when the panel is open, which is a quieter way of saying the same
+            thing as spinning it into an X. */}
         <span
           aria-hidden="true"
-          className="text-[11px] leading-none transition-transform duration-200"
-          style={{
-            color: "var(--muted)",
-            transform: open ? "rotate(180deg)" : "none",
-          }}
+          className="ml-0.5 flex h-[18px] w-[22px] shrink-0 flex-col justify-center gap-[4px]"
         >
-          ▾
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="block h-[2px] rounded-full transition-all duration-200"
+              style={{
+                background: open ? "var(--ink)" : "var(--muted)",
+                width: open && i === 1 ? "60%" : "100%",
+              }}
+            />
+          ))}
         </span>
       </button>
 
